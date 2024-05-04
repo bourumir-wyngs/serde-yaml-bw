@@ -77,7 +77,6 @@ defined in your program.
 ```toml
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
 ```
 
 Structs serialize in the obvious way:
