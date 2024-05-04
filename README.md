@@ -12,7 +12,7 @@ We would also work on bug fixes if would be any. We will review and merge the pu
 All interested in further development of the library are encouraged to look into existing pull
 requests and assist us on this.
 
-This package inherits a huge testing suite that should never break. W
+This package inherits a huge testing suite that should never break. 
 
 
 [Serde]: https://github.com/serde-rs/serde
@@ -158,14 +158,14 @@ fn main() -> Result<(), serde_yaml::Error> {
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
 </sup>
-
 <br>
-
 <sub>
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
 </sub>
-
-Bourumir Wyngs is using the rights granted by these licenses to take over the project
+<br>
+<sub>
+Bourumir Wyngs is using the rights granted by the licenses above to take over the project
 and continue its development.
+</sub>
