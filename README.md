@@ -1,13 +1,25 @@
-Serde YAML
+Serde YAML, maintained by Bourumir Wyngs
 ==========
 
-[<img alt="github" src="https://img.shields.io/badge/github-dtolnay/serde--yaml-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/dtolnay/serde-yaml)
-[<img alt="crates.io" src="https://img.shields.io/crates/v/serde_yaml.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/serde_yaml)
-[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-serde__yaml-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/serde_yaml)
-[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/dtolnay/serde-yaml/ci.yml?branch=master&style=for-the-badge" height="20">](https://github.com/dtolnay/serde-yaml/actions?query=branch%3Amaster)
-
 Rust library for using the [Serde] serialization framework with data in [YAML]
-file format. _(This project is no longer maintained.)_
+file format. 
+
+The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode 
+and marked as deprecated. This fork aims to provide some basic mainenance like moving dependency version ranges ahead.
+
+It is important to have at least some outlet for bug reports, requests for enhancement and pull requests as well.
+We would also work on bug fixes if would be any. We will review and merge the pull requests, if we would receive any.
+All interested in further development of the library are encouraged to look into existing pull
+requests and assist us on this.
+
+This package inherits a huge testing suite that should never break. We expect it will help us to keep the 
+things in one piece (not broken)
+
+It is currently not clear how this should be deployed to _crates.io_ as the package name (that is taken) is tightly 
+bound to the references of this name in the code. Ideally we would like to provide drop-in replacement with the only 
+change in Cargo.toml, but we still need to figure out how this could possibly work. So far we simply do not deploy to 
+crates.io, you need to add the dependency as Git repository:
+
 
 [Serde]: https://github.com/serde-rs/serde
 [YAML]: https://yaml.org/
@@ -17,8 +29,14 @@ file format. _(This project is no longer maintained.)_
 ```toml
 [dependencies]
 serde = "1.0"
-serde_yaml = "0.9"
+serde_yaml = { git = "https://github.com/bourumir-wyngs/serde-yaml-bw", branch = "1.0.0" }
 ```
+
+We will keep releases in separate branches, to make sure you do not have unexpected changes as we are working
+on the master branch.
+
+So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
+dependent packages. But if the project would get some bug fixes, this may change. 
 
 Release notes are available under [GitHub releases].
 
@@ -150,3 +168,6 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
 </sub>
+
+Bourumir Wyngs is using the rights granted by these licenses to take over the project
+and continue its development.
