@@ -23,19 +23,17 @@ This package inherits a huge testing suite that should never break.
 [YAML]: https://yaml.org/
 
 ## Dependency
-It is currently not clear how this should be deployed to _crates.io_ as the package name (that is taken) is tightly
-bound to the references of this name in the code. Ideally we would like to provide drop-in replacement with the only
-change in Cargo.toml, but we still need to figure out how this could possibly work. So far we simply do not deploy to
-crates.io, you need to add the dependency as Git repository:
+You can use the "package rename" to use this repository without changing your code, so that you could easily switch
+between implementations without refactoring:
 
 ```toml
 [dependencies]
 serde = "1.0"
-serde_yaml = { git = "https://github.com/bourumir-wyngs/serde-yaml-bw", branch = "1.0.0" }
+serde_yaml = { package = "serde_yaml_bw", version = "1.0.0" }
 ```
 
-We will keep releases in separate branches, to make sure you do not have unexpected changes as we are working
-on the master branch.
+If you do not like this renaming, simply specify the dependency the usual way. In this case you will need to adjust
+the package references in your source code, we are really not sure yet if this is preferred.
 
 So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
 dependent packages and some additional tests. But if the project would get some bug fixes, this may change. 
@@ -54,18 +52,18 @@ is:
 ```rust
 use std::collections::BTreeMap;
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     // You have some type.
     let mut map = BTreeMap::new();
     map.insert("x".to_string(), 1.0);
     map.insert("y".to_string(), 2.0);
 
     // Serialize it to a YAML string.
-    let yaml = serde_yaml::to_string(&map)?;
+    let yaml = serde_yaml_bw::to_string(&map)?;
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
     // Deserialize it back to a Rust type.
-    let deserialized_map: BTreeMap<String, f64> = serde_yaml::from_str(&yaml)?;
+    let deserialized_map: BTreeMap<String, f64> = serde_yaml_bw::from_str(&yaml)?;
     assert_eq!(map, deserialized_map);
     Ok(())
 }
@@ -91,13 +89,13 @@ struct Point {
     y: f64,
 }
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     let point = Point { x: 1.0, y: 2.0 };
 
-    let yaml = serde_yaml::to_string(&point)?;
+    let yaml = serde_yaml_bw::to_string(&point)?;
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
-    let deserialized_point: Point = serde_yaml::from_str(&yaml)?;
+    let deserialized_point: Point = serde_yaml_bw::from_str(&yaml)?;
     assert_eq!(point, deserialized_point);
     Ok(())
 }
@@ -116,13 +114,13 @@ enum Enum {
     Struct { x: f64, y: f64 },
 }
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     let yaml = "
         - !Newtype 1
         - !Tuple [0, 0, 0]
         - !Struct {x: 1.0, y: 2.0}
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Newtype(1));
     assert_eq!(values[1], Enum::Tuple(0, 0, 0));
     assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
@@ -137,7 +135,7 @@ fn main() -> Result<(), serde_yaml::Error> {
           x: 1.0
           y: 2.0
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 
@@ -146,7 +144,7 @@ fn main() -> Result<(), serde_yaml::Error> {
         - Unit  # serialization produces this one
         - !Unit
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Unit);
     assert_eq!(values[1], Enum::Unit);
 
