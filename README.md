@@ -10,11 +10,6 @@ file format.
 The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode
 and marked as deprecated. This fork aims to provide some basic mainenance like moving dependency version ranges ahead.
 
-It is important to have at least some outlet for bug reports, requests for enhancement and pull requests as well.
-We would also work on bug fixes if would be any. We will review and merge the pull requests, if we would receive any.
-All interested in further development of the library are encouraged to look into existing pull
-requests and assist us on this.
-
 This package inherits a huge testing suite that should never break.
 
 
@@ -36,8 +31,10 @@ If you're not in favor of this renaming, you can specify the dependency in the u
 However, in this case you will need to update the package references in your source code accordingly. We are still 
 uncertain which approach is preferred. 
 
-So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
-dependent packages and some additional tests. But if the project would get some bug fixes, this may change.
+## New changes
+* The error message about unresolved anchor now includes the anchor name. This name is sanitized agains DIA.
+* Dependencies in Cargo.toml are extended to the more recent versions, using ranges
+* Additional tests.
 
 Release notes are available under [GitHub releases].
 
