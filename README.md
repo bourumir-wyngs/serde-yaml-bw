@@ -24,8 +24,7 @@ This package inherits a huge testing suite that should never break.
 
 ## Dependency
 
-You can use the "package rename" to use this repository without changing your code, so that you could easily switch
-between implementations without refactoring:
+You can use the "package rename" to try this branch without changing your code:
 
 ```toml
 [dependencies]
