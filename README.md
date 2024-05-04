@@ -4,6 +4,10 @@ Serde YAML, maintained by Bourumir Wyngs
 Rust library for using the [Serde] serialization framework with data in [YAML]
 file format. 
 
+[![GitHub](https://img.shields.io/badge/GitHub-777777)](https://github.com/bourumir-wyngs/serde-yaml-bw)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/serde-yaml-bw/rust.yml)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions)
+
+
 The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode 
 and marked as deprecated. This fork aims to provide some basic mainenance like moving dependency version ranges ahead.
 
