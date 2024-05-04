@@ -51,7 +51,7 @@ is:
 
 [docs.rs]: https://docs.rs/serde_yaml
 
-Examples below uses the new package name without renaming:
+Examples below use the new package name without renaming:
 
 ```toml
 [dependencies]
