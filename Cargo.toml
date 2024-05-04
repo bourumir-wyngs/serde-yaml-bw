@@ -27,8 +27,6 @@ anyhow = ">=1.0.79, <=1.0.82"
 indoc = "2.0"
 serde_derive = ">=1.0.195, <=1.0.200"
 
-#serde_yaml = { git = "https://github.com/bourumir-wyngs/serde-yaml-bw", branch = "1.0.0" }
-
 [lib]
 doc-scrape-examples = false
 
