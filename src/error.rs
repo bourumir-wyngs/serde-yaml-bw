@@ -209,7 +209,7 @@ impl ErrorImpl {
 
         fn sanitize(anchor: &Anchor) -> String {
             let bytes = &anchor.0;
-            match std::str::from_utf8(&bytes) {
+            match std::str::from_utf8(bytes) {
                 Ok(string) =>
                     // Block potential DIA
                     string.chars().map(|c| {
