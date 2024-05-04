@@ -100,7 +100,7 @@ fn test_unknown_anchor() {
         ---
         *some
     "};
-    let expected = "unknown anchor at line 2 column 1";
+    let expected = "unknown anchor [some] at line 2 column 1";
     test_error::<String>(yaml, expected);
 }
 
@@ -112,10 +112,10 @@ fn test_ignored_unknown_anchor() {
         pub c: (),
     }
     let yaml = indoc! {"
-        b: [*a]
+        b: [*This_anchor-is-unknown]
         c: ~
     "};
-    let expected = "unknown anchor at line 1 column 5";
+    let expected = "unknown anchor [This_anchor-is-unknown] at line 1 column 5";
     test_error::<Wrapper>(yaml, expected);
 }
 

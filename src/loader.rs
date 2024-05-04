@@ -82,7 +82,8 @@ impl<'input> Loader<'input> {
                 YamlEvent::Alias(alias) => match anchors.get(&alias) {
                     Some(id) => Event::Alias(*id),
                     None => {
-                        document.error = Some(error::new(ErrorImpl::UnknownAnchor(mark)).shared());
+                        document.error = Some(error::new(
+                            ErrorImpl::UnknownAnchor(mark, alias)).shared());
                         return Some(document);
                     }
                 },

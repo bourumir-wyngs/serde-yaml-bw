@@ -53,7 +53,7 @@ pub(crate) struct MappingStart {
 }
 
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
-pub(crate) struct Anchor(Box<[u8]>);
+pub(crate) struct Anchor(pub(crate) Box<[u8]>);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum ScalarStyle {
