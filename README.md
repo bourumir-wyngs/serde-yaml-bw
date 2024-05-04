@@ -33,9 +33,9 @@ serde = "1.0"
 serde_yaml = { package = "serde_yaml_bw", version = "1.0.0" }
 ```
 
-If you're not in favor of this renaming, you can specify the dependency in the usual manner. However, in this case you
-will need to update the package references in your source code accordingly. We are still uncertain if this is the
-preferred approach. 
+If you're not in favor of this renaming, you can specify the dependency in the usual manner (as in example below). 
+However, in this case you will need to update the package references in your source code accordingly. We are still 
+uncertain which approach is preferred. 
 
 So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
 dependent packages and some additional tests. But if the project would get some bug fixes, this may change.
@@ -50,6 +50,14 @@ Release notes are available under [GitHub releases].
 is:
 
 [docs.rs]: https://docs.rs/serde_yaml
+
+Examples below uses the new package name without renaming:
+
+```toml
+[dependencies]
+serde = "1.0"
+serde_yaml_bw ="1.0.0" 
+```
 
 ```rust
 use std::collections::BTreeMap;
@@ -77,7 +85,6 @@ defined in your program.
 ```toml
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
 ```
 
 Structs serialize in the obvious way:
