@@ -2,13 +2,12 @@ Serde YAML, maintained by Bourumir Wyngs
 ==========
 
 Rust library for using the [Serde] serialization framework with data in [YAML]
-file format. 
+file format.
 
 [![GitHub](https://img.shields.io/badge/GitHub-777777)](https://github.com/bourumir-wyngs/serde-yaml-bw)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/serde-yaml-bw/rust.yml)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions)
 
-
-The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode 
+The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode
 and marked as deprecated. This fork aims to provide some basic mainenance like moving dependency version ranges ahead.
 
 It is important to have at least some outlet for bug reports, requests for enhancement and pull requests as well.
@@ -16,13 +15,15 @@ We would also work on bug fixes if would be any. We will review and merge the pu
 All interested in further development of the library are encouraged to look into existing pull
 requests and assist us on this.
 
-This package inherits a huge testing suite that should never break. 
+This package inherits a huge testing suite that should never break.
 
 
 [Serde]: https://github.com/serde-rs/serde
+
 [YAML]: https://yaml.org/
 
 ## Dependency
+
 You can use the "package rename" to use this repository without changing your code, so that you could easily switch
 between implementations without refactoring:
 
@@ -32,11 +33,12 @@ serde = "1.0"
 serde_yaml = { package = "serde_yaml_bw", version = "1.0.0" }
 ```
 
-If you do not like this renaming, simply specify the dependency the usual way. In this case you will need to adjust
-the package references in your source code, we are really not sure yet if this is preferred.
+If you're not in favor of this renaming, you can specify the dependency in the usual manner. However, in this case you
+will need to update the package references in your source code accordingly. We are still uncertain if this is the
+preferred approach. 
 
 So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
-dependent packages and some additional tests. But if the project would get some bug fixes, this may change. 
+dependent packages and some additional tests. But if the project would get some bug fixes, this may change.
 
 Release notes are available under [GitHub releases].
 
