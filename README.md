@@ -2,13 +2,12 @@ Serde YAML, maintained by Bourumir Wyngs
 ==========
 
 Rust library for using the [Serde] serialization framework with data in [YAML]
-file format. 
+file format.
 
 [![GitHub](https://img.shields.io/badge/GitHub-777777)](https://github.com/bourumir-wyngs/serde-yaml-bw)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/serde-yaml-bw/rust.yml)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions)
 
-
-The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode 
+The excellent and extremely useful [serde_yaml](https://github.com/dtolnay/serde-yaml) is now set to read only mode
 and marked as deprecated. This fork aims to provide some basic mainenance like moving dependency version ranges ahead.
 
 It is important to have at least some outlet for bug reports, requests for enhancement and pull requests as well.
@@ -16,29 +15,29 @@ We would also work on bug fixes if would be any. We will review and merge the pu
 All interested in further development of the library are encouraged to look into existing pull
 requests and assist us on this.
 
-This package inherits a huge testing suite that should never break. 
+This package inherits a huge testing suite that should never break.
 
 
 [Serde]: https://github.com/serde-rs/serde
+
 [YAML]: https://yaml.org/
 
 ## Dependency
-It is currently not clear how this should be deployed to _crates.io_ as the package name (that is taken) is tightly
-bound to the references of this name in the code. Ideally we would like to provide drop-in replacement with the only
-change in Cargo.toml, but we still need to figure out how this could possibly work. So far we simply do not deploy to
-crates.io, you need to add the dependency as Git repository:
+
+You can use the "package rename" to try this branch without changing your code:
 
 ```toml
 [dependencies]
 serde = "1.0"
-serde_yaml = { git = "https://github.com/bourumir-wyngs/serde-yaml-bw", branch = "1.0.0" }
+serde_yaml = { package = "serde_yaml_bw", version = "1.0.0" }
 ```
 
-We will keep releases in separate branches, to make sure you do not have unexpected changes as we are working
-on the master branch.
+If you're not in favor of this renaming, you can specify the dependency in the usual manner (as in example below). 
+However, in this case you will need to update the package references in your source code accordingly. We are still 
+uncertain which approach is preferred. 
 
 So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
-dependent packages and some additional tests. But if the project would get some bug fixes, this may change. 
+dependent packages and some additional tests. But if the project would get some bug fixes, this may change.
 
 Release notes are available under [GitHub releases].
 
@@ -51,21 +50,29 @@ is:
 
 [docs.rs]: https://docs.rs/serde_yaml
 
+Examples below use the new package name without renaming:
+
+```toml
+[dependencies]
+serde = "1.0"
+serde_yaml_bw ="1.0.0" 
+```
+
 ```rust
 use std::collections::BTreeMap;
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     // You have some type.
     let mut map = BTreeMap::new();
     map.insert("x".to_string(), 1.0);
     map.insert("y".to_string(), 2.0);
 
     // Serialize it to a YAML string.
-    let yaml = serde_yaml::to_string(&map)?;
+    let yaml = serde_yaml_bw::to_string(&map)?;
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
     // Deserialize it back to a Rust type.
-    let deserialized_map: BTreeMap<String, f64> = serde_yaml::from_str(&yaml)?;
+    let deserialized_map: BTreeMap<String, f64> = serde_yaml_bw::from_str(&yaml)?;
     assert_eq!(map, deserialized_map);
     Ok(())
 }
@@ -77,7 +84,6 @@ defined in your program.
 ```toml
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
 ```
 
 Structs serialize in the obvious way:
@@ -91,13 +97,13 @@ struct Point {
     y: f64,
 }
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     let point = Point { x: 1.0, y: 2.0 };
 
-    let yaml = serde_yaml::to_string(&point)?;
+    let yaml = serde_yaml_bw::to_string(&point)?;
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
-    let deserialized_point: Point = serde_yaml::from_str(&yaml)?;
+    let deserialized_point: Point = serde_yaml_bw::from_str(&yaml)?;
     assert_eq!(point, deserialized_point);
     Ok(())
 }
@@ -116,13 +122,13 @@ enum Enum {
     Struct { x: f64, y: f64 },
 }
 
-fn main() -> Result<(), serde_yaml::Error> {
+fn main() -> Result<(), serde_yaml_bw::Error> {
     let yaml = "
         - !Newtype 1
         - !Tuple [0, 0, 0]
         - !Struct {x: 1.0, y: 2.0}
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Newtype(1));
     assert_eq!(values[1], Enum::Tuple(0, 0, 0));
     assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
@@ -137,7 +143,7 @@ fn main() -> Result<(), serde_yaml::Error> {
           x: 1.0
           y: 2.0
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 
@@ -146,7 +152,7 @@ fn main() -> Result<(), serde_yaml::Error> {
         - Unit  # serialization produces this one
         - !Unit
     ";
-    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Unit);
     assert_eq!(values[1], Enum::Unit);
 

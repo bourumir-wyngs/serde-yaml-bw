@@ -1,5 +1,5 @@
 [package]
-name = "serde_yaml"
+name = "serde_yaml_bw"
 version = "1.0.0"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
