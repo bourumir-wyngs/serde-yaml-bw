@@ -38,7 +38,7 @@ We will keep releases in separate branches, to make sure you do not have unexpec
 on the master branch.
 
 So far it may be little need for you to do this as all changes we have so far are increments of the minor versions in
-dependent packages. But if the project would get some bug fixes, this may change. 
+dependent packages and some additional tests. But if the project would get some bug fixes, this may change. 
 
 Release notes are available under [GitHub releases].
 
