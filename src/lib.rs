@@ -7,7 +7,7 @@
 //! <br>
 //!
 //! Rust library for using the [Serde] serialization framework with data in
-//! [YAML] file format. _(This project is no longer maintained.)_
+//! [YAML] file format.
 //!
 //! [Serde]: https://github.com/serde-rs/serde
 //! [YAML]: https://yaml.org/
