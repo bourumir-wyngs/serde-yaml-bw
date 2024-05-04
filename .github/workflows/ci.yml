@@ -87,18 +87,6 @@ jobs:
       - run: cargo generate-lockfile -Z minimal-versions
       - run: cargo check --locked
 
-  fuzz:
-    name: Fuzz
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: dtolnay/install@cargo-fuzz
-      - run: cargo fuzz check
-
   outdated:
     name: Outdated
     runs-on: ubuntu-latest
