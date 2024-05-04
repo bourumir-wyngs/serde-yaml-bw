@@ -12,19 +12,17 @@ We would also work on bug fixes if would be any. We will review and merge the pu
 All interested in further development of the library are encouraged to look into existing pull
 requests and assist us on this.
 
-This package inherits a huge testing suite that should never break. We expect it will help us to keep the 
-things in one piece (not broken)
-
-It is currently not clear how this should be deployed to _crates.io_ as the package name (that is taken) is tightly 
-bound to the references of this name in the code. Ideally we would like to provide drop-in replacement with the only 
-change in Cargo.toml, but we still need to figure out how this could possibly work. So far we simply do not deploy to 
-crates.io, you need to add the dependency as Git repository:
+This package inherits a huge testing suite that should never break. W
 
 
 [Serde]: https://github.com/serde-rs/serde
 [YAML]: https://yaml.org/
 
 ## Dependency
+It is currently not clear how this should be deployed to _crates.io_ as the package name (that is taken) is tightly
+bound to the references of this name in the code. Ideally we would like to provide drop-in replacement with the only
+change in Cargo.toml, but we still need to figure out how this could possibly work. So far we simply do not deploy to
+crates.io, you need to add the dependency as Git repository:
 
 ```toml
 [dependencies]
