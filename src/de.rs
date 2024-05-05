@@ -1499,17 +1499,20 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        Err(error::new(ErrorImpl::BytesUnsupported))
+        println!("BW: Deserialize bytes");
+        let result: Vec<u8>= vec![ 0, 1, 2, 3 ];
+        visitor.visit_bytes(&result)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
+        println!("BW: Deserialize byte buf");
         Err(error::new(ErrorImpl::BytesUnsupported))
     }
 

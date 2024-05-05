@@ -623,6 +623,22 @@ fn test_python_safe_dump() {
 }
 
 #[test]
+fn test_bytes() {
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct Frob {
+        foo: Vec<u8>,
+    }
+
+    let yaml = indoc! {r#"
+        example_binary_data: !!binary |
+            SGVsbG8sIFlBTUwh
+    "#};
+
+    let expected = Frob { foo: vec![72] };
+    test_de(yaml, &expected);
+}
+
+#[test]
 fn test_tag_resolution() {
     // https://yaml.org/spec/1.2.2/#1032-tag-resolution
     let yaml = indoc! {"

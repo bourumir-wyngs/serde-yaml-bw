@@ -371,8 +371,12 @@ where
         })
     }
 
-    fn serialize_bytes(self, _value: &[u8]) -> Result<()> {
-        Err(error::new(ErrorImpl::BytesUnsupported))
+    fn serialize_bytes(self, value: &[u8]) -> Result<()> {
+        self.emit_scalar(Scalar {
+            tag: None,
+            value: "TODO: some bytes",
+            style: ScalarStyle::Plain,
+        })
     }
 
     fn serialize_unit(self) -> Result<()> {
