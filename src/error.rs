@@ -7,6 +7,7 @@ use std::io;
 use std::result;
 use std::string;
 use std::sync::Arc;
+use crate::libyaml::parser::Anchor;
 
 /// An error that happened serializing or deserializing YAML data.
 pub struct Error(Box<ErrorImpl>);
@@ -27,7 +28,7 @@ pub(crate) enum ErrorImpl {
     RecursionLimitExceeded(libyaml::Mark),
     RepetitionLimitExceeded,
     BytesUnsupported,
-    UnknownAnchor(libyaml::Mark),
+    UnknownAnchor(libyaml::Mark, Anchor),
     SerializeNestedEnum,
     ScalarInMerge,
     TaggedInMerge,
@@ -196,15 +197,32 @@ impl ErrorImpl {
     fn mark(&self) -> Option<libyaml::Mark> {
         match self {
             ErrorImpl::Message(_, Some(Pos { mark, path: _ }))
-            | ErrorImpl::RecursionLimitExceeded(mark)
-            | ErrorImpl::UnknownAnchor(mark) => Some(*mark),
+            | ErrorImpl::RecursionLimitExceeded(mark) => Some(*mark),
             ErrorImpl::Libyaml(err) => Some(err.mark()),
             ErrorImpl::Shared(err) => err.mark(),
+            ErrorImpl::UnknownAnchor(mark, _alias) => Some(*mark),
             _ => None,
         }
     }
 
     fn message_no_mark(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        fn sanitize(anchor: &Anchor) -> String {
+            let bytes = &anchor.0;
+            match std::str::from_utf8(bytes) {
+                Ok(string) =>
+                    // Block potential DIA
+                    string.chars().map(|c| {
+                        if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' {
+                            c
+                        } else {
+                            '_'
+                        }
+                    }).collect(),
+                Err(_) => "UTF-8 error".to_string(),
+            }
+        }
+
         match self {
             ErrorImpl::Message(msg, None) => f.write_str(msg),
             ErrorImpl::Message(msg, Some(Pos { mark: _, path })) => {
@@ -225,7 +243,8 @@ impl ErrorImpl {
             ErrorImpl::BytesUnsupported => {
                 f.write_str("serialization and deserialization of bytes in YAML is not implemented")
             }
-            ErrorImpl::UnknownAnchor(_mark) => f.write_str("unknown anchor"),
+            ErrorImpl::UnknownAnchor(_mark, alias) => f.write_str(
+                &format!("unknown anchor [{}]", &sanitize(alias))),
             ErrorImpl::SerializeNestedEnum => {
                 f.write_str("serializing nested enums in YAML is not supported yet")
             }
