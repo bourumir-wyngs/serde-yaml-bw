@@ -885,8 +885,11 @@ where
                 None => Err(de::Error::invalid_value(Unexpected::Str(v), &"a float")),
             };
         } else if tag == Tag::BINARY {
-            return visitor.visit_bytes(&vec![1,2,3]); // TODO forged value, here clearly parsing
-            // None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64 encoding")),
+            use base64::{engine::general_purpose::STANDARD, Engine as _};
+            return match STANDARD.decode(v) {
+                Ok(bytes) => visitor.visit_bytes(&bytes),
+                Err(_e) => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64 encoding")),
+            }
         } else if tag == Tag::NULL {
             return match parse_null(v.as_bytes()) {
                 Some(()) => visitor.visit_unit(),

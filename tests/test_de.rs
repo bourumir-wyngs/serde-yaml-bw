@@ -12,6 +12,7 @@ use serde_yaml_bw::{Deserializer, Number, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use bytes::Bytes;
+use serde::Deserialize;
 
 fn test_de<T>(yaml: &str, expected: &T)
 where
@@ -631,9 +632,13 @@ fn test_base64_bytes() {
     }
 
     let yaml = indoc! {r#"
-        example_binary_data: !!binary |
-            SGVsbG8sIFlBTUwh
+        example_binary_data: !!binary AQIDBA==
     "#};
+
+    for document in serde_yaml_bw::Deserializer::from_str(yaml) {
+         let value = Value::deserialize(document);
+         println!("Deserializer: {:?}", value);
+    }
 
     let expected = Frob { foo: Bytes::from("abc") };
     test_de(yaml, &expected);
