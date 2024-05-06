@@ -12,6 +12,7 @@ use serde_yaml_bw::{Mapping, Number, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter;
+use bytes::BytesMut;
 
 fn test_serde<T>(thing: &T, yaml: &str)
 where
@@ -575,4 +576,19 @@ fn test_long_string() {
     "};
 
     test_serde(&thing, yaml);
+}
+
+#[test]
+fn test_base64_bytes() {
+    let mut map = BTreeMap::new();
+    let mut buf = BytesMut::with_capacity(10);
+
+    // Append some data to the buffer
+    buf.extend_from_slice(&[1, 2, 3, 4]);
+    let b = buf.freeze();
+    map.insert("x".to_string(), b);
+
+    // Serialize it to a YAML string.
+    let yaml = serde_yaml_bw::to_string(&map).unwrap();
+    assert_eq!(yaml, "x: !!binary AQIDBA==\n");
 }

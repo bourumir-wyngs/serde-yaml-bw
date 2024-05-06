@@ -4,6 +4,7 @@ use crate::value::{to_value, Mapping, Number, Sequence, Tag, TaggedValue, Value}
 use serde::ser::{self, Serialize};
 use std::fmt::Display;
 use std::mem;
+use bytes::Bytes;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -18,6 +19,7 @@ impl Serialize for Value {
             Value::Number(n) => n.serialize(serializer),
             Value::String(s) => serializer.serialize_str(s),
             Value::Sequence(seq) => seq.serialize(serializer),
+            Value::Blob(blob) => blob.serialize(serializer),
             Value::Mapping(mapping) => {
                 use serde::ser::SerializeMap;
                 let mut map = serializer.serialize_map(Some(mapping.len()))?;
@@ -136,11 +138,7 @@ impl ser::Serializer for Serializer {
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Value> {
-        let vec = value
-            .iter()
-            .map(|&b| Value::Number(Number::from(b)))
-            .collect();
-        Ok(Value::Sequence(vec))
+        Ok(Value::Blob(Bytes::copy_from_slice(value)))
     }
 
     fn serialize_unit(self) -> Result<Value> {

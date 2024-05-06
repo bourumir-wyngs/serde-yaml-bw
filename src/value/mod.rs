@@ -13,6 +13,7 @@ use serde::de::{Deserialize, DeserializeOwned, IntoDeserializer};
 use serde::Serialize;
 use std::hash::{Hash, Hasher};
 use std::mem;
+use bytes::Bytes;
 
 pub use self::index::Index;
 pub use self::ser::Serializer;
@@ -40,6 +41,8 @@ pub enum Value {
     Mapping(Mapping),
     /// A representation of YAML's `!Tag` syntax, used for enums.
     Tagged(Box<TaggedValue>),
+    /// Binary blob (to be encoded as base64)
+    Blob(Bytes)
 }
 
 /// The default value is `Value::Null`.
@@ -685,6 +688,7 @@ impl Hash for Value {
             Value::Sequence(v) => v.hash(state),
             Value::Mapping(v) => v.hash(state),
             Value::Tagged(v) => v.hash(state),
+            Value::Blob(v) => v.hash(state)
         }
     }
 }

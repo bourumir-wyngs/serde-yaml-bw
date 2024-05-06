@@ -11,6 +11,7 @@ use serde_derive::Deserialize;
 use serde_yaml_bw::{Deserializer, Number, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
+use bytes::Bytes;
 
 fn test_de<T>(yaml: &str, expected: &T)
 where
@@ -623,10 +624,10 @@ fn test_python_safe_dump() {
 }
 
 #[test]
-fn test_bytes() {
+fn test_base64_bytes() {
     #[derive(Deserialize, PartialEq, Debug)]
-    struct Frob {
-        foo: Vec<u8>,
+    pub struct Frob {
+        pub foo: Bytes,
     }
 
     let yaml = indoc! {r#"
@@ -634,7 +635,7 @@ fn test_bytes() {
             SGVsbG8sIFlBTUwh
     "#};
 
-    let expected = Frob { foo: vec![72] };
+    let expected = Frob { foo: Bytes::from("abc") };
     test_de(yaml, &expected);
 }
 

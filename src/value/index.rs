@@ -172,6 +172,7 @@ impl<'a> fmt::Display for Type<'a> {
             Value::String(_) => formatter.write_str("string"),
             Value::Sequence(_) => formatter.write_str("sequence"),
             Value::Mapping(_) => formatter.write_str("mapping"),
+            Value::Blob(_) => formatter.write_str("blob"),
             Value::Tagged(_) => unreachable!(),
         }
     }

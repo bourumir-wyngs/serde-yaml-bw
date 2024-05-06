@@ -439,6 +439,10 @@ impl PartialOrd for Mapping {
                     .tag
                     .cmp(&b.tag)
                     .then_with(|| total_cmp(&a.value, &b.value)),
+
+                (&Value::Blob(_), &Value::Tagged(_)) => Ordering::Greater,
+                (&Value::Tagged(_), &Value::Blob(_)) => Ordering::Less,
+                (&Value::Blob(_), &Value::Blob(_)) => Ordering::Equal
             }
         }
 
@@ -843,6 +847,7 @@ impl<'a> Display for DuplicateKeyError<'a> {
             Value::Bool(boolean) => write!(formatter, "with key `{}`", boolean),
             Value::Number(number) => write!(formatter, "with key {}", number),
             Value::String(string) => write!(formatter, "with key {:?}", string),
+            Value::Blob(blob) => write!(formatter, "with key {:?}", blob),
             Value::Sequence(_) | Value::Mapping(_) | Value::Tagged(_) => {
                 formatter.write_str("in YAML map")
             }

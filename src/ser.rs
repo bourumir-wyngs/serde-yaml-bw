@@ -14,6 +14,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::num;
 use std::str;
+use crate::libyaml::tag;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -372,9 +373,10 @@ where
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<()> {
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
         self.emit_scalar(Scalar {
-            tag: None,
-            value: "TODO: some bytes",
+            tag: Some(tag::Tag::BINARY.to_string()),
+            value: &STANDARD.encode(value),
             style: ScalarStyle::Plain,
         })
     }

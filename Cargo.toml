@@ -21,6 +21,8 @@ itoa = "1.0"
 ryu = "1.0"
 serde = ">=1.0.195, <=1.0.200"
 unsafe-libyaml = "0.2.11"
+base64 = "0.22.1"
+bytes = { version = "1", features = ["serde"] }
 
 [dev-dependencies]
 anyhow = ">=1.0.79, <=1.0.82"

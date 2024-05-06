@@ -15,6 +15,7 @@ impl Debug for Value {
             }
             Value::Mapping(mapping) => Debug::fmt(mapping, formatter),
             Value::Tagged(tagged) => Debug::fmt(tagged, formatter),
+            Value::Blob(blob) => Debug::fmt(blob, formatter)
         }
     }
 }

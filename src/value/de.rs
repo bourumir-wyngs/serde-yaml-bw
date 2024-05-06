@@ -207,6 +207,7 @@ impl<'de> Deserializer<'de> for Value {
             Value::Sequence(v) => visit_sequence(v, visitor),
             Value::Mapping(v) => visit_mapping(v, visitor),
             Value::Tagged(tagged) => visitor.visit_enum(*tagged),
+            Value::Blob(blob) => visitor.visit_bytes(&*blob)
         }
     }
 
@@ -724,6 +725,7 @@ impl<'de> Deserializer<'de> for &'de Value {
             Value::Sequence(v) => visit_sequence_ref(v, visitor),
             Value::Mapping(v) => visit_mapping_ref(v, visitor),
             Value::Tagged(tagged) => visitor.visit_enum(&**tagged),
+            Value::Blob(blob) => visitor.visit_bytes(blob)
         }
     }
 
@@ -1237,6 +1239,7 @@ impl Value {
             Value::Sequence(_) => Unexpected::Seq,
             Value::Mapping(_) => Unexpected::Map,
             Value::Tagged(_) => Unexpected::Enum,
+            Value::Blob(blob) => Unexpected::Bytes(blob)
         }
     }
 }
