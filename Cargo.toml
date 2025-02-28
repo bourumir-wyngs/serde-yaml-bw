@@ -1,31 +1,29 @@
 [package]
 name = "serde_yaml_bw"
-version = "1.0.1+deprecated"
+version = "1.0.2"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
 description = "YAML data format for Serde"
 documentation = "https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/"
-edition = "2021"
+edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
 license = "MIT OR Apache-2.0"
 
 #repository = "https://github.com/dtolnay/serde-yaml"
 repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 
-rust-version = "1.64"
-
 [dependencies]
-indexmap = ">=2.2.1,<=2.26"
+indexmap = "2.7"
 itoa = "1.0"
 ryu = "1.0"
-serde = ">=1.0.195, <=1.0.200"
+serde = ">=1.0.195, <=1.0.218"
 unsafe-libyaml = "0.2.11"
 
 [dev-dependencies]
-anyhow = ">=1.0.79, <=1.0.82"
+anyhow = ">=1.0.82, <=1.0.96" # All range tested
 indoc = "2.0"
-serde_derive = ">=1.0.195, <=1.0.200"
+serde_derive = ">=1.0.215, <=1.0.218"
 
 [lib]
 doc-scrape-examples = false
