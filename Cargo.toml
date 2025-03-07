@@ -17,7 +17,7 @@ repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 indexmap = "2.7"
 itoa = "1.0"
 ryu = "1.0"
-serde = ">=1.0.195, <=1.0.218"
+serde = "1.0"
 unsafe-libyaml = "0.2.11"
 
 [dev-dependencies]
