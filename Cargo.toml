@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "1.0.2"
+version = "1.0.3"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
@@ -21,9 +21,9 @@ serde = ">=1.0.195, <=1.0.218"
 unsafe-libyaml = "0.2.11"
 
 [dev-dependencies]
-anyhow = ">=1.0.82, <=1.0.96" # All range tested
+anyhow = ">=1.0.82, <=1.0.97" # All range tested
 indoc = "2.0"
-serde_derive = ">=1.0.215, <=1.0.218"
+serde_derive = "1.0"
 
 [lib]
 doc-scrape-examples = false
