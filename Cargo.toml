@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "1.0.3"
+version = "1.0.4"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 
 [dependencies]
-indexmap = "2.7"
+indexmap = ">=2.0, <=2.9"# All range tested
 itoa = "1.0"
 ryu = "1.0"
 serde = "1.0"

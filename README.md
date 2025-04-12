@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is the unmaintained branch of serde-yaml.
+This package is the branch of serde-yaml that is minimally maintained before a reasonable replacement would emerge. 
 
 It started as the initiative to take over and further maintain the highly popular
 [serde_yaml](https://github.com/dtolnay/serde-yaml) library after it has been set as read only on GitHub and also
@@ -16,8 +16,5 @@ the sanitized text of the unresolved anchor is now included in the error message
 
 For 1.0.2 we updated Rust to edition 2024, this required some tweaks in the code. 
 
-This package will not be longer maintained and we do not recommend using it. We have switched into
-[yaml-rust2](https://github.com/Ethiraric/yaml-rust2) that has the active developer community and recommend
-you to do something similar.
 
 
