@@ -14,7 +14,9 @@ like version number of some packages have been advanced a little bit, some more 
 the [abandoned pull request](https://github.com/dtolnay/serde-yaml/pull/376) by Fishrock123 as in GitHub and
 the sanitized text of the unresolved anchor is now included in the error message. That's it.
 
-For 1.0.2 we updated Rust to edition 2024, this required some tweaks in the code. 
+For 1.0.2 we updated Rust to edition 2024, this required some tweaks in the code. The version 1.0.6
+has most of the panic! statements removed (expect for index bound checking and memory allocation),
+allowing the parser to be used with user supplied YAML.
 
 
 

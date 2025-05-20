@@ -491,7 +491,13 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     current_enum: None,
                 })
             }
-            None => panic!("unresolved alias: {}", *pos),
+            None => {
+                Err(error::fix_mark(
+                    error::new(ErrorImpl::UnresolvedAlias),
+                    self.peek_event_mark()?.1,
+                    self.path,
+                ))
+            }
         }
     }
 
@@ -515,13 +521,23 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 Event::SequenceEnd => match stack.pop() {
                     Some(Nest::Sequence) => {}
                     None | Some(Nest::Mapping) => {
-                        panic!("unexpected end of sequence");
+                        {
+                            return Err(error::fix_mark(
+                                error::new(ErrorImpl::UnexpectedEndOfSequence),
+                                self.peek_event_mark()?.1,
+                                self.path,
+                            ));
+                        }
                     }
                 },
                 Event::MappingEnd => match stack.pop() {
                     Some(Nest::Mapping) => {}
                     None | Some(Nest::Sequence) => {
-                        panic!("unexpected end of mapping");
+                        return Err(error::fix_mark(
+                            error::new(ErrorImpl::UnexpectedEndOfMapping),
+                            self.peek_event_mark()?.1,
+                            self.path,
+                        ));
                     }
                 },
             }
@@ -578,7 +594,13 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         };
         match self.next_event()? {
             Event::SequenceEnd | Event::Void => {}
-            _ => panic!("expected a SequenceEnd event"),
+            _ => {
+                return Err(error::fix_mark(
+                    error::new(ErrorImpl::UnexpectedEndOfSequence),
+                    self.peek_event_mark()?.1,
+                    self.path,
+                ));
+            }
         }
         if total == len {
             Ok(())
@@ -610,7 +632,13 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         };
         match self.next_event()? {
             Event::MappingEnd | Event::Void => {}
-            _ => panic!("expected a MappingEnd event"),
+            _ => {
+                return Err(crate::error::fix_mark(
+                    crate::error::new(ErrorImpl::UnexpectedEndOfMapping),
+                    self.peek_event_mark()?.1,
+                    self.path,
+                ));
+            }
         }
         if total == len {
             Ok(())
@@ -1184,8 +1212,8 @@ fn invalid_type(event: &Event, exp: &dyn Expected) -> Error {
         }
         Event::SequenceStart(_) => de::Error::invalid_type(Unexpected::Seq, exp),
         Event::MappingStart(_) => de::Error::invalid_type(Unexpected::Map, exp),
-        Event::SequenceEnd => panic!("unexpected end of sequence"),
-        Event::MappingEnd => panic!("unexpected end of mapping"),
+        Event::SequenceEnd => error::new(ErrorImpl::UnexpectedEndOfSequence),
+        Event::MappingEnd => error::new(ErrorImpl::UnexpectedEndOfMapping),
         Event::Void => error::new(ErrorImpl::EndOfStream),
     }
 }
@@ -1211,12 +1239,14 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
     {
         let tagged_already = self.current_enum.is_some();
         let (next, mark) = self.next_event_mark()?;
+
         fn enum_tag(tag: &Option<Tag>, tagged_already: bool) -> Option<&str> {
             if tagged_already {
                 return None;
             }
             parse_tag(tag)
         }
+
         loop {
             match next {
                 &Event::Alias(mut pos) => break self.jump(&mut pos)?.deserialize_any(visitor),
@@ -1253,15 +1283,26 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
                     }
                     break self.visit_mapping(visitor, mark);
                 }
-                Event::SequenceEnd => panic!("unexpected end of sequence"),
-                Event::MappingEnd => panic!("unexpected end of mapping"),
+                Event::SequenceEnd => {
+                    break Err(error::fix_mark(
+                        error::new(ErrorImpl::UnexpectedEndOfSequence),
+                        mark,
+                        self.path,
+                    ));
+                }
+                Event::MappingEnd => {
+                    break Err(error::fix_mark(
+                        error::new(ErrorImpl::UnexpectedEndOfMapping),
+                        mark,
+                        self.path,
+                    ));
+                }
                 Event::Void => break visitor.visit_none(),
             }
         }
-        // The de::Error impl creates errors with unknown line and column. Fill
-        // in the position here by looking at the current index in the input.
-        .map_err(|err| error::fix_mark(err, mark, self.path))
+            .map_err(|err| error::fix_mark(err, mark, self.path))
     }
+
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -1547,8 +1588,8 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
                 }
             }
             Event::SequenceStart(_) | Event::MappingStart(_) => true,
-            Event::SequenceEnd => panic!("unexpected end of sequence"),
-            Event::MappingEnd => panic!("unexpected end of mapping"),
+            Event::SequenceEnd => return Err(error::new(ErrorImpl::UnexpectedEndOfSequence)),
+            Event::MappingEnd => return Err(error::new(ErrorImpl::UnexpectedEndOfMapping)),
             Event::Void => false,
         };
         if is_some {
@@ -1772,8 +1813,8 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
                         de::Error::invalid_type(Unexpected::Seq, &"a YAML tag starting with '!'");
                     Err(error::fix_mark(err, mark, self.path))
                 }
-                Event::SequenceEnd => panic!("unexpected end of sequence"),
-                Event::MappingEnd => panic!("unexpected end of mapping"),
+                Event::SequenceEnd => Err(error::new(ErrorImpl::UnexpectedEndOfSequence)),
+                Event::MappingEnd => Err(error::new(ErrorImpl::UnexpectedEndOfMapping)),
                 Event::Void => Err(error::new(ErrorImpl::EndOfStream)),
             };
         }

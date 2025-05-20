@@ -36,8 +36,12 @@ pub(crate) enum ErrorImpl {
     SequenceInMergeElement,
     EmptyTag,
     FailedToParseNumber,
+    UnexpectedEndOfSequence,
+    UnexpectedEndOfMapping,
+    UnresolvedAlias,
 
     Shared(Arc<ErrorImpl>),
+    SerializedValueBeforeSerializeKey,
 }
 
 #[derive(Debug)]
@@ -261,6 +265,10 @@ impl ErrorImpl {
             ErrorImpl::EmptyTag => f.write_str("empty YAML tag is not allowed"),
             ErrorImpl::FailedToParseNumber => f.write_str("failed to parse YAML number"),
             ErrorImpl::Shared(_) => unreachable!(),
+            ErrorImpl::UnexpectedEndOfSequence => f.write_str("unexpected end of sequence"),
+            ErrorImpl::UnexpectedEndOfMapping => f.write_str("unexpected end of mapping"),
+            ErrorImpl::UnresolvedAlias => f.write_str("unresolved alias"),
+            ErrorImpl::SerializedValueBeforeSerializeKey => f.write_str("serialize_value called before serialize_key")
         }
     }
 

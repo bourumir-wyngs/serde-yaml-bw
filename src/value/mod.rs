@@ -21,7 +21,7 @@ pub use self::tagged::{Tag, TaggedValue};
 pub use crate::mapping::Mapping;
 pub use crate::number::Number;
 
-/// Represents any valid YAML value.
+/// Represents any valid YAML value or in some cases error
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum Value {
     /// Represents a YAML null value.

@@ -392,7 +392,7 @@ impl ser::SerializeMap for SerializeMap {
         };
         match key.take() {
             Some(key) => mapping.insert(key, to_value(value)?),
-            None => panic!("serialize_value called before serialize_key"),
+            None => return Err(error::new(ErrorImpl::SerializedValueBeforeSerializeKey)),
         };
         Ok(())
     }

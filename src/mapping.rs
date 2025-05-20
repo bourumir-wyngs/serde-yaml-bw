@@ -452,13 +452,11 @@ impl PartialOrd for Mapping {
 
             loop {
                 let x = match this.next() {
-                    None => {
-                        if other.next().is_none() {
-                            return Ordering::Equal;
-                        } else {
-                            return Ordering::Less;
-                        }
-                    }
+                    None => return if other.next().is_none() {
+                        Ordering::Equal
+                    } else {
+                        Ordering::Less
+                    },
                     Some(val) => val,
                 };
 

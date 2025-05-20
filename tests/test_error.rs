@@ -498,3 +498,63 @@ fn test_duplicate_keys() {
     let expected = "duplicate entry in YAML map at line 2 column 1";
     test_error::<Value>(yaml, expected);
 }
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct TooLongTuple {
+    a: (i32, i32, i32, i32), // Expects exactly four integers
+}
+
+#[test]
+fn test_unexpected_end_of_sequence() {
+    let input = "a: [1, 2, 3]";
+    let result: Result<TooLongTuple, _> = serde_yaml_bw::from_str(input);
+
+    match result {
+        Ok(data) => panic!(
+            "Deserialization of 3 member YAML list into 4 member tuple unexpectedly \
+            succeeded with value: {:?}",
+            data
+        ),
+        Err(e) => {
+            let msg = e.to_string();
+            println!("Error: {}", msg);
+            assert_eq!(
+                msg,
+                "a: invalid length 3, expected a tuple of size 4 at line 1 column 4"
+            );
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct AliasTest {
+    a: String,
+    b: String,
+}
+
+#[test]
+fn test_unresolved_alias() {
+    // YAML input with an unresolved alias (&missing_anchor is not defined)
+    let input = "
+a: \"hello\"
+b: *missing_anchor
+";
+
+    let result: Result<AliasTest, _> = serde_yaml_bw::from_str(input);
+
+    match result {
+        Ok(data) => panic!(
+            "Deserialization unexpectedly succeeded with data: a={} and b={}",
+            data.a, data.b
+        ),
+        Err(e) => {
+            let msg = e.to_string();
+            println!("Captured Error: {}", msg);
+            assert!(
+                msg.contains("unknown anchor"),
+                "Unexpected error message: '{}'", msg
+            );
+        }
+    }
+}
