@@ -8,16 +8,15 @@
 This package is a fork of `serde-yaml`, more intended as a temporary solution until a reasonable
 replacement emerges. It significantly reduces the number of `panic!()` and `.unwrap()` constructs, opting instead to
 return proper error messages rather than crashing outright. This makes the library suitable for parsing user-supplied
-YAML content.
+YAML content. There is currently a new test suite with numerous malformed YAML cases the should yield to errors,
+not panic. 
 
 The initiative began as an effort to continue maintaining the
 widely-used [serde_yaml](https://github.com/dtolnay/serde-yaml) library, which has since been archived and marked as
 deprecated on GitHub. Following the fork, minor updates were applied, including advancing some package version numbers,
 incorporating additional tests from
 Fishrock123's [abandoned pull request](https://github.com/dtolnay/serde-yaml/pull/376), and improving error messages to
-clearly indicate unresolved YAML anchors.
-
-We have upgraded it to the Rust 2024 edition.
+clearly indicate unresolved YAML anchors. We have also upgraded it to the Rust 2024 edition.
 
 The package is somewhat maintained as it is used in our own projects.
 
