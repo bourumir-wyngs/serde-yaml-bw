@@ -752,3 +752,10 @@ fn test_enum_untagged() {
         assert_eq!(expected, deserialized);
     }
 }
+
+#[test]
+fn null_key() {
+    let yaml: serde_json::Value = serde_yaml_bw::from_str(r#"null: "key_value""#).unwrap();
+    let json_str = serde_json::to_string(&yaml).unwrap();
+    assert_eq!("{\"null\":\"key_value\"}", json_str);
+}
