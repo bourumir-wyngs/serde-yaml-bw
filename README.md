@@ -20,8 +20,40 @@ clearly indicate unresolved YAML anchors. We have also upgraded it to the Rust 2
 
 The package is somewhat maintained as it is used in our own projects.
 
+## Usage Example
 
+Here's a concise example demonstrating how to parse YAML into a Rust structure using `serde_yaml_bw` with proper error handling:
 
+```rust
+use serde::{Serialize, Deserialize};
+
+// Define the structure representing your YAML data.
+#[derive(Debug, Deserialize)]
+struct Config {
+    name: String,
+    enabled: bool,
+    retries: i32,
+}
+
+fn main() {
+    let yaml_input = r#"
+        name: "My Application"
+        enabled: true
+        retries: 5
+    "#;
+
+    let config: Result<Config, _> = serde_yaml_bw::from_str(yaml_input);
+
+    match config {
+        Ok(parsed_config) => {
+            println!("Parsed successfully: {:?}", parsed_config);
+        }
+        Err(e) => {
+            eprintln!("Failed to parse YAML: {}", e);
+        }
+    }
+}
+```
 
 
 

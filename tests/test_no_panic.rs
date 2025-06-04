@@ -88,3 +88,32 @@ fn test_unexpected_eof() {
     let result: Result<serde_yaml_bw::Value, _> = serde_yaml_bw::from_str(yaml_input);
     assert!(result.is_err(), "Unexpected EOF should yield an error.");
 }
+
+#[test]
+fn example_main() {
+    #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
+    struct Config {
+        name: String,
+        enabled: bool,
+        retries: i32,
+    }
+
+    
+    let yaml_input = r#"
+        name: "My Application"
+        enabled: true
+        retries: 5
+    "#;
+
+    let config: Result<Config, _> = serde_yaml_bw::from_str(yaml_input);
+
+    match config {
+        Ok(parsed_config) => {
+            println!("Parsed successfully: {:?}", parsed_config);
+        }
+        Err(e) => {
+            eprintln!("Failed to parse YAML: {}", e);
+        }
+    }
+}
