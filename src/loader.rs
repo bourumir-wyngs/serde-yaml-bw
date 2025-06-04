@@ -35,7 +35,7 @@ impl<'input> Loader<'input> {
         };
 
         Ok(Loader {
-            parser: Some(Parser::new(input)),
+            parser: Some(Parser::new(input)?),
             document_count: 0,
         })
     }

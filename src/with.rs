@@ -915,21 +915,23 @@ pub mod singleton_map {
 /// # }
 /// #
 /// use std::io::{self, Write};
+/// use anyhow::Result;
 ///
-/// fn main() {
+/// fn main() -> Result<()> {
 ///     let object = Inner {
 ///         a: Enum::Int(0),
 ///         bs: vec![Enum::Int(1)],
 ///     };
 ///
 ///     let mut buf = Vec::new();
-///     let mut serializer = serde_yaml_bw::Serializer::new(&mut buf);
+///     let mut serializer = serde_yaml_bw::Serializer::new(&mut buf)?;
 ///     serde_yaml_bw::with::singleton_map_recursive::serialize(&object, &mut serializer).unwrap();
 ///     io::stdout().write_all(&buf).unwrap();
 ///
 ///     let deserializer = serde_yaml_bw::Deserializer::from_slice(&buf);
 ///     let deserialized: Inner = serde_yaml_bw::with::singleton_map_recursive::deserialize(deserializer).unwrap();
 ///     assert_eq!(object, deserialized);
+///     Ok(())
 /// }
 /// ```
 pub mod singleton_map_recursive {

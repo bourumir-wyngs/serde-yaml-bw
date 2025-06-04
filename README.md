@@ -5,18 +5,25 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is the branch of serde-yaml that is minimally maintained before a reasonable replacement would emerge. 
+This package is a fork of `serde-yaml`, more intended as a temporary solution until a reasonable
+replacement emerges. It significantly reduces the number of `panic!()` and `.unwrap()` constructs, opting instead to
+return proper error messages rather than crashing outright. This makes the library suitable for parsing user-supplied
+YAML content.
 
-It started as the initiative to take over and further maintain the highly popular
-[serde_yaml](https://github.com/dtolnay/serde-yaml) library after it has been set as read only on GitHub and also
-marked as deprecated. We no longer have these plans. Some very minimal work has been done after forking,
-like version number of some packages have been advanced a little bit, some more tests have been added from
-the [abandoned pull request](https://github.com/dtolnay/serde-yaml/pull/376) by Fishrock123 as in GitHub and
-the sanitized text of the unresolved anchor is now included in the error message. That's it.
+The initiative began as an effort to continue maintaining the
+widely-used [serde_yaml](https://github.com/dtolnay/serde-yaml) library, which has since been archived and marked as
+deprecated on GitHub. Following the fork, minor updates were applied, including advancing some package version numbers,
+incorporating additional tests from
+Fishrock123's [abandoned pull request](https://github.com/dtolnay/serde-yaml/pull/376), and improving error messages to
+clearly indicate unresolved YAML anchors.
 
-For 1.0.2 we updated Rust to edition 2024, this required some tweaks in the code. The version 1.0.6
-has most of the panic! statements removed (expect for index bound checking and memory allocation),
-allowing the parser to be used with user supplied YAML.
+We have upgraded it to the Rust 2024 edition.
+
+The package is somewhat maintained as it is used in our own projects.
+
+
+
+
 
 
 

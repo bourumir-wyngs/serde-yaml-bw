@@ -184,11 +184,14 @@ where
     let len = mapping.len();
     let mut deserializer = MapRefDeserializer::new(mapping);
     let map = visitor.visit_map(&mut deserializer)?;
-    let remaining = deserializer.iter.unwrap().len();
-    if remaining == 0 {
-        Ok(map)
+    if let Some(remaining) = deserializer.iter {
+        if remaining.len() == 0 {
+            Ok(map)
+        } else {
+            Err(Error::invalid_length(len, &"fewer elements in map"))
+        }
     } else {
-        Err(Error::invalid_length(len, &"fewer elements in map"))
+        Err(Error::invalid_length(len, &"failed to unwrap deserializer"))
     }
 }
 

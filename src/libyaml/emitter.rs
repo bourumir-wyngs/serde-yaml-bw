@@ -62,12 +62,12 @@ pub(crate) struct Mapping {
 }
 
 impl<'a> Emitter<'a> {
-    pub fn new(write: Box<dyn io::Write + 'a>) -> Emitter<'a> {
+    pub fn new(write: Box<dyn io::Write + 'a>) -> Result<Emitter<'a>, Error> {
         let owned = Owned::<EmitterPinned>::new_uninit();
         let pin = unsafe {
             let emitter = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_emitter_initialize(emitter).fail {
-                panic!("malloc error: {}", libyaml::Error::emit_error(emitter));
+                return Err(Error::Libyaml(libyaml::Error::emit_error(emitter)));
             }
             sys::yaml_emitter_set_unicode(emitter, true);
             sys::yaml_emitter_set_width(emitter, -1);
@@ -76,7 +76,7 @@ impl<'a> Emitter<'a> {
             sys::yaml_emitter_set_output(emitter, write_handler, owned.ptr.cast());
             Owned::assume_init(owned)
         };
-        Emitter { pin }
+        Ok(Emitter { pin })
     }
 
     pub fn emit(&mut self, event: Event) -> Result<(), Error> {
