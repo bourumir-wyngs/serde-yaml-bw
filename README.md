@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of `serde-yaml` that explicitly guarantees panic-free operation. 
+This package is a fork of serde-yaml designed to provide panic-free operation. Although it may still fail under certain specific circumstances, it should never panic—even when encountering malformed YAML documents — as long as they fit into memory. Any occurrences of panics under these conditions are considered bugs, and we welcome bug reports and contributions to resolve them.
 
 Our version has no `panic!()` and `.unwrap()` constructs, opting instead to return proper error messages. 
 This makes the library suitable for parsing user-supplied YAML content. There is currently a new test suite 
