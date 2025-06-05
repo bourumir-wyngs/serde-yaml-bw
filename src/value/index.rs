@@ -1,11 +1,11 @@
 use crate::{mapping, private, Value};
 use std::ops;
 
-/// A type that can be used to index into a `serde_yaml_bw::Value`. See the `get`
-/// and `get_mut` methods of `Value`.
+/// A type that can be used to index into a `serde_yaml_bw::Value`. 
+/// See the `get` methods of `Value`.
 ///
 /// This trait is sealed and cannot be implemented for types outside of
-/// `serde_yaml`.
+/// `serde_yaml_bw`.
 pub trait Index: private::Sealed {
     /// Return None if the key is not already in the sequence or object.
     #[doc(hidden)]
