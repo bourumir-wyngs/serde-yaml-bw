@@ -496,17 +496,6 @@ where
     }
 }
 
-impl<I> std::ops::IndexMut<I> for Mapping
-where
-    I: Index,
-{
-    #[inline]
-    #[track_caller]
-    fn index_mut(&mut self, index: I) -> &mut Value {
-        index.index_into_mut(self).unwrap()
-    }
-}
-
 impl Extend<(Value, Value)> for Mapping {
     #[inline]
     fn extend<I: IntoIterator<Item = (Value, Value)>>(&mut self, iter: I) {
