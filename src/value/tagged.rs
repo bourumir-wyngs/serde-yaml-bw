@@ -421,6 +421,7 @@ impl<'de> DeserializeSeed<'de> for TagStringVisitor {
 pub(crate) enum MaybeTag<T> {
     Tag(String),
     NotTag(T),
+    Error
 }
 
 pub(crate) fn check_for_tag<T>(value: &T) -> MaybeTag<String>
@@ -464,7 +465,11 @@ where
     }
 
     let mut check_for_tag = CheckForTag::Empty;
-    fmt::write(&mut check_for_tag, format_args!("{}", value)).unwrap();
+    match fmt::write(&mut check_for_tag, format_args!("{}", value)) {
+        Ok(_) => {},
+        Err(_) => return MaybeTag::Error
+    };
+    
     match check_for_tag {
         CheckForTag::Empty => MaybeTag::NotTag(String::new()),
         CheckForTag::Bang => MaybeTag::NotTag("!".to_owned()),

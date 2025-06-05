@@ -491,7 +491,8 @@ where
     #[inline]
     #[track_caller]
     fn index(&self, index: I) -> &Value {
-        index.index_into(self).unwrap()
+        const NULL: Value = Value::Null;
+        index.index_into(self).unwrap_or(&NULL)
     }
 }
 

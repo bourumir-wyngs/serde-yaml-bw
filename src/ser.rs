@@ -505,6 +505,7 @@ where
     {
         let string = if let State::CheckForTag | State::CheckForDuplicateTag = self.state {
             match tagged::check_for_tag(value) {
+                MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                 MaybeTag::NotTag(string) => string,
                 MaybeTag::Tag(string) => {
                     return if let State::CheckForDuplicateTag = self.state {
