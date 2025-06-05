@@ -12,17 +12,6 @@ pub trait Index: private::Sealed {
     /// Return None if the key is not already in the sequence or object.
     #[doc(hidden)]
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value>;
-
-    /// Return None if the key is not already in the sequence or object.
-    #[doc(hidden)]
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value>;
-
-    /// Panic if sequence index out of bounds. If key is not already in the object,
-    /// insert it with a value of null. Panic if Value is a type that cannot be
-    /// indexed into, except if Value is null then it can be treated as an empty
-    /// object.
-    #[doc(hidden)]
-    fn index_or_insert<'v>(&self, v: &'v mut Value) -> &'v mut Value;
 }
 
 impl Index for usize {
@@ -31,34 +20,6 @@ impl Index for usize {
             Value::Sequence(vec) => vec.get(*self),
             Value::Mapping(vec) => vec.get(Value::Number((*self).into())),
             _ => None,
-        }
-    }
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value> {
-        match v.untag_mut() {
-            Value::Sequence(vec) => vec.get_mut(*self),
-            Value::Mapping(vec) => vec.get_mut(Value::Number((*self).into())),
-            _ => None,
-        }
-    }
-    fn index_or_insert<'v>(&self, mut v: &'v mut Value) -> &'v mut Value {
-        loop {
-            match v {
-                Value::Sequence(vec) => {
-                    let len = vec.len();
-                    return vec.get_mut(*self).unwrap_or_else(|| {
-                        panic!(
-                            "cannot access index {} of YAML sequence of length {}",
-                            self, len
-                        )
-                    });
-                }
-                Value::Mapping(map) => {
-                    let n = Value::Number((*self).into());
-                    return map.entry(n).or_insert(Value::Null);
-                }
-                Value::Tagged(tagged) => v = &mut tagged.value,
-                _ => panic!("cannot access index {} of YAML {}", self, Type(v)),
-            }
         }
     }
 }
@@ -83,65 +44,21 @@ where
     }
 }
 
-fn index_or_insert_mapping<'v, I>(index: &I, mut v: &'v mut Value) -> &'v mut Value
-where
-    I: ?Sized + mapping::Index + ToOwned + Debug,
-    Value: From<I::Owned>,
-{
-    if let Value::Null = *v {
-        *v = Value::Mapping(Mapping::new());
-        return match v {
-            Value::Mapping(map) => match map.entry(index.to_owned().into()) {
-                Entry::Vacant(entry) => entry.insert(Value::Null),
-                Entry::Occupied(_) => unreachable!(),
-            },
-            _ => unreachable!(),
-        };
-    }
-    loop {
-        match v {
-            Value::Mapping(map) => {
-                return map.entry(index.to_owned().into()).or_insert(Value::Null);
-            }
-            Value::Tagged(tagged) => v = &mut tagged.value,
-            _ => panic!("cannot access key {:?} in YAML {}", index, Type(v)),
-        }
-    }
-}
-
 impl Index for Value {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         index_into_mapping(self, v)
-    }
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value> {
-        index_into_mut_mapping(self, v)
-    }
-    fn index_or_insert<'v>(&self, v: &'v mut Value) -> &'v mut Value {
-        index_or_insert_mapping(self, v)
     }
 }
 
 impl Index for str {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         index_into_mapping(self, v)
-    }
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value> {
-        index_into_mut_mapping(self, v)
-    }
-    fn index_or_insert<'v>(&self, v: &'v mut Value) -> &'v mut Value {
-        index_or_insert_mapping(self, v)
-    }
+    }    
 }
 
 impl Index for String {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         self.as_str().index_into(v)
-    }
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value> {
-        self.as_str().index_into_mut(v)
-    }
-    fn index_or_insert<'v>(&self, v: &'v mut Value) -> &'v mut Value {
-        self.as_str().index_or_insert(v)
     }
 }
 
@@ -151,12 +68,6 @@ where
 {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         (**self).index_into(v)
-    }
-    fn index_into_mut<'v>(&self, v: &'v mut Value) -> Option<&'v mut Value> {
-        (**self).index_into_mut(v)
-    }
-    fn index_or_insert<'v>(&self, v: &'v mut Value) -> &'v mut Value {
-        (**self).index_or_insert(v)
     }
 }
 
@@ -235,45 +146,3 @@ where
     }
 }
 
-impl<I> ops::IndexMut<I> for Value
-where
-    I: Index,
-{
-    /// Write into a `serde_yaml_bw::Value` using the syntax `value[0] = ...` or
-    /// `value["k"] = ...`.
-    ///
-    /// If the index is a number, the value must be a sequence of length bigger
-    /// than the index. Indexing into a value that is not a sequence or a
-    /// sequence that is too small will panic.
-    ///
-    /// If the index is a string, the value must be an object or null which is
-    /// treated like an empty object. If the key is not already present in the
-    /// object, it will be inserted with a value of null. Indexing into a value
-    /// that is neither an object nor null will panic.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let mut data: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"{x: 0}"#)?;
-    ///
-    /// // replace an existing key
-    /// data["x"] = serde_yaml_bw::from_str(r#"1"#)?;
-    ///
-    /// // insert a new key
-    /// data["y"] = serde_yaml_bw::from_str(r#"[false, false, false]"#)?;
-    ///
-    /// // replace a value in a sequence
-    /// data["y"][0] = serde_yaml_bw::from_str(r#"true"#)?;
-    ///
-    /// // inserted a deeply nested key
-    /// data["a"]["b"]["c"]["d"] = serde_yaml_bw::from_str(r#"true"#)?;
-    ///
-    /// println!("{:?}", data);
-    /// # Ok(())
-    /// # }
-    /// ```
-    fn index_mut(&mut self, index: I) -> &mut Value {
-        index.index_or_insert(self)
-    }
-}

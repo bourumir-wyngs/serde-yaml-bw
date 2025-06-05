@@ -15,6 +15,8 @@ pub struct Mapping {
     map: IndexMap<Value, Value>,
 }
 
+const NULL: Value = Value::Null;
+
 impl Mapping {
     /// Creates an empty YAML map.
     #[inline]
@@ -491,18 +493,7 @@ where
     #[inline]
     #[track_caller]
     fn index(&self, index: I) -> &Value {
-        index.index_into(self).unwrap()
-    }
-}
-
-impl<I> std::ops::IndexMut<I> for Mapping
-where
-    I: Index,
-{
-    #[inline]
-    #[track_caller]
-    fn index_mut(&mut self, index: I) -> &mut Value {
-        index.index_into_mut(self).unwrap()
+        index.index_into(self).unwrap_or(&NULL)
     }
 }
 

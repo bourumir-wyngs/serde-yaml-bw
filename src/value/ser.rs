@@ -613,10 +613,11 @@ impl ser::SerializeMap for SerializeMap {
             where
                 T: ?Sized + Display,
             {
-                Ok(match tagged::check_for_tag(value) {
-                    MaybeTag::Tag(tag) => MaybeTag::Tag(tag),
-                    MaybeTag::NotTag(string) => MaybeTag::NotTag(Value::String(string)),
-                })
+                match tagged::check_for_tag(value) {
+                    MaybeTag::Tag(tag) => Ok(MaybeTag::Tag(tag)),
+                    MaybeTag::NotTag(string) => Ok(MaybeTag::NotTag(Value::String(string))),
+                    MaybeTag::Error => Err(error::new(ErrorImpl::TagError))
+                }
             }
         }
 
@@ -752,6 +753,7 @@ impl ser::SerializeMap for SerializeMap {
                 let key = key.serialize(CheckForTag)?;
                 let mut mapping = Mapping::new();
                 *self = match key {
+                    MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                     MaybeTag::Tag(string) => SerializeMap::Tagged(TaggedValue {
                         tag: Tag::new(string),
                         value: to_value(value)?,

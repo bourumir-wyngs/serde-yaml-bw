@@ -42,6 +42,7 @@ pub(crate) enum ErrorImpl {
 
     Shared(Arc<ErrorImpl>),
     SerializedValueBeforeSerializeKey,
+    TagError,
 }
 
 #[derive(Debug)]
@@ -268,7 +269,8 @@ impl ErrorImpl {
             ErrorImpl::UnexpectedEndOfSequence => f.write_str("unexpected end of sequence"),
             ErrorImpl::UnexpectedEndOfMapping => f.write_str("unexpected end of mapping"),
             ErrorImpl::UnresolvedAlias => f.write_str("unresolved alias"),
-            ErrorImpl::SerializedValueBeforeSerializeKey => f.write_str("serialize_value called before serialize_key")
+            ErrorImpl::SerializedValueBeforeSerializeKey => f.write_str("serialize_value called before serialize_key"),
+            ErrorImpl::TagError => f.write_str("unexpected tag error")
         }
     }
 
