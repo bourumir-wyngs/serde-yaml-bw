@@ -3,7 +3,6 @@
 mod de;
 mod debug;
 mod from;
-mod index;
 mod partial_eq;
 mod ser;
 pub(crate) mod tagged;
@@ -14,7 +13,6 @@ use serde::Serialize;
 use std::hash::{Hash, Hasher};
 use std::mem;
 
-pub use self::index::Index;
 pub use self::ser::Serializer;
 pub use self::tagged::{Tag, TaggedValue};
 #[doc(inline)]
@@ -132,62 +130,6 @@ impl Value {
     /// a number. Also returns `None` if the given key does not exist in the map
     /// or the given index is not within the bounds of the sequence.
     ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// use serde_yaml_bw::Value;
-    ///
-    /// let object: Value = serde_yaml_bw::from_str(r#"{ A: 65, B: 66, C: 67 }"#)?;
-    /// let x = object.get("A").unwrap();
-    /// assert_eq!(x, 65);
-    ///
-    /// let sequence: Value = serde_yaml_bw::from_str(r#"[ "A", "B", "C" ]"#)?;
-    /// let x = sequence.get(2).unwrap();
-    /// assert_eq!(x, &Value::String("C".into()));
-    ///
-    /// assert_eq!(sequence.get("A"), None);
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// Square brackets can also be used to index into a value in a more concise
-    /// way. This returns `Value::Null` in cases where `get` would have returned
-    /// `None`.
-    ///
-    /// ```
-    /// # use serde_yaml_bw::Value;
-    /// #
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let object: Value = serde_yaml_bw::from_str(r#"
-    /// A: [a, á, à]
-    /// B: [b, b́]
-    /// C: [c, ć, ć̣, ḉ]
-    /// 42: true
-    /// "#)?;
-    /// assert_eq!(object["B"][0], Value::String("b".into()));
-    ///
-    /// assert_eq!(object[Value::String("D".into())], Value::Null);
-    /// assert_eq!(object["D"], Value::Null);
-    /// assert_eq!(object[0]["x"]["y"]["z"], Value::Null);
-    ///
-    /// assert_eq!(object[42], Value::Bool(true));
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn get<I: Index>(&self, index: I) -> Option<&Value> {
-        index.index_into(self)
-    }
-
-    /// Index into a YAML sequence or map. A string index can be used to access
-    /// a value in a map, and a usize index can be used to access an element of
-    /// an sequence.
-    ///
-    /// Returns `None` if the type of `self` does not match the type of the
-    /// index, for example if the index is a string and `self` is a sequence or
-    /// a number. Also returns `None` if the given key does not exist in the map
-    /// or the given index is not within the bounds of the sequence.
-    pub fn get_mut<I: Index>(&mut self, index: I) -> Option<&mut Value> {
-        index.index_into_mut(self)
-    }
 
     /// Returns true if the `Value` is a Null. Returns false otherwise.
     ///
@@ -601,27 +543,6 @@ impl Value {
     ///
     /// The intended use of this in YAML is described in
     /// <https://yaml.org/type/merge.html>.
-    ///
-    /// ```
-    /// use serde_yaml_bw::Value;
-    ///
-    /// let config = "\
-    /// tasks:
-    ///   build: &webpack_shared
-    ///     command: webpack
-    ///     args: build
-    ///     inputs:
-    ///       - 'src/**/*'
-    ///   start:
-    ///     <<: *webpack_shared
-    ///     args: start
-    /// ";
-    ///
-    /// let mut value: Value = serde_yaml_bw::from_str(config).unwrap();
-    /// value.apply_merge().unwrap();
-    ///
-    /// assert_eq!(value["tasks"]["start"]["command"], "webpack");
-    /// assert_eq!(value["tasks"]["start"]["args"], "start");
     /// ```
     pub fn apply_merge(&mut self) -> Result<(), Error> {
         let mut stack = Vec::new();

@@ -164,7 +164,7 @@ pub use crate::de::{from_reader, from_slice, from_str, Deserializer};
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{to_string, to_writer, Serializer};
 #[doc(inline)]
-pub use crate::value::{from_value, to_value, Index, Number, Sequence, Value};
+pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 
 #[doc(inline)]
 pub use crate::mapping::Mapping;

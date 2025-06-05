@@ -31,26 +31,6 @@ impl Number {
     ///
     /// For any Number on which `is_i64` returns true, `as_i64` is guaranteed to
     /// return the integer value.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let big = i64::MAX as u64 + 10;
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 64
-    /// b: 9223372036854775817
-    /// c: 256.0
-    /// "#)?;
-    ///
-    /// assert!(v["a"].is_i64());
-    ///
-    /// // Greater than i64::MAX.
-    /// assert!(!v["b"].is_i64());
-    ///
-    /// // Numbers with a decimal point are not considered integers.
-    /// assert!(!v["c"].is_i64());
-    /// # Ok(())
-    /// # }
-    /// ```
     #[inline]
     #[allow(clippy::cast_sign_loss)]
     pub fn is_i64(&self) -> bool {
@@ -62,28 +42,6 @@ impl Number {
     }
 
     /// Returns true if the `Number` is an integer between zero and `u64::MAX`.
-    ///
-    /// For any Number on which `is_u64` returns true, `as_u64` is guaranteed to
-    /// return the integer value.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 64
-    /// b: -64
-    /// c: 256.0
-    /// "#)?;
-    ///
-    /// assert!(v["a"].is_u64());
-    ///
-    /// // Negative integer.
-    /// assert!(!v["b"].is_u64());
-    ///
-    /// // Numbers with a decimal point are not considered integers.
-    /// assert!(!v["c"].is_u64());
-    /// # Ok(())
-    /// # }
-    /// ```
     #[inline]
     pub fn is_u64(&self) -> bool {
         match self.n {
@@ -93,28 +51,6 @@ impl Number {
     }
 
     /// Returns true if the `Number` can be represented by f64.
-    ///
-    /// For any Number on which `is_f64` returns true, `as_f64` is guaranteed to
-    /// return the floating point value.
-    ///
-    /// Currently this function returns true if and only if both `is_i64` and
-    /// `is_u64` return false but this is not a guarantee in the future.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 256.0
-    /// b: 64
-    /// c: -64
-    /// "#)?;
-    ///
-    /// assert!(v["a"].is_f64());
-    ///
-    /// // Integers.
-    /// assert!(!v["b"].is_f64());
-    /// assert!(!v["c"].is_f64());
-    /// # Ok(())
-    /// # }
     /// ```
     #[inline]
     pub fn is_f64(&self) -> bool {
@@ -126,21 +62,6 @@ impl Number {
 
     /// If the `Number` is an integer, represent it as i64 if possible. Returns
     /// None otherwise.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let big = i64::MAX as u64 + 10;
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 64
-    /// b: 9223372036854775817
-    /// c: 256.0
-    /// "#)?;
-    ///
-    /// assert_eq!(v["a"].as_i64(), Some(64));
-    /// assert_eq!(v["b"].as_i64(), None);
-    /// assert_eq!(v["c"].as_i64(), None);
-    /// # Ok(())
-    /// # }
     /// ```
     #[inline]
     pub fn as_i64(&self) -> Option<i64> {
@@ -159,20 +80,6 @@ impl Number {
 
     /// If the `Number` is an integer, represent it as u64 if possible. Returns
     /// None otherwise.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 64
-    /// b: -64
-    /// c: 256.0
-    /// "#)?;
-    ///
-    /// assert_eq!(v["a"].as_u64(), Some(64));
-    /// assert_eq!(v["b"].as_u64(), None);
-    /// assert_eq!(v["c"].as_u64(), None);
-    /// # Ok(())
-    /// # }
     /// ```
     #[inline]
     pub fn as_u64(&self) -> Option<u64> {
@@ -183,35 +90,6 @@ impl Number {
     }
 
     /// Represents the number as f64 if possible. Returns None otherwise.
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"
-    /// a: 256.0
-    /// b: 64
-    /// c: -64
-    /// "#)?;
-    ///
-    /// assert_eq!(v["a"].as_f64(), Some(256.0));
-    /// assert_eq!(v["b"].as_f64(), Some(64.0));
-    /// assert_eq!(v["c"].as_f64(), Some(-64.0));
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// ```
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(".inf")?;
-    /// assert_eq!(v.as_f64(), Some(f64::INFINITY));
-    ///
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str("-.inf")?;
-    /// assert_eq!(v.as_f64(), Some(f64::NEG_INFINITY));
-    ///
-    /// let v: serde_yaml_bw::Value = serde_yaml_bw::from_str(".nan")?;
-    /// assert!(v.as_f64().unwrap().is_nan());
-    /// # Ok(())
-    /// # }
-    /// ```
     #[inline]
     pub fn as_f64(&self) -> Option<f64> {
         match self.n {

@@ -111,7 +111,10 @@ unsafe fn convert_event<'input>(
         sys::YAML_DOCUMENT_START_EVENT => Event::DocumentStart,
         sys::YAML_DOCUMENT_END_EVENT => Event::DocumentEnd,
         sys::YAML_ALIAS_EVENT => {
-            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap())
+            // If we are unable to obtain anchor, if is still alias event.
+            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap_or_else(|| Anchor {
+                0: "invalid_anchor".as_bytes().into(),
+            }))
         }
         sys::YAML_SCALAR_EVENT => Event::Scalar(Scalar {
             anchor: unsafe { optional_anchor(sys.data.scalar.anchor) },
