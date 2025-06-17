@@ -117,3 +117,9 @@ fn example_main() {
         }
     }
 }
+
+#[test]
+fn empty() {
+    let value: serde_yaml_bw::Value = serde_yaml_bw::from_str("").unwrap();
+    println!("value = {:?}", value);
+}
