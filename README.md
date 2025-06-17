@@ -5,23 +5,21 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of serde-yaml designed to provide panic-free operation. Although it may still fail under certain specific circumstances, it should never panic—even when encountering malformed YAML documents — as long as they fit into memory. Any occurrences of panics under these conditions are considered bugs, and we welcome bug reports and contributions to resolve them.
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content.
 
-Our version has no `panic!()` and `.unwrap()` constructs, opting instead to return proper error messages. 
-This makes the library suitable for parsing user-supplied YAML content. There is currently a new test suite 
-with numerous malformed YAML cases they should yield to errors, not panic. 
+This increased safety comes at the cost of some API restrictions: write access to indices and mappings has been removed. Read access remains possible, with `Value::Null` returned on invalid access.
 
-Unfortunately, this safety came at the cost of removing write access to indices and mappings. Read access is still 
-possible, Value::Null is returned on invalid access. We do not encourage using Value, the indented usage of this
-crate is to serialize and deserialize with serde. If your code is going beyond that, there are more suitable
-crates like [yaml-rust2]([https://crates.io/crates/yaml-rust2) that can parse YAML not directly representable
-with Rust structures. As the API now changed into a more restrictive one, the major version number was incremented.
+We do not encourage using this crate beyond serialization with serde. If your use-case requires additional functionality, there are better-suited crates available, such as [yaml-rust2](https://crates.io/crates/yaml-rust2) and the newer, more experimental [saphyr](https://crates.io/crates/saphyr), both capable of handling valid YAML that is not directly representable with Rust structures.
 
-If panic does occur under some conditions, please report this as bug. 
+Since the API has changed to a more restrictive version, the major version number has been incremented.
+
+If a panic does occur under some short and clear input, please report it as a bug.
+
 
 ## Usage Example
 
-Here's a concise example demonstrating how to parse YAML into a Rust structure using `serde_yaml_bw` with proper error handling:
+Here's a concise example demonstrating how to parse YAML into a Rust structure using `serde_yaml_bw` with proper error
+handling:
 
 ```rust
 use serde::{Serialize, Deserialize};
