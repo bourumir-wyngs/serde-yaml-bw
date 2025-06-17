@@ -10,8 +10,7 @@ pub(crate) struct Owned<T, Init = T> {
 
 impl<T> Owned<T> {
     pub fn new_uninit() -> Owned<MaybeUninit<T>, T> {
-        // FIXME: use Box::new_uninit when stable
-        let boxed = Box::new(MaybeUninit::<T>::uninit());
+        let boxed = Box::<T>::new_uninit();
         Owned {
             ptr: unsafe { NonNull::new_unchecked(Box::into_raw(boxed)) },
             marker: PhantomData,
