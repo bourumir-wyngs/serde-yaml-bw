@@ -9,6 +9,8 @@ use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny, Unexpected, Visitor,
 };
 use std::fmt;
+use std::collections::HashSet;
+use crate::duplicate_key::DuplicateKeyError;
 use std::io;
 use std::mem;
 use std::num::ParseIntError;
@@ -574,6 +576,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 de,
                 len: 0,
                 key: None,
+                seen: HashSet::new(),
             };
             let value = visitor.visit_map(&mut map)?;
             Ok((value, map.len))
@@ -626,6 +629,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 de: self,
                 len,
                 key: None,
+                seen: HashSet::new(),
             };
             while de::MapAccess::next_entry::<IgnoredAny, IgnoredAny>(&mut map)?.is_some() {}
             map.len
@@ -715,6 +719,7 @@ struct MapAccess<'de, 'document, 'map> {
     de: &'map mut DeserializerFromEvents<'de, 'document>,
     len: usize,
     key: Option<&'document [u8]>,
+    seen: std::collections::HashSet<Vec<u8>>,
 }
 
 impl<'de, 'document, 'map> de::MapAccess<'de> for MapAccess<'de, 'document, 'map> {
@@ -731,6 +736,9 @@ impl<'de, 'document, 'map> de::MapAccess<'de> for MapAccess<'de, 'document, 'map
             Event::MappingEnd | Event::Void => Ok(None),
             Event::Scalar(scalar) => {
                 self.len += 1;
+                if !self.seen.insert(scalar.value.to_vec()) {
+                    return Err(de::Error::custom(DuplicateKeyError::from_scalar(&scalar.value)));
+                }
                 self.key = Some(&scalar.value);
                 seed.deserialize(&mut *self.de).map(Some)
             }
@@ -1726,6 +1734,7 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
                         de: self,
                         len: 0,
                         key: None,
+                        seen: HashSet::new(),
                     })
                 } else {
                     Err(invalid_type(other, &visitor))

@@ -174,6 +174,7 @@ mod error;
 mod libyaml;
 mod loader;
 pub mod mapping;
+mod duplicate_key;
 mod number;
 mod path;
 mod ser;
