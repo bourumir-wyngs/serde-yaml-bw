@@ -68,7 +68,7 @@ fn display_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Resul
             Ok(valid) => return formatter.write_str(valid),
             Err(utf8_error) => {
                 let valid_up_to = utf8_error.valid_up_to();
-                let valid = unsafe { str::from_utf8_unchecked(&bytes[..valid_up_to]) };
+                let valid = str::from_utf8(&bytes[..valid_up_to]).expect("valid utf-8 slice");
                 formatter.write_str(valid)?;
                 formatter.write_char(char::REPLACEMENT_CHARACTER)?;
                 if let Some(error_len) = utf8_error.error_len() {
@@ -90,7 +90,7 @@ pub(crate) fn debug_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> f
             Ok(valid) => valid,
             Err(utf8_error) => {
                 let valid_up_to = utf8_error.valid_up_to();
-                unsafe { str::from_utf8_unchecked(&bytes[..valid_up_to]) }
+                str::from_utf8(&bytes[..valid_up_to]).expect("valid utf-8 slice")
             }
         };
 

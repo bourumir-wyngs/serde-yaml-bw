@@ -945,7 +945,7 @@ fn parse_borrowed_str<'de>(
     let expected_start = expected_end.checked_sub(utf8_value.len())?;
     let borrowed_bytes = borrowed_repr.get(expected_start..expected_end)?;
     if borrowed_bytes == utf8_value.as_bytes() {
-        return Some(unsafe { str::from_utf8_unchecked(borrowed_bytes) });
+        return Some(str::from_utf8(borrowed_bytes).expect("validated utf-8"));
     }
     None
 }
