@@ -5,7 +5,8 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
-use std::fmt::{self, Display};
+use std::fmt;
+use crate::duplicate_key::DuplicateKeyError;
 use std::hash::{Hash, Hasher};
 use std::mem;
 
@@ -802,7 +803,7 @@ impl<'de> Deserialize<'de> for Mapping {
                 while let Some(key) = data.next_key()? {
                     match mapping.entry(key) {
                         Entry::Occupied(entry) => {
-                            return Err(serde::de::Error::custom(DuplicateKeyError { entry }));
+                            return Err(serde::de::Error::custom(DuplicateKeyError::from_value(entry.key())));
                         }
                         Entry::Vacant(entry) => {
                             let value = data.next_value()?;
@@ -819,21 +820,3 @@ impl<'de> Deserialize<'de> for Mapping {
     }
 }
 
-struct DuplicateKeyError<'a> {
-    entry: OccupiedEntry<'a>,
-}
-
-impl<'a> Display for DuplicateKeyError<'a> {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("duplicate entry ")?;
-        match self.entry.key() {
-            Value::Null => formatter.write_str("with null key"),
-            Value::Bool(boolean) => write!(formatter, "with key `{}`", boolean),
-            Value::Number(number) => write!(formatter, "with key {}", number),
-            Value::String(string) => write!(formatter, "with key {:?}", string),
-            Value::Sequence(_) | Value::Mapping(_) | Value::Tagged(_) => {
-                formatter.write_str("in YAML map")
-            }
-        }
-    }
-}

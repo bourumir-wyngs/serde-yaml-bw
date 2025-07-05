@@ -499,6 +499,31 @@ fn test_duplicate_keys() {
     test_error::<Value>(yaml, expected);
 }
 
+#[test]
+fn test_duplicate_keys_hashmap() {
+    use std::collections::HashMap;
+    let yaml = indoc! {"\
+        ---
+        a: 1
+        a: 2
+    "};
+    let expected = "duplicate entry with key \"a\" at line 2 column 1";
+    test_error::<HashMap<String, i32>>(yaml, expected);
+}
+
+#[test]
+fn test_duplicate_keys_struct() {
+    #[derive(Deserialize, Debug)]
+    struct S { a: i32 }
+    let yaml = indoc! {"\
+        ---
+        a: 1
+        a: 2
+    "};
+    let expected = "duplicate entry with key \"a\" at line 2 column 1";
+    test_error::<S>(yaml, expected);
+}
+
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 struct TooLongTuple {
