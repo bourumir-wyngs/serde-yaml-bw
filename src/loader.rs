@@ -115,6 +115,7 @@ impl<'input> Loader<'input> {
                     Event::MappingStart(mapping_start)
                 }
                 YamlEvent::MappingEnd => Event::MappingEnd,
+                YamlEvent::Void => Event::Void,
             };
             document.events.push((event, mark));
         }

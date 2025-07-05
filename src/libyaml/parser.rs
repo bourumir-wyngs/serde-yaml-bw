@@ -30,6 +30,8 @@ pub(crate) enum Event<'input> {
     SequenceEnd,
     MappingStart(MappingStart),
     MappingEnd,
+    /// Placeholder event for unknown or empty libyaml events
+    Void,
 }
 
 pub(crate) struct Scalar<'input> {
