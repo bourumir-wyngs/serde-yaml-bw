@@ -22,7 +22,9 @@ Here's a concise example demonstrating how to parse YAML into a Rust structure u
 handling:
 
 ```rust
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
+use serde_derive::Deserialize;
+use serde_yaml_bw::Deserializer;
 
 // Define the structure representing your YAML data.
 #[derive(Debug, Deserialize)]
@@ -51,7 +53,35 @@ fn main() {
     }
 }
 ```
+or, with multiple documents
+```rust
+use serde::Deserialize;
+use serde_derive::Deserialize;
+use serde_yaml_bw::Deserializer;
 
+fn main() {
+    let yaml_input = r#"
+# Configure the application    
+name: "My Application"
+enabled: true
+retries: 5
+---
+# Configure the debugger
+name: "My Debugger"
+enabled: false
+retries: 4
+"#;
 
+    let configs: Result<Vec<Config>, _> = Deserializer::from_str(yaml_input)
+        .map(|doc| Config::deserialize(doc)).collect();
 
-
+    match configs {
+        Ok(parsed_config) => {
+            println!("Parsed successfully: {:?}", parsed_config);
+        }
+        Err(e) => {
+            eprintln!("Failed to parse YAML: {}", e);
+        }
+    }
+}
+```

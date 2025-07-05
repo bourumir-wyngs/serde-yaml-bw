@@ -1,5 +1,6 @@
+use serde::Deserialize;
 use serde_derive::Deserialize;
-use serde_yaml_bw::Value;
+use serde_yaml_bw::{Deserializer, Value};
 
 #[test]
 fn null_key() {
@@ -118,6 +119,7 @@ fn test_multiline_array() {
     );
 }
 
+/// Test example 1 given in README
 #[test]
 fn example_main() {
     #[derive(Debug, Deserialize)]
@@ -146,3 +148,41 @@ fn example_main() {
         }
     }
 }
+
+/// Test example 2 given in README
+#[test]
+fn example_multi() {
+    #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
+    struct Config {
+        name: String,
+        enabled: bool,
+        retries: i32,
+    }
+
+    let yaml_input = r#"
+# Configure the application    
+name: "My Application"
+enabled: true
+retries: 5
+---
+# Configure the debugger
+name: "My Debugger"
+enabled: false
+retries: 4
+"#;
+
+    let configs: Result<Vec<Config>, _> = Deserializer::from_str(yaml_input)
+        .map(|doc| Config::deserialize(doc))
+        .collect();
+
+    match configs {
+        Ok(parsed_config) => {
+            println!("Parsed successfully: {:?}", parsed_config);
+        }
+        Err(e) => {
+            eprintln!("Failed to parse YAML: {}", e);
+        }
+    }
+}
+
