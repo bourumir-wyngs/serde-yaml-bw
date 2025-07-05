@@ -1,4 +1,5 @@
 use serde_derive::Deserialize;
+use serde_yaml_bw::Value;
 
 #[test]
 fn null_key() {
@@ -90,6 +91,11 @@ fn test_unexpected_eof() {
 }
 
 #[test]
+fn test_empty_input() {
+    assert_eq!(serde_yaml_bw::from_str::<Value>("").unwrap(), Value::Null);
+}
+
+#[test]
 fn example_main() {
     #[derive(Debug, Deserialize)]
     #[allow(dead_code)]
@@ -116,10 +122,4 @@ fn example_main() {
             eprintln!("Failed to parse YAML: {}", e);
         }
     }
-}
-
-#[test]
-fn empty() {
-    let value: serde_yaml_bw::Value = serde_yaml_bw::from_str("").unwrap();
-    println!("value = {:?}", value);
 }
