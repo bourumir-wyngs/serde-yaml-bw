@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "2.0.0"
+version = "2.0.1"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
