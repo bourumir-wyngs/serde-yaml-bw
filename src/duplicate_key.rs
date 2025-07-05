@@ -1,4 +1,4 @@
-use crate::number::Number;
+use crate::number::Number as Num;
 use crate::value::Value;
 use std::fmt::{self, Display};
 use std::str::FromStr;
@@ -7,7 +7,7 @@ use std::str::FromStr;
 pub(crate) enum DuplicateKeyKind {
     Null,
     Bool(bool),
-    Number(Number),
+    Number(Num),
     String(String),
     Other,
 }
@@ -38,7 +38,7 @@ impl DuplicateKeyError {
             if let Some(b) = parse_bool(s) {
                 return DuplicateKeyError { kind: Bool(b) };
             }
-            if let Ok(n) = Number::from_str(s) {
+            if let Ok(n) = Num::from_str(s) {
                 return DuplicateKeyError { kind: Number(n) };
             }
             return DuplicateKeyError { kind: String(s.to_string()) };

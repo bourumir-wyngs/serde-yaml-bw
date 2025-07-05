@@ -5,8 +5,8 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
-use std::fmt::{self, Display};
-use crate::duplicate_key::{DuplicateKeyError};
+use std::fmt;
+use crate::duplicate_key::DuplicateKeyError;
 use std::hash::{Hash, Hasher};
 use std::mem;
 
