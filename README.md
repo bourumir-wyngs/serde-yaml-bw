@@ -53,13 +53,13 @@ fn main() {
     }
 }
 ```
-or, with multiple documents
+or, with multiple documents and question operator:
 ```rust
 use serde::Deserialize;
 use serde_derive::Deserialize;
 use serde_yaml_bw::Deserializer;
 
-fn main() {
+fn parse() -> anyhow::Result<Vec<Config>> {
     let yaml_input = r#"
 # Configure the application    
 name: "My Application"
@@ -72,16 +72,20 @@ enabled: false
 retries: 4
 "#;
 
-    let configs: Result<Vec<Config>, _> = Deserializer::from_str(yaml_input)
-        .map(|doc| Config::deserialize(doc)).collect();
+    let configs = Deserializer::from_str(yaml_input)
+        .map(|doc| Config::deserialize(doc))
+        .collect::<Result<Vec<_>, _>>()?; // <- question operator
 
-    match configs {
-        Ok(parsed_config) => {
-            println!("Parsed successfully: {:?}", parsed_config);
-        }
-        Err(e) => {
-            eprintln!("Failed to parse YAML: {}", e);
-        }
-    }
+    Ok(configs)
 }
+```
+and then
+
+```rust
+fn example_multi() -> anyhow::Result<()> {
+    let configs = parse()?;
+    println!("Parsed successfully: {:?}", configs);
+    Ok(())
+}
+
 ```
