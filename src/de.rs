@@ -965,6 +965,13 @@ fn parse_bool(scalar: &str) -> Option<bool> {
     }
 }
 
+fn make_negative(rest: &str) -> String {
+    let mut negative = String::with_capacity(rest.len() + 1);
+    negative.push('-');
+    negative.push_str(rest);
+    negative
+}
+
 fn parse_unsigned_int<T>(
     scalar: &str,
     from_str_radix: fn(&str, radix: u32) -> Result<T, ParseIntError>,
@@ -1024,7 +1031,7 @@ fn parse_signed_int<T>(
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0x") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 16) {
             return Some(int);
         }
@@ -1038,7 +1045,7 @@ fn parse_signed_int<T>(
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0o") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 8) {
             return Some(int);
         }
@@ -1052,7 +1059,7 @@ fn parse_signed_int<T>(
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0b") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 2) {
             return Some(int);
         }
@@ -1068,19 +1075,19 @@ fn parse_negative_int<T>(
     from_str_radix: fn(&str, radix: u32) -> Result<T, ParseIntError>,
 ) -> Option<T> {
     if let Some(rest) = scalar.strip_prefix("-0x") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 16) {
             return Some(int);
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0o") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 8) {
             return Some(int);
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0b") {
-        let negative = format!("-{}", rest);
+        let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 2) {
             return Some(int);
         }
