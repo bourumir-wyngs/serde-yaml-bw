@@ -13,13 +13,13 @@ pub(crate) enum Error {
     Io(io::Error),
 }
 
-pub(crate) struct Emitter<'a> {
-    pin: Owned<EmitterPinned<'a>>,
+pub(crate) struct Emitter<W: io::Write> {
+    pin: Owned<EmitterPinned<W>>,
 }
 
-struct EmitterPinned<'a> {
+struct EmitterPinned<W: io::Write> {
     sys: sys::yaml_emitter_t,
-    write: Box<dyn io::Write + 'a>,
+    write: Option<Box<W>>,
     write_error: Option<io::Error>,
 }
 
@@ -61,9 +61,9 @@ pub(crate) struct Mapping {
     pub tag: Option<String>,
 }
 
-impl<'a> Emitter<'a> {
-    pub fn new(write: Box<dyn io::Write + 'a>) -> Result<Emitter<'a>, Error> {
-        let owned = Owned::<EmitterPinned>::new_uninit();
+impl<W: io::Write> Emitter<W> {
+    pub fn new(write: Box<W>) -> Result<Emitter<W>, Error> {
+        let owned = Owned::<EmitterPinned<W>>::new_uninit();
         let pin = unsafe {
             let emitter = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_emitter_initialize(emitter).fail {
@@ -71,9 +71,9 @@ impl<'a> Emitter<'a> {
             }
             sys::yaml_emitter_set_unicode(emitter, true);
             sys::yaml_emitter_set_width(emitter, -1);
-            addr_of_mut!((*owned.ptr).write).write(write);
+            addr_of_mut!((*owned.ptr).write).write(Some(write));
             addr_of_mut!((*owned.ptr).write_error).write(None);
-            sys::yaml_emitter_set_output(emitter, write_handler, owned.ptr.cast());
+            sys::yaml_emitter_set_output(emitter, write_handler::<W>, owned.ptr.cast());
             Owned::assume_init(owned)
         };
         Ok(Emitter { pin })
@@ -180,9 +180,8 @@ impl<'a> Emitter<'a> {
         Ok(())
     }
 
-    pub fn into_inner(self) -> Box<dyn io::Write + 'a> {
-        let sink = Box::new(io::sink());
-        unsafe { mem::replace(&mut (*self.pin.ptr).write, sink) }
+    pub fn into_inner(mut self) -> Box<W> {
+        unsafe { (*self.pin.ptr).write.take().expect("writer missing") }
     }
 
     fn error(&mut self) -> Error {
@@ -195,22 +194,25 @@ impl<'a> Emitter<'a> {
     }
 }
 
-unsafe fn write_handler(data: *mut c_void, buffer: *mut u8, size: u64) -> i32 {
-    let data = data.cast::<EmitterPinned>();
-    match io::Write::write_all(unsafe { &mut *(*data).write }, unsafe {
-        slice::from_raw_parts(buffer, size as usize)
-    }) {
+unsafe extern "C" fn write_handler<W: io::Write>(
+    data: *mut c_void,
+    buffer: *mut u8,
+    size: u64,
+) -> i32 {
+    let data = data.cast::<EmitterPinned<W>>();
+    match io::Write::write_all(
+        (*data).write.as_mut().expect("missing writer"),
+        slice::from_raw_parts(buffer, size as usize),
+    ) {
         Ok(()) => 1,
         Err(err) => {
-            unsafe {
-                (*data).write_error = Some(err);
-            }
+            (*data).write_error = Some(err);
             0
         }
     }
 }
 
-impl<'a> Drop for EmitterPinned<'a> {
+impl<W: io::Write> Drop for EmitterPinned<W> {
     fn drop(&mut self) {
         unsafe { sys::yaml_emitter_delete(&mut self.sys) }
     }
