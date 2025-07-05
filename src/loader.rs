@@ -30,7 +30,9 @@ impl<'input> Loader<'input> {
                 }
                 Cow::Owned(buffer)
             }
-            Progress::Iterable(_) | Progress::Document(_) => unreachable!(),
+            Progress::Iterable(_) | Progress::Document(_) => {
+                return Err(error::new(ErrorImpl::MoreThanOneDocument));
+            }
             Progress::Fail(err) => return Err(error::shared(err)),
         };
 

@@ -236,7 +236,7 @@ impl ErrorImpl {
                 }
                 f.write_str(msg)
             }
-            ErrorImpl::Libyaml(_) => unreachable!(),
+            ErrorImpl::Libyaml(err) => Display::fmt(err, f),
             ErrorImpl::Io(err) => Display::fmt(err, f),
             ErrorImpl::FromUtf8(err) => Display::fmt(err, f),
             ErrorImpl::EndOfStream => f.write_str("EOF while parsing a value"),
@@ -265,7 +265,7 @@ impl ErrorImpl {
             }
             ErrorImpl::EmptyTag => f.write_str("empty YAML tag is not allowed"),
             ErrorImpl::FailedToParseNumber => f.write_str("failed to parse YAML number"),
-            ErrorImpl::Shared(_) => unreachable!(),
+            ErrorImpl::Shared(err) => err.display(f),
             ErrorImpl::UnexpectedEndOfSequence => f.write_str("unexpected end of sequence"),
             ErrorImpl::UnexpectedEndOfMapping => f.write_str("unexpected end of mapping"),
             ErrorImpl::UnresolvedAlias => f.write_str("unresolved alias"),
