@@ -515,6 +515,7 @@ fn test_duplicate_keys_hashmap() {
 #[test]
 fn test_duplicate_keys_struct() {
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     struct S { a: i32 }
     let yaml = indoc! {"\
         ---

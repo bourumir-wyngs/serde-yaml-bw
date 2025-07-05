@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use serde_yaml_bw;
 use std::collections::HashMap;
 use serde_derive::Deserialize;
@@ -13,6 +12,7 @@ fn test_recursive_yaml_references_fail() {
 #[test]
 fn test_non_string_keys_fail() {
     #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
     struct Data {
         map: HashMap<String, String>,
     }
@@ -49,6 +49,7 @@ fn test_custom_yaml_tags() {
 #[test]
 fn test_large_integer_overflow_fail() {
     #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
     struct Data {
         big: u64,
     }
@@ -68,6 +69,7 @@ fn test_circular_references_fail() {
 #[test]
 fn test_unexpected_type_fail() {
     #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
     struct Config {
         name: String,
         age: u32,
@@ -81,6 +83,7 @@ fn test_unexpected_type_fail() {
 #[test]
 fn test_invalid_base64_fail() {
     #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
     struct Data {
         data: Vec<u8>,
     }
