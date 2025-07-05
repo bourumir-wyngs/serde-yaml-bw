@@ -96,6 +96,29 @@ fn test_empty_input() {
 }
 
 #[test]
+fn test_multiline_array() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Data {
+        multiline_array: Vec<String>,
+    }
+
+    let yaml_input = r#"
+        multiline_array: [
+          'item'
+        ]
+    "#;
+
+    let parsed: Data = serde_yaml_bw::from_str(yaml_input).expect("Failed to parse YAML");
+
+    assert_eq!(
+        parsed,
+        Data {
+            multiline_array: vec!["item".to_string()]
+        }
+    );
+}
+
+#[test]
 fn example_main() {
     #[derive(Debug, Deserialize)]
     #[allow(dead_code)]
