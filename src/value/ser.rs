@@ -387,7 +387,9 @@ impl ser::SerializeMap for SerializeMap {
         T: ?Sized + ser::Serialize,
     {
         let (mapping, key) = match self {
-            SerializeMap::CheckForTag | SerializeMap::Tagged(_) => unreachable!(),
+            SerializeMap::CheckForTag | SerializeMap::Tagged(_) => {
+                return Err(error::new(ErrorImpl::SerializedValueBeforeSerializeKey));
+            }
             SerializeMap::Untagged { mapping, next_key } => (mapping, next_key),
         };
         match key.take() {

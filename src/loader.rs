@@ -30,7 +30,9 @@ impl<'input> Loader<'input> {
                 }
                 Cow::Owned(buffer)
             }
-            Progress::Iterable(_) | Progress::Document(_) => unreachable!(),
+            Progress::Iterable(_) | Progress::Document(_) => {
+                return Err(error::new(ErrorImpl::MoreThanOneDocument));
+            }
             Progress::Fail(err) => return Err(error::shared(err)),
         };
 
@@ -113,6 +115,7 @@ impl<'input> Loader<'input> {
                     Event::MappingStart(mapping_start)
                 }
                 YamlEvent::MappingEnd => Event::MappingEnd,
+                YamlEvent::Void => Event::Void,
             };
             document.events.push((event, mark));
         }

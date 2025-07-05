@@ -1202,7 +1202,7 @@ fn invalid_type(event: &Event, exp: &dyn Expected) -> Error {
     }
 
     match event {
-        Event::Alias(_) => unreachable!(),
+        Event::Alias(_) => error::new(ErrorImpl::UnresolvedAlias),
         Event::Scalar(scalar) => {
             let get_type = InvalidType { exp };
             match visit_scalar(get_type, scalar, false) {

@@ -30,6 +30,8 @@ pub(crate) enum Event<'input> {
     SequenceEnd,
     MappingStart(MappingStart),
     MappingEnd,
+    /// Placeholder event for unknown or empty libyaml events
+    Void,
 }
 
 pub(crate) struct Scalar<'input> {
@@ -128,7 +130,8 @@ unsafe fn convert_event<'input>(
                 sys::YAML_DOUBLE_QUOTED_SCALAR_STYLE => ScalarStyle::DoubleQuoted,
                 sys::YAML_LITERAL_SCALAR_STYLE => ScalarStyle::Literal,
                 sys::YAML_FOLDED_SCALAR_STYLE => ScalarStyle::Folded,
-                sys::YAML_ANY_SCALAR_STYLE | _ => unreachable!(),
+                // Treat any unrecognized style as plain to avoid panicking
+                sys::YAML_ANY_SCALAR_STYLE | _ => ScalarStyle::Plain,
             },
             repr: if let Cow::Borrowed(input) = input {
                 Some(&input[sys.start_mark.index as usize..sys.end_mark.index as usize])
@@ -146,8 +149,9 @@ unsafe fn convert_event<'input>(
             tag: unsafe { optional_tag(sys.data.mapping_start.tag) },
         }),
         sys::YAML_MAPPING_END_EVENT => Event::MappingEnd,
-        sys::YAML_NO_EVENT => unreachable!(),
-        _ => unimplemented!(),
+        // Unknown or empty events should not cause a panic
+        sys::YAML_NO_EVENT => Event::Void,
+        _ => Event::Void,
     }
 }
 
