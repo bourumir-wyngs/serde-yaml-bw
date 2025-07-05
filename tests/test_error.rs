@@ -9,6 +9,7 @@ use serde_yaml_bw::value::{Tag, TaggedValue};
 use serde_yaml_bw::{Deserializer, Value};
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 #[cfg(not(miri))]
 use std::fmt;
 use std::fmt::Debug;
@@ -465,7 +466,7 @@ fn test_billion_laughs() {
 }
 
 #[test]
-fn test_duplicate_keys() {
+fn test_duplicate_keys_cases() {
     let yaml = indoc! {"
         ---
         thing: true
@@ -522,6 +523,31 @@ fn test_duplicate_keys_struct() {
     "};
     let expected = "duplicate entry with key \"a\" at line 2 column 1";
     test_error::<S>(yaml, expected);
+}
+
+#[test]
+fn test_duplicate_key_error_message() {
+    #[derive(Debug, Deserialize)]
+    struct Data {
+        data: HashMap<String, i32>,
+    }
+
+    let yaml_no_dups = "data:\n  key1: 1\n  key2: 2";
+    match serde_yaml_bw::from_str::<Data>(yaml_no_dups) {
+        Ok(data) => {
+            assert_eq!(2, data.data.len());
+            assert_eq!(1, *data.data.get("key1").unwrap());
+            assert_eq!(2, *data.data.get("key2").unwrap());
+        }
+        Err(err) => assert_eq!(format!("{}", err), r#"Failes to parse valid YAML"#),
+    }
+
+    let yaml_dups = "data:\n  key: 1\n  key: 2";
+    match serde_yaml_bw::from_str::<Data>(yaml_dups) {
+        Ok(data) => panic!("Takes duplicate keys and returns {data:?}"), 
+        Err(err) => assert_eq!(format!("{}", err), 
+                               r#"data: duplicate entry with key "key" at line 2 column 3"#)
+    }
 }
 
 #[derive(Debug, Deserialize)]
