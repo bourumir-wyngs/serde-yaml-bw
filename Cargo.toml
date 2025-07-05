@@ -10,11 +10,10 @@ edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
 license = "MIT OR Apache-2.0"
 
-#repository = "https://github.com/dtolnay/serde-yaml"
 repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 
 [dependencies]
-indexmap = ">=2.0, <=2.9"# All range tested
+indexmap = ">=2.0, <=2.10"# All range tested
 itoa = "1.0"
 ryu = "1.0"
 serde = "1.0"
@@ -24,7 +23,7 @@ unsafe-libyaml = "0.2.11"
 anyhow = "1.0" # All range tested
 indoc = "2.0"
 serde_derive = "1.0"
-serde_json = "1.0.140"
+serde_json = "1.0"
 
 [lib]
 doc-scrape-examples = false
