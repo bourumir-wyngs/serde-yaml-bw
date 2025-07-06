@@ -8,7 +8,7 @@
 use indoc::indoc;
 use serde::ser::SerializeMap;
 use serde_derive::{Deserialize, Serialize};
-use serde_yaml_bw::{Mapping, Number, Value};
+use serde_yaml_bw::{Mapping, Number, Sequence, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter;
@@ -509,14 +509,17 @@ fn test_value() {
     }
     let thing = GenericInstructions {
         typ: "primary".to_string(),
-        config: Value::Sequence(vec![
-            Value::Null,
-            Value::Bool(true),
-            Value::Number(Number::from(65535)),
-            Value::Number(Number::from(0.54321)),
-            Value::String("s".into()),
-            Value::Mapping(Mapping::new()),
-        ]),
+        config: Value::Sequence(Sequence {
+            anchor: None,
+            elements: vec![
+                Value::Null,
+                Value::Bool(true),
+                Value::Number(Number::from(65535)),
+                Value::Number(Number::from(0.54321)),
+                Value::String("s".into()),
+                Value::Mapping(Mapping::new()),
+            ],
+        }),
     };
     let yaml = indoc! {"
         type: primary
