@@ -81,7 +81,7 @@ impl Default for Value {
 }
 
 /// A YAML sequence in which the elements are `serde_yaml_bw::Value`.
-#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Hash)]
+#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Hash, Debug)]
 pub struct Sequence {
     /// Optional anchor associated with this sequence.
     pub anchor: Option<String>,
