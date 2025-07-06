@@ -13,6 +13,8 @@ use std::mem;
 /// A YAML mapping in which the keys and values are both `serde_yaml_bw::Value`.
 #[derive(Clone, Default, Eq, PartialEq)]
 pub struct Mapping {
+    /// Optional anchor associated with this mapping.
+    pub anchor: Option<String>,
     map: IndexMap<Value, Value>,
 }
 
@@ -20,13 +22,17 @@ impl Mapping {
     /// Creates an empty YAML map.
     #[inline]
     pub fn new() -> Self {
-        Self::default()
+        Mapping {
+            anchor: None,
+            map: IndexMap::new(),
+        }
     }
 
     /// Creates an empty YAML map with the given initial capacity.
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Mapping {
+            anchor: None,
             map: IndexMap::with_capacity(capacity),
         }
     }
@@ -428,6 +434,10 @@ impl PartialOrd for Mapping {
                 (Value::Sequence(_), _) => Ordering::Less,
                 (_, Value::Sequence(_)) => Ordering::Greater,
 
+                (Value::Alias(a), Value::Alias(b)) => a.cmp(b),
+                (Value::Alias(_), _) => Ordering::Less,
+                (_, Value::Alias(_)) => Ordering::Greater,
+
                 (Value::Mapping(a), Value::Mapping(b)) => {
                     iter_cmp_by(a, b, |(ak, av), (bk, bv)| {
                         total_cmp(ak, bk).then_with(|| total_cmp(av, bv))
@@ -508,6 +518,7 @@ impl FromIterator<(Value, Value)> for Mapping {
     #[inline]
     fn from_iter<I: IntoIterator<Item = (Value, Value)>>(iter: I) -> Self {
         Mapping {
+            anchor: None,
             map: IndexMap::from_iter(iter),
         }
     }

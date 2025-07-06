@@ -38,6 +38,8 @@ pub enum Value {
     /// Represents a YAML mapping in which the keys and values are both
     /// `serde_yaml_bw::Value`.
     Mapping(Mapping),
+    /// Represents an alias reference to an anchored node.
+    Alias(String),
     /// A representation of YAML's `!Tag` syntax, used for enums.
     Tagged(Box<TaggedValue>),
 }
@@ -79,7 +81,89 @@ impl Default for Value {
 }
 
 /// A YAML sequence in which the elements are `serde_yaml_bw::Value`.
-pub type Sequence = Vec<Value>;
+#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Hash)]
+pub struct Sequence {
+    /// Optional anchor associated with this sequence.
+    pub anchor: Option<String>,
+    /// Elements of the YAML sequence.
+    pub elements: Vec<Value>,
+}
+
+impl serde::Serialize for Sequence {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.elements.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Sequence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let elements = Vec::<Value>::deserialize(deserializer)?;
+        Ok(Sequence { anchor: None, elements })
+    }
+}
+
+impl<'a> IntoIterator for &'a Sequence {
+    type Item = &'a Value;
+    type IntoIter = std::slice::Iter<'a, Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Sequence {
+    type Item = &'a mut Value;
+    type IntoIter = std::slice::IterMut<'a, Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter_mut()
+    }
+}
+
+impl IntoIterator for Sequence {
+    type Item = Value;
+    type IntoIter = std::vec::IntoIter<Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.into_iter()
+    }
+}
+
+impl std::ops::Deref for Sequence {
+    type Target = Vec<Value>;
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl std::ops::DerefMut for Sequence {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.elements
+    }
+}
+
+impl Sequence {
+    /// Creates an empty YAML sequence.
+    #[inline]
+    pub const fn new() -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::new(),
+        }
+    }
+
+    /// Creates an empty YAML sequence with the given initial capacity.
+    #[inline]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::with_capacity(capacity),
+        }
+    }
+}
 
 /// Convert a `T` into `serde_yaml_bw::Value` which is an enum that can represent
 /// any valid YAML data.
@@ -672,6 +756,7 @@ impl Hash for Value {
             Value::String(v) => v.hash(state),
             Value::Sequence(v) => v.hash(state),
             Value::Mapping(v) => v.hash(state),
+            Value::Alias(v) => v.hash(state),
             Value::Tagged(v) => v.hash(state),
         }
     }

@@ -1,4 +1,4 @@
-use crate::{Mapping, Value};
+use crate::{Mapping, Sequence, Value};
 
 // Implement a bunch of conversion to make it easier to create YAML values
 // on the fly.
@@ -125,7 +125,10 @@ impl<T: Into<Value>> From<Vec<T>> for Value {
     /// let x: Value = v.into();
     /// ```
     fn from(f: Vec<T>) -> Self {
-        Value::Sequence(f.into_iter().map(Into::into).collect())
+        Value::Sequence(Sequence {
+            anchor: None,
+            elements: f.into_iter().map(Into::into).collect(),
+        })
     }
 }
 
@@ -141,7 +144,10 @@ impl<'a, T: Clone + Into<Value>> From<&'a [T]> for Value {
     /// let x: Value = v.into();
     /// ```
     fn from(f: &'a [T]) -> Self {
-        Value::Sequence(f.iter().cloned().map(Into::into).collect())
+        Value::Sequence(Sequence {
+            anchor: None,
+            elements: f.iter().cloned().map(Into::into).collect(),
+        })
     }
 }
 
@@ -173,6 +179,9 @@ impl<T: Into<Value>> FromIterator<T> for Value {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let vec = iter.into_iter().map(T::into).collect();
 
-        Value::Sequence(vec)
+        Value::Sequence(Sequence {
+            anchor: None,
+            elements: vec,
+        })
     }
 }

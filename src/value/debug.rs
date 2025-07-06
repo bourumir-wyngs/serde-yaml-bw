@@ -14,6 +14,7 @@ impl Debug for Value {
                 formatter.debug_list().entries(sequence).finish()
             }
             Value::Mapping(mapping) => Debug::fmt(mapping, formatter),
+            Value::Alias(name) => write!(formatter, "Alias({:?})", name),
             Value::Tagged(tagged) => Debug::fmt(tagged, formatter),
         }
     }

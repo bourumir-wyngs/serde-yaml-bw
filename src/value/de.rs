@@ -209,6 +209,7 @@ impl<'de> Deserializer<'de> for Value {
             Value::String(v) => visitor.visit_string(v),
             Value::Sequence(v) => visit_sequence(v, visitor),
             Value::Mapping(v) => visit_mapping(v, visitor),
+            Value::Alias(name) => visitor.visit_str(&name),
             Value::Tagged(tagged) => visitor.visit_enum(*tagged),
         }
     }
@@ -573,9 +574,9 @@ pub(crate) struct SeqDeserializer {
 }
 
 impl SeqDeserializer {
-    pub(crate) fn new(vec: Vec<Value>) -> Self {
+    pub(crate) fn new(seq: Sequence) -> Self {
         SeqDeserializer {
-            iter: vec.into_iter(),
+            iter: seq.into_iter(),
         }
     }
 }
@@ -726,6 +727,7 @@ impl<'de> Deserializer<'de> for &'de Value {
             Value::String(v) => visitor.visit_borrowed_str(v),
             Value::Sequence(v) => visit_sequence_ref(v, visitor),
             Value::Mapping(v) => visit_mapping_ref(v, visitor),
+            Value::Alias(name) => visitor.visit_borrowed_str(name),
             Value::Tagged(tagged) => visitor.visit_enum(&**tagged),
         }
     }
@@ -1239,6 +1241,7 @@ impl Value {
             Value::String(s) => Unexpected::Str(s),
             Value::Sequence(_) => Unexpected::Seq,
             Value::Mapping(_) => Unexpected::Map,
+            Value::Alias(_) => Unexpected::Other("alias"),
             Value::Tagged(_) => Unexpected::Enum,
         }
     }

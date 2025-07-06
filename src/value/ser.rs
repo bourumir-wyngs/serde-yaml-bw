@@ -26,6 +26,7 @@ impl Serialize for Value {
                 }
                 map.end()
             }
+            Value::Alias(name) => serializer.serialize_str(name),
             Value::Tagged(tagged) => tagged.serialize(serializer),
         }
     }
@@ -140,7 +141,7 @@ impl ser::Serializer for Serializer {
             .iter()
             .map(|&b| Value::Number(Number::from(b)))
             .collect();
-        Ok(Value::Sequence(vec))
+        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
     }
 
     fn serialize_unit(self) -> Result<Value> {
