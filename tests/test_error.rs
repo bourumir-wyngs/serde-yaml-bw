@@ -204,7 +204,7 @@ fn test_serialize_nested_enum() {
         tag: Tag::new("Outer"),
         value: Value::Tagged(Box::new(TaggedValue {
             tag: Tag::new("Inner"),
-            value: Value::Null,
+            value: Value::Null(None),
         })),
     }));
     let error = serde_yaml_bw::to_string(&e).unwrap_err();

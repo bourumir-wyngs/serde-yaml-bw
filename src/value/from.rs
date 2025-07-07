@@ -8,7 +8,7 @@ macro_rules! from_number {
         $(
             impl From<$ty> for Value {
                 fn from(n: $ty) -> Self {
-                    Value::Number(n.into())
+                    Value::Number(n.into(), None)
                 }
             }
         )*
@@ -33,7 +33,7 @@ impl From<bool> for Value {
     /// let x: Value = b.into();
     /// ```
     fn from(f: bool) -> Self {
-        Value::Bool(f)
+        Value::Bool(f, None)
     }
 }
 
@@ -49,7 +49,7 @@ impl From<String> for Value {
     /// let x: Value = s.into();
     /// ```
     fn from(f: String) -> Self {
-        Value::String(f)
+        Value::String(f, None)
     }
 }
 
@@ -65,7 +65,7 @@ impl<'a> From<&'a str> for Value {
     /// let x: Value = s.into();
     /// ```
     fn from(f: &str) -> Self {
-        Value::String(f.to_string())
+        Value::String(f.to_string(), None)
     }
 }
 
@@ -92,7 +92,7 @@ impl<'a> From<Cow<'a, str>> for Value {
     /// let x: Value = s.into();
     /// ```
     fn from(f: Cow<'a, str>) -> Self {
-        Value::String(f.to_string())
+        Value::String(f.to_string(), None)
     }
 }
 

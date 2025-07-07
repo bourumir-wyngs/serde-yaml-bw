@@ -25,13 +25,13 @@ pub use crate::number::Number;
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum Value {
     /// Represents a YAML null value.
-    Null,
+    Null(Option<String>),
     /// Represents a YAML boolean.
-    Bool(bool),
+    Bool(bool, Option<String>),
     /// Represents a YAML numerical value, whether integer or floating point.
-    Number(Number),
+    Number(Number, Option<String>),
     /// Represents a YAML string.
-    String(String),
+    String(String, Option<String>),
     /// Represents a YAML sequence in which the elements are
     /// `serde_yaml_bw::Value`.
     Sequence(Sequence),
@@ -76,7 +76,7 @@ pub enum Value {
 /// ```
 impl Default for Value {
     fn default() -> Value {
-        Value::Null
+        Value::Null(None)
     }
 }
 
@@ -278,7 +278,7 @@ impl Value {
     /// assert!(!v.is_null());
     /// ```
     pub fn is_null(&self) -> bool {
-        if let Value::Null = self.untag_ref() {
+        if let Value::Null(_) = self.untag_ref() {
             true
         } else {
             false
@@ -300,7 +300,7 @@ impl Value {
     /// ```
     pub fn as_null(&self) -> Option<()> {
         match self.untag_ref() {
-            Value::Null => Some(()),
+            Value::Null(_) => Some(()),
             _ => None,
         }
     }
@@ -341,7 +341,7 @@ impl Value {
     /// ```
     pub fn as_bool(&self) -> Option<bool> {
         match self.untag_ref() {
-            Value::Bool(b) => Some(*b),
+            Value::Bool(b, _) => Some(*b),
             _ => None,
         }
     }
@@ -361,7 +361,7 @@ impl Value {
     /// ```
     pub fn is_number(&self) -> bool {
         match self.untag_ref() {
-            Value::Number(_) => true,
+            Value::Number(_, _) => true,
             _ => false,
         }
     }
@@ -403,7 +403,7 @@ impl Value {
     /// ```
     pub fn as_i64(&self) -> Option<i64> {
         match self.untag_ref() {
-            Value::Number(n) => n.as_i64(),
+            Value::Number(n, _) => n.as_i64(),
             _ => None,
         }
     }
@@ -445,7 +445,7 @@ impl Value {
     /// ```
     pub fn as_u64(&self) -> Option<u64> {
         match self.untag_ref() {
-            Value::Number(n) => n.as_u64(),
+            Value::Number(n, _) => n.as_u64(),
             _ => None,
         }
     }
@@ -471,7 +471,7 @@ impl Value {
     /// ```
     pub fn is_f64(&self) -> bool {
         match self.untag_ref() {
-            Value::Number(n) => n.is_f64(),
+            Value::Number(n, _) => n.is_f64(),
             _ => false,
         }
     }
@@ -492,7 +492,7 @@ impl Value {
     /// ```
     pub fn as_f64(&self) -> Option<f64> {
         match self.untag_ref() {
-            Value::Number(i) => i.as_f64(),
+            Value::Number(i, _) => i.as_f64(),
             _ => None,
         }
     }
@@ -533,7 +533,7 @@ impl Value {
     /// ```
     pub fn as_str(&self) -> Option<&str> {
         match self.untag_ref() {
-            Value::String(s) => Some(s),
+            Value::String(s, _) => Some(s),
             _ => None,
         }
     }
@@ -750,10 +750,10 @@ impl Hash for Value {
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match self {
-            Value::Null => {}
-            Value::Bool(v) => v.hash(state),
-            Value::Number(v) => v.hash(state),
-            Value::String(v) => v.hash(state),
+            Value::Null(_) => {}
+            Value::Bool(v, _) => v.hash(state),
+            Value::Number(v, _) => v.hash(state),
+            Value::String(v, _) => v.hash(state),
             Value::Sequence(v) => v.hash(state),
             Value::Mapping(v) => v.hash(state),
             Value::Alias(v) => v.hash(state),

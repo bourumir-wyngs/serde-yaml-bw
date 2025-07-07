@@ -16,7 +16,7 @@ impl Index for usize {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         match v.untag_ref() {
             Value::Sequence(vec) => vec.get(*self),
-            Value::Mapping(vec) => vec.get(Value::Number((*self).into())),
+            Value::Mapping(vec) => vec.get(Value::Number((*self).into(), None)),
             _ => None,
         }
     }
@@ -112,7 +112,7 @@ where
     /// # }
     /// ```
     fn index(&self, index: I) -> &Value {
-        static NULL: Value = Value::Null;
+        static NULL: Value = Value::Null(None);
         index.index_into(self).unwrap_or(&NULL)
     }
 }

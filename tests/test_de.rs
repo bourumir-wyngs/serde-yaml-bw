@@ -338,12 +338,12 @@ fn test_de_mapping() {
         substructure: serde_yaml_bw::Mapping::new(),
     };
     expected.substructure.insert(
-        serde_yaml_bw::Value::String("a".to_owned()),
-        serde_yaml_bw::Value::String("foo".to_owned()),
+        serde_yaml_bw::Value::String("a".to_owned(), None),
+        serde_yaml_bw::Value::String("foo".to_owned(), None),
     );
     expected.substructure.insert(
-        serde_yaml_bw::Value::String("b".to_owned()),
-        serde_yaml_bw::Value::String("bar".to_owned()),
+        serde_yaml_bw::Value::String("b".to_owned(), None),
+        serde_yaml_bw::Value::String("bar".to_owned(), None),
     );
 
     test_de(yaml, &expected);
@@ -572,7 +572,7 @@ fn test_no_required_fields() {
         let deserialized: Option<String> = serde_yaml_bw::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
 
-        let expected = Value::Null;
+        let expected = Value::Null(None);
         let deserialized: Value = serde_yaml_bw::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
     }
@@ -656,33 +656,33 @@ fn test_tag_resolution() {
     "};
 
     let expected = vec![
-        Value::Null,
-        Value::Null,
-        Value::Null,
-        Value::Null,
-        Value::Null,
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(false),
-        Value::Bool(false),
-        Value::String("y".to_owned()),
-        Value::String("Y".to_owned()),
-        Value::String("yes".to_owned()),
-        Value::String("Yes".to_owned()),
-        Value::String("YES".to_owned()),
-        Value::String("n".to_owned()),
-        Value::String("N".to_owned()),
+        Value::Null(None),
+        Value::Null(None),
+        Value::Null(None),
+        Value::Null(None),
+        Value::Null(None),
+        Value::Bool(true, None),
+        Value::Bool(true, None),
+        Value::Bool(true, None),
+        Value::Bool(false, None),
+        Value::Bool(false, None),
+        Value::Bool(false, None),
+        Value::String("y".to_owned(), None),
+        Value::String("Y".to_owned(), None),
+        Value::String("yes".to_owned(), None),
+        Value::String("Yes".to_owned(), None),
+        Value::String("YES".to_owned(), None),
+        Value::String("n".to_owned(), None),
+        Value::String("N".to_owned(), None),
         Value::String("no".to_owned()),
         Value::String("No".to_owned()),
-        Value::String("NO".to_owned()),
-        Value::String("on".to_owned()),
-        Value::String("On".to_owned()),
-        Value::String("ON".to_owned()),
-        Value::String("off".to_owned()),
-        Value::String("Off".to_owned()),
-        Value::String("OFF".to_owned()),
+        Value::String("NO".to_owned(), None),
+        Value::String("on".to_owned(), None),
+        Value::String("On".to_owned(), None),
+        Value::String("ON".to_owned(), None),
+        Value::String("off".to_owned(), None),
+        Value::String("Off".to_owned(), None),
+        Value::String("OFF".to_owned(), None),
     ];
 
     test_de(yaml, &expected);

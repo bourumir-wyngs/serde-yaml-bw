@@ -92,7 +92,7 @@ fn test_unexpected_eof() {
 
 #[test]
 fn test_empty_input() {
-    assert_eq!(serde_yaml_bw::from_str::<Value>("").unwrap(), Value::Null);
+    assert_eq!(serde_yaml_bw::from_str::<Value>("").unwrap(), Value::Null(None));
 }
 
 #[test]
