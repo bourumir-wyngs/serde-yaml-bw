@@ -44,7 +44,7 @@ pub enum Value {
     Tagged(Box<TaggedValue>),
 }
 
-/// The default value is `Value::Null`.
+/// The default value is `Value::Null(None)`.
 ///
 /// This is useful for handling omitted `Value` fields when deserializing.
 ///
@@ -67,7 +67,7 @@ pub enum Value {
 /// let s: Settings = serde_yaml_bw::from_str(data)?;
 ///
 /// assert_eq!(s.level, 42);
-/// assert_eq!(s.extras, Value::Null);
+/// assert_eq!(s.extras, Value::Null(None));
 /// #
 /// #     Ok(())
 /// # }
@@ -174,7 +174,7 @@ impl Sequence {
 /// ```
 /// # use serde_yaml_bw::Value;
 /// let val = serde_yaml_bw::to_value("s").unwrap();
-/// assert_eq!(val, Value::String("s".to_owned()));
+/// assert_eq!(val, Value::String("s".to_owned(), None));
 /// ```
 pub fn to_value<T>(value: T) -> Result<Value, Error>
 where
@@ -195,7 +195,7 @@ where
 ///
 /// ```
 /// # use serde_yaml_bw::Value;
-/// let val = Value::String("foo".to_owned());
+/// let val = Value::String("foo".to_owned(), None);
 /// let s: String = serde_yaml_bw::from_value(val).unwrap();
 /// assert_eq!("foo", s);
 /// ```
@@ -226,7 +226,7 @@ impl Value {
     ///
     /// let sequence: Value = serde_yaml_bw::from_str(r#"[ "A", "B", "C" ]"#)?;
     /// let x = sequence.get(2).unwrap();
-    /// assert_eq!(x, &Value::String("C".into()));
+    /// assert_eq!(x, &Value::String("C".into(), None));
     ///
     /// assert_eq!(sequence.get("A"), None);
     /// # Ok(())
@@ -247,13 +247,13 @@ impl Value {
     /// C: [c, ć, ć̣, ḉ]
     /// 42: true
     /// "#)?;
-    /// assert_eq!(object["B"][0], Value::String("b".into()));
+    /// assert_eq!(object["B"][0], Value::String("b".into(), None));
     ///
-    /// assert_eq!(object[Value::String("D".into())], Value::Null);
-    /// assert_eq!(object["D"], Value::Null);
-    /// assert_eq!(object[0]["x"]["y"]["z"], Value::Null);
+    /// assert_eq!(object[Value::String("D".into(), None)], Value::Null(None));
+    /// assert_eq!(object["D"], Value::Null(None));
+    /// assert_eq!(object[0]["x"]["y"]["z"], Value::Null(None));
     ///
-    /// assert_eq!(object[42], Value::Bool(true));
+    /// assert_eq!(object[42], Value::Bool(true, None));
     /// # Ok(())
     /// # }
     /// ```
@@ -559,9 +559,16 @@ impl Value {
     /// Returns None otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::{Value, Number};
+    /// # use serde_yaml_bw::{Value, Number, Sequence};
     /// let v: Value = serde_yaml_bw::from_str("[1, 2]").unwrap();
-    /// assert_eq!(v.as_sequence(), Some(&vec![Value::Number(Number::from(1)), Value::Number(Number::from(2))]));
+    /// let expected = Sequence {
+    ///     anchor: None,
+    ///     elements: vec![
+    ///         Value::Number(Number::from(1), None),
+    ///         Value::Number(Number::from(2), None),
+    ///     ],
+    /// };
+    /// assert_eq!(v.as_sequence(), Some(&expected));
     /// ```
     ///
     /// ```
@@ -580,11 +587,18 @@ impl Value {
     /// possible. Returns None otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::{Value, Number};
+    /// # use serde_yaml_bw::{Value, Number, Sequence};
     /// let mut v: Value = serde_yaml_bw::from_str("[1]").unwrap();
     /// let s = v.as_sequence_mut().unwrap();
-    /// s.push(Value::Number(Number::from(2)));
-    /// assert_eq!(s, &vec![Value::Number(Number::from(1)), Value::Number(Number::from(2))]);
+    /// s.push(Value::Number(Number::from(2), None));
+    /// let expected = Sequence {
+    ///     anchor: None,
+    ///     elements: vec![
+    ///         Value::Number(Number::from(1), None),
+    ///         Value::Number(Number::from(2), None),
+    ///     ],
+    /// };
+    /// assert_eq!(s, &expected);
     /// ```
     ///
     /// ```
@@ -624,7 +638,7 @@ impl Value {
     /// let v: Value = serde_yaml_bw::from_str("a: 42").unwrap();
     ///
     /// let mut expected = Mapping::new();
-    /// expected.insert(Value::String("a".into()),Value::Number(Number::from(42)));
+    /// expected.insert(Value::String("a".into(), None), Value::Number(Number::from(42), None));
     ///
     /// assert_eq!(v.as_mapping(), Some(&expected));
     /// ```
@@ -648,11 +662,11 @@ impl Value {
     /// # use serde_yaml_bw::{Value, Mapping, Number};
     /// let mut v: Value = serde_yaml_bw::from_str("a: 42").unwrap();
     /// let m = v.as_mapping_mut().unwrap();
-    /// m.insert(Value::String("b".into()), Value::Number(Number::from(21)));
+    /// m.insert(Value::String("b".into(), None), Value::Number(Number::from(21), None));
     ///
     /// let mut expected = Mapping::new();
-    /// expected.insert(Value::String("a".into()), Value::Number(Number::from(42)));
-    /// expected.insert(Value::String("b".into()), Value::Number(Number::from(21)));
+    /// expected.insert(Value::String("a".into(), None), Value::Number(Number::from(42), None));
+    /// expected.insert(Value::String("b".into(), None), Value::Number(Number::from(21), None));
     ///
     /// assert_eq!(m, &expected);
     /// ```
