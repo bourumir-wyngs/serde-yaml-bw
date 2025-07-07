@@ -5,15 +5,16 @@ use std::fmt::{self, Debug, Display};
 impl Debug for Value {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Null => formatter.write_str("Null"),
-            Value::Bool(boolean) => write!(formatter, "Bool({})", boolean),
-            Value::Number(number) => write!(formatter, "Number({})", number),
-            Value::String(string) => write!(formatter, "String({:?})", string),
+            Value::Null(_) => formatter.write_str("Null"),
+            Value::Bool(boolean, _) => write!(formatter, "Bool({})", boolean),
+            Value::Number(number, _) => write!(formatter, "Number({})", number),
+            Value::String(string, _) => write!(formatter, "String({:?})", string),
             Value::Sequence(sequence) => {
                 formatter.write_str("Sequence ")?;
                 formatter.debug_list().entries(sequence).finish()
             }
             Value::Mapping(mapping) => Debug::fmt(mapping, formatter),
+            Value::Alias(name) => write!(formatter, "Alias({:?})", name),
             Value::Tagged(tagged) => Debug::fmt(tagged, formatter),
         }
     }
@@ -41,12 +42,12 @@ impl Debug for Mapping {
             let tmp;
             debug.entry(
                 match k {
-                    Value::Bool(boolean) => boolean,
-                    Value::Number(number) => {
+                    Value::Bool(boolean, _) => boolean,
+                    Value::Number(number, _) => {
                         tmp = DisplayNumber(number);
                         &tmp
                     }
-                    Value::String(string) => string,
+                    Value::String(string, _) => string,
                     _ => k,
                 },
                 v,

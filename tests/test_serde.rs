@@ -8,7 +8,7 @@
 use indoc::indoc;
 use serde::ser::SerializeMap;
 use serde_derive::{Deserialize, Serialize};
-use serde_yaml_bw::{Mapping, Number, Value};
+use serde_yaml_bw::{Mapping, Number, Sequence, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter;
@@ -39,7 +39,7 @@ where
 
 #[test]
 fn test_default() {
-    assert_eq!(Value::default(), Value::Null);
+    assert_eq!(Value::default(), Value::Null(None));
 }
 
 #[test]
@@ -509,14 +509,17 @@ fn test_value() {
     }
     let thing = GenericInstructions {
         typ: "primary".to_string(),
-        config: Value::Sequence(vec![
-            Value::Null,
-            Value::Bool(true),
-            Value::Number(Number::from(65535)),
-            Value::Number(Number::from(0.54321)),
-            Value::String("s".into()),
-            Value::Mapping(Mapping::new()),
-        ]),
+        config: Value::Sequence(Sequence {
+            anchor: None,
+            elements: vec![
+                Value::Null(None),
+                Value::Bool(true, None),
+                Value::Number(Number::from(65535), None),
+                Value::Number(Number::from(0.54321), None),
+                Value::String("s".into(), None),
+                Value::Mapping(Mapping::new()),
+            ],
+        }),
     };
     let yaml = indoc! {"
         type: primary
@@ -542,12 +545,12 @@ fn test_mapping() {
         substructure: Mapping::new(),
     };
     thing.substructure.insert(
-        Value::String("a".to_owned()),
-        Value::String("foo".to_owned()),
+        Value::String("a".to_owned(), None),
+        Value::String("foo".to_owned(), None),
     );
     thing.substructure.insert(
-        Value::String("b".to_owned()),
-        Value::String("bar".to_owned()),
+        Value::String("b".to_owned(), None),
+        Value::String("bar".to_owned(), None),
     );
 
     let yaml = indoc! {"

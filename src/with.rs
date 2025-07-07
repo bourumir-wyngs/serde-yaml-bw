@@ -372,7 +372,7 @@ pub mod singleton_map {
             let value = field
                 .serialize(crate::value::Serializer)
                 .map_err(ser::Error::custom)?;
-            self.mapping.insert(Value::String(name.to_owned()), value);
+            self.mapping.insert(Value::String(name.to_owned(), None), value);
             Ok(())
         }
 
@@ -1370,7 +1370,7 @@ pub mod singleton_map_recursive {
                     delegate: crate::value::Serializer,
                 })
                 .map_err(ser::Error::custom)?;
-            self.mapping.insert(Value::String(name.to_owned()), value);
+            self.mapping.insert(Value::String(name.to_owned(), None), value);
             Ok(())
         }
 

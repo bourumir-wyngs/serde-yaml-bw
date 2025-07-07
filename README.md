@@ -89,3 +89,7 @@ fn example_multi() -> anyhow::Result<()> {
 }
 
 ```
+
+## Limitations
+
+Anchors and aliases are currently expanded during deserialization and their names are not preserved when serialized again. As a result, a `from_str` -> `to_string` round trip loses anchor information. Supporting anchors and aliases would require extending the `Value` representation and serializer to retain anchor names and emit alias events.

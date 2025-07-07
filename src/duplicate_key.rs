@@ -20,10 +20,10 @@ impl DuplicateKeyError {
     pub(crate) fn from_value(value: &Value) -> Self {
         use DuplicateKeyKind::*;
         let kind = match value {
-            Value::Null => Null,
-            Value::Bool(b) => Bool(*b),
-            Value::Number(n) => Number(n.clone()),
-            Value::String(s) => String(s.clone()),
+            Value::Null(_) => Null,
+            Value::Bool(b, _) => Bool(*b),
+            Value::Number(n, _) => Number(n.clone()),
+            Value::String(s, _) => String(s.clone()),
             _ => Other,
         };
         DuplicateKeyError { kind }

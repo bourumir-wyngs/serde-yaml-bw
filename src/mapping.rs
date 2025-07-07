@@ -13,6 +13,8 @@ use std::mem;
 /// A YAML mapping in which the keys and values are both `serde_yaml_bw::Value`.
 #[derive(Clone, Default, Eq, PartialEq)]
 pub struct Mapping {
+    /// Optional anchor associated with this mapping.
+    pub anchor: Option<String>,
     map: IndexMap<Value, Value>,
 }
 
@@ -20,13 +22,17 @@ impl Mapping {
     /// Creates an empty YAML map.
     #[inline]
     pub fn new() -> Self {
-        Self::default()
+        Mapping {
+            anchor: None,
+            map: IndexMap::new(),
+        }
     }
 
     /// Creates an empty YAML map with the given initial capacity.
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Mapping {
+            anchor: None,
             map: IndexMap::with_capacity(capacity),
         }
     }
@@ -270,7 +276,7 @@ struct HashLikeValue<'a>(&'a str);
 impl<'a> indexmap::Equivalent<Value> for HashLikeValue<'a> {
     fn equivalent(&self, key: &Value) -> bool {
         match key {
-            Value::String(string) => self.0 == string,
+            Value::String(string, _) => self.0 == string,
             _ => false,
         }
     }
@@ -279,7 +285,7 @@ impl<'a> indexmap::Equivalent<Value> for HashLikeValue<'a> {
 // NOTE: This impl must be consistent with Value's Hash impl.
 impl<'a> Hash for HashLikeValue<'a> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        const STRING: Value = Value::String(String::new());
+        const STRING: Value = Value::String(String::new(), None);
         mem::discriminant(&STRING).hash(state);
         self.0.hash(state);
     }
@@ -408,25 +414,29 @@ impl PartialOrd for Mapping {
         // impl.
         fn total_cmp(a: &Value, b: &Value) -> Ordering {
             match (a, b) {
-                (Value::Null, Value::Null) => Ordering::Equal,
-                (Value::Null, _) => Ordering::Less,
-                (_, Value::Null) => Ordering::Greater,
+                (Value::Null(_), Value::Null(_)) => Ordering::Equal,
+                (Value::Null(_), _) => Ordering::Less,
+                (_, Value::Null(_)) => Ordering::Greater,
 
-                (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
-                (Value::Bool(_), _) => Ordering::Less,
-                (_, Value::Bool(_)) => Ordering::Greater,
+                (Value::Bool(a, _), Value::Bool(b, _)) => a.cmp(b),
+                (Value::Bool(_, _), _) => Ordering::Less,
+                (_, Value::Bool(_, _)) => Ordering::Greater,
 
-                (Value::Number(a), Value::Number(b)) => a.total_cmp(b),
-                (Value::Number(_), _) => Ordering::Less,
-                (_, Value::Number(_)) => Ordering::Greater,
+                (Value::Number(a, _), Value::Number(b, _)) => a.total_cmp(b),
+                (Value::Number(_, _), _) => Ordering::Less,
+                (_, Value::Number(_, _)) => Ordering::Greater,
 
-                (Value::String(a), Value::String(b)) => a.cmp(b),
-                (Value::String(_), _) => Ordering::Less,
-                (_, Value::String(_)) => Ordering::Greater,
+                (Value::String(a, _), Value::String(b, _)) => a.cmp(b),
+                (Value::String(_, _), _) => Ordering::Less,
+                (_, Value::String(_, _)) => Ordering::Greater,
 
                 (Value::Sequence(a), Value::Sequence(b)) => iter_cmp_by(a, b, total_cmp),
                 (Value::Sequence(_), _) => Ordering::Less,
                 (_, Value::Sequence(_)) => Ordering::Greater,
+
+                (Value::Alias(a), Value::Alias(b)) => a.cmp(b),
+                (Value::Alias(_), _) => Ordering::Less,
+                (_, Value::Alias(_)) => Ordering::Greater,
 
                 (Value::Mapping(a), Value::Mapping(b)) => {
                     iter_cmp_by(a, b, |(ak, av), (bk, bv)| {
@@ -492,7 +502,7 @@ where
     #[inline]
     #[track_caller]
     fn index(&self, index: I) -> &Value {
-        const NULL: Value = Value::Null;
+        static NULL: Value = Value::Null(None);
         index.index_into(self).unwrap_or(&NULL)
     }
 }
@@ -508,6 +518,7 @@ impl FromIterator<(Value, Value)> for Mapping {
     #[inline]
     fn from_iter<I: IntoIterator<Item = (Value, Value)>>(iter: I) -> Self {
         Mapping {
+            anchor: None,
             map: IndexMap::from_iter(iter),
         }
     }

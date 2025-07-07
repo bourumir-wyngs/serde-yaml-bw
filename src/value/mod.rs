@@ -25,24 +25,26 @@ pub use crate::number::Number;
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum Value {
     /// Represents a YAML null value.
-    Null,
+    Null(Option<String>),
     /// Represents a YAML boolean.
-    Bool(bool),
+    Bool(bool, Option<String>),
     /// Represents a YAML numerical value, whether integer or floating point.
-    Number(Number),
+    Number(Number, Option<String>),
     /// Represents a YAML string.
-    String(String),
+    String(String, Option<String>),
     /// Represents a YAML sequence in which the elements are
     /// `serde_yaml_bw::Value`.
     Sequence(Sequence),
     /// Represents a YAML mapping in which the keys and values are both
     /// `serde_yaml_bw::Value`.
     Mapping(Mapping),
+    /// Represents an alias reference to an anchored node.
+    Alias(String),
     /// A representation of YAML's `!Tag` syntax, used for enums.
     Tagged(Box<TaggedValue>),
 }
 
-/// The default value is `Value::Null`.
+/// The default value is `Value::Null(None)`.
 ///
 /// This is useful for handling omitted `Value` fields when deserializing.
 ///
@@ -65,7 +67,7 @@ pub enum Value {
 /// let s: Settings = serde_yaml_bw::from_str(data)?;
 ///
 /// assert_eq!(s.level, 42);
-/// assert_eq!(s.extras, Value::Null);
+/// assert_eq!(s.extras, Value::Null(None));
 /// #
 /// #     Ok(())
 /// # }
@@ -74,12 +76,94 @@ pub enum Value {
 /// ```
 impl Default for Value {
     fn default() -> Value {
-        Value::Null
+        Value::Null(None)
     }
 }
 
 /// A YAML sequence in which the elements are `serde_yaml_bw::Value`.
-pub type Sequence = Vec<Value>;
+#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Hash, Debug)]
+pub struct Sequence {
+    /// Optional anchor associated with this sequence.
+    pub anchor: Option<String>,
+    /// Elements of the YAML sequence.
+    pub elements: Vec<Value>,
+}
+
+impl serde::Serialize for Sequence {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.elements.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Sequence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let elements = Vec::<Value>::deserialize(deserializer)?;
+        Ok(Sequence { anchor: None, elements })
+    }
+}
+
+impl<'a> IntoIterator for &'a Sequence {
+    type Item = &'a Value;
+    type IntoIter = std::slice::Iter<'a, Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Sequence {
+    type Item = &'a mut Value;
+    type IntoIter = std::slice::IterMut<'a, Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter_mut()
+    }
+}
+
+impl IntoIterator for Sequence {
+    type Item = Value;
+    type IntoIter = std::vec::IntoIter<Value>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.into_iter()
+    }
+}
+
+impl std::ops::Deref for Sequence {
+    type Target = Vec<Value>;
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl std::ops::DerefMut for Sequence {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.elements
+    }
+}
+
+impl Sequence {
+    /// Creates an empty YAML sequence.
+    #[inline]
+    pub const fn new() -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::new(),
+        }
+    }
+
+    /// Creates an empty YAML sequence with the given initial capacity.
+    #[inline]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::with_capacity(capacity),
+        }
+    }
+}
 
 /// Convert a `T` into `serde_yaml_bw::Value` which is an enum that can represent
 /// any valid YAML data.
@@ -90,7 +174,7 @@ pub type Sequence = Vec<Value>;
 /// ```
 /// # use serde_yaml_bw::Value;
 /// let val = serde_yaml_bw::to_value("s").unwrap();
-/// assert_eq!(val, Value::String("s".to_owned()));
+/// assert_eq!(val, Value::String("s".to_owned(), None));
 /// ```
 pub fn to_value<T>(value: T) -> Result<Value, Error>
 where
@@ -111,7 +195,7 @@ where
 ///
 /// ```
 /// # use serde_yaml_bw::Value;
-/// let val = Value::String("foo".to_owned());
+/// let val = Value::String("foo".to_owned(), None);
 /// let s: String = serde_yaml_bw::from_value(val).unwrap();
 /// assert_eq!("foo", s);
 /// ```
@@ -142,7 +226,7 @@ impl Value {
     ///
     /// let sequence: Value = serde_yaml_bw::from_str(r#"[ "A", "B", "C" ]"#)?;
     /// let x = sequence.get(2).unwrap();
-    /// assert_eq!(x, &Value::String("C".into()));
+    /// assert_eq!(x, &Value::String("C".into(), None));
     ///
     /// assert_eq!(sequence.get("A"), None);
     /// # Ok(())
@@ -163,13 +247,13 @@ impl Value {
     /// C: [c, ć, ć̣, ḉ]
     /// 42: true
     /// "#)?;
-    /// assert_eq!(object["B"][0], Value::String("b".into()));
+    /// assert_eq!(object["B"][0], Value::String("b".into(), None));
     ///
-    /// assert_eq!(object[Value::String("D".into())], Value::Null);
-    /// assert_eq!(object["D"], Value::Null);
-    /// assert_eq!(object[0]["x"]["y"]["z"], Value::Null);
+    /// assert_eq!(object[Value::String("D".into(), None)], Value::Null(None));
+    /// assert_eq!(object["D"], Value::Null(None));
+    /// assert_eq!(object[0]["x"]["y"]["z"], Value::Null(None));
     ///
-    /// assert_eq!(object[42], Value::Bool(true));
+    /// assert_eq!(object[42], Value::Bool(true, None));
     /// # Ok(())
     /// # }
     /// ```
@@ -194,7 +278,7 @@ impl Value {
     /// assert!(!v.is_null());
     /// ```
     pub fn is_null(&self) -> bool {
-        if let Value::Null = self.untag_ref() {
+        if let Value::Null(_) = self.untag_ref() {
             true
         } else {
             false
@@ -216,7 +300,7 @@ impl Value {
     /// ```
     pub fn as_null(&self) -> Option<()> {
         match self.untag_ref() {
-            Value::Null => Some(()),
+            Value::Null(_) => Some(()),
             _ => None,
         }
     }
@@ -257,7 +341,7 @@ impl Value {
     /// ```
     pub fn as_bool(&self) -> Option<bool> {
         match self.untag_ref() {
-            Value::Bool(b) => Some(*b),
+            Value::Bool(b, _) => Some(*b),
             _ => None,
         }
     }
@@ -277,7 +361,7 @@ impl Value {
     /// ```
     pub fn is_number(&self) -> bool {
         match self.untag_ref() {
-            Value::Number(_) => true,
+            Value::Number(_, _) => true,
             _ => false,
         }
     }
@@ -319,7 +403,7 @@ impl Value {
     /// ```
     pub fn as_i64(&self) -> Option<i64> {
         match self.untag_ref() {
-            Value::Number(n) => n.as_i64(),
+            Value::Number(n, _) => n.as_i64(),
             _ => None,
         }
     }
@@ -361,7 +445,7 @@ impl Value {
     /// ```
     pub fn as_u64(&self) -> Option<u64> {
         match self.untag_ref() {
-            Value::Number(n) => n.as_u64(),
+            Value::Number(n, _) => n.as_u64(),
             _ => None,
         }
     }
@@ -387,7 +471,7 @@ impl Value {
     /// ```
     pub fn is_f64(&self) -> bool {
         match self.untag_ref() {
-            Value::Number(n) => n.is_f64(),
+            Value::Number(n, _) => n.is_f64(),
             _ => false,
         }
     }
@@ -408,7 +492,7 @@ impl Value {
     /// ```
     pub fn as_f64(&self) -> Option<f64> {
         match self.untag_ref() {
-            Value::Number(i) => i.as_f64(),
+            Value::Number(i, _) => i.as_f64(),
             _ => None,
         }
     }
@@ -449,7 +533,7 @@ impl Value {
     /// ```
     pub fn as_str(&self) -> Option<&str> {
         match self.untag_ref() {
-            Value::String(s) => Some(s),
+            Value::String(s, _) => Some(s),
             _ => None,
         }
     }
@@ -475,9 +559,16 @@ impl Value {
     /// Returns None otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::{Value, Number};
+    /// # use serde_yaml_bw::{Value, Number, Sequence};
     /// let v: Value = serde_yaml_bw::from_str("[1, 2]").unwrap();
-    /// assert_eq!(v.as_sequence(), Some(&vec![Value::Number(Number::from(1)), Value::Number(Number::from(2))]));
+    /// let expected = Sequence {
+    ///     anchor: None,
+    ///     elements: vec![
+    ///         Value::Number(Number::from(1), None),
+    ///         Value::Number(Number::from(2), None),
+    ///     ],
+    /// };
+    /// assert_eq!(v.as_sequence(), Some(&expected));
     /// ```
     ///
     /// ```
@@ -496,11 +587,18 @@ impl Value {
     /// possible. Returns None otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::{Value, Number};
+    /// # use serde_yaml_bw::{Value, Number, Sequence};
     /// let mut v: Value = serde_yaml_bw::from_str("[1]").unwrap();
     /// let s = v.as_sequence_mut().unwrap();
-    /// s.push(Value::Number(Number::from(2)));
-    /// assert_eq!(s, &vec![Value::Number(Number::from(1)), Value::Number(Number::from(2))]);
+    /// s.push(Value::Number(Number::from(2), None));
+    /// let expected = Sequence {
+    ///     anchor: None,
+    ///     elements: vec![
+    ///         Value::Number(Number::from(1), None),
+    ///         Value::Number(Number::from(2), None),
+    ///     ],
+    /// };
+    /// assert_eq!(s, &expected);
     /// ```
     ///
     /// ```
@@ -540,7 +638,7 @@ impl Value {
     /// let v: Value = serde_yaml_bw::from_str("a: 42").unwrap();
     ///
     /// let mut expected = Mapping::new();
-    /// expected.insert(Value::String("a".into()),Value::Number(Number::from(42)));
+    /// expected.insert(Value::String("a".into(), None), Value::Number(Number::from(42), None));
     ///
     /// assert_eq!(v.as_mapping(), Some(&expected));
     /// ```
@@ -564,11 +662,11 @@ impl Value {
     /// # use serde_yaml_bw::{Value, Mapping, Number};
     /// let mut v: Value = serde_yaml_bw::from_str("a: 42").unwrap();
     /// let m = v.as_mapping_mut().unwrap();
-    /// m.insert(Value::String("b".into()), Value::Number(Number::from(21)));
+    /// m.insert(Value::String("b".into(), None), Value::Number(Number::from(21), None));
     ///
     /// let mut expected = Mapping::new();
-    /// expected.insert(Value::String("a".into()), Value::Number(Number::from(42)));
-    /// expected.insert(Value::String("b".into()), Value::Number(Number::from(21)));
+    /// expected.insert(Value::String("a".into(), None), Value::Number(Number::from(42), None));
+    /// expected.insert(Value::String("b".into(), None), Value::Number(Number::from(21), None));
     ///
     /// assert_eq!(m, &expected);
     /// ```
@@ -666,12 +764,13 @@ impl Hash for Value {
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match self {
-            Value::Null => {}
-            Value::Bool(v) => v.hash(state),
-            Value::Number(v) => v.hash(state),
-            Value::String(v) => v.hash(state),
+            Value::Null(_) => {}
+            Value::Bool(v, _) => v.hash(state),
+            Value::Number(v, _) => v.hash(state),
+            Value::String(v, _) => v.hash(state),
             Value::Sequence(v) => v.hash(state),
             Value::Mapping(v) => v.hash(state),
+            Value::Alias(v) => v.hash(state),
             Value::Tagged(v) => v.hash(state),
         }
     }

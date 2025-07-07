@@ -13,10 +13,10 @@ impl Serialize for Value {
         S: serde::Serializer,
     {
         match self {
-            Value::Null => serializer.serialize_unit(),
-            Value::Bool(b) => serializer.serialize_bool(*b),
-            Value::Number(n) => n.serialize(serializer),
-            Value::String(s) => serializer.serialize_str(s),
+            Value::Null(_) => serializer.serialize_unit(),
+            Value::Bool(b, _) => serializer.serialize_bool(*b),
+            Value::Number(n, _) => n.serialize(serializer),
+            Value::String(s, _) => serializer.serialize_str(s),
             Value::Sequence(seq) => seq.serialize(serializer),
             Value::Mapping(mapping) => {
                 use serde::ser::SerializeMap;
@@ -26,6 +26,7 @@ impl Serialize for Value {
                 }
                 map.end()
             }
+            Value::Alias(name) => serializer.serialize_str(name),
             Value::Tagged(tagged) => tagged.serialize(serializer),
         }
     }
@@ -66,23 +67,23 @@ impl ser::Serializer for Serializer {
     type SerializeStructVariant = SerializeStructVariant;
 
     fn serialize_bool(self, v: bool) -> Result<Value> {
-        Ok(Value::Bool(v))
+        Ok(Value::Bool(v, None))
     }
 
     fn serialize_i8(self, v: i8) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_i64(self, v: i64) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_i128(self, v: i128) -> Result<Value> {
@@ -91,60 +92,60 @@ impl ser::Serializer for Serializer {
         } else if let Ok(v) = i64::try_from(v) {
             self.serialize_i64(v)
         } else {
-            Ok(Value::String(v.to_string()))
+            Ok(Value::String(v.to_string(), None))
         }
     }
 
     fn serialize_u8(self, v: u8) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_u64(self, v: u64) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_u128(self, v: u128) -> Result<Value> {
         if let Ok(v) = u64::try_from(v) {
             self.serialize_u64(v)
         } else {
-            Ok(Value::String(v.to_string()))
+            Ok(Value::String(v.to_string(), None))
         }
     }
 
     fn serialize_f32(self, v: f32) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Value> {
-        Ok(Value::Number(Number::from(v)))
+        Ok(Value::Number(Number::from(v), None))
     }
 
     fn serialize_char(self, value: char) -> Result<Value> {
-        Ok(Value::String(value.to_string()))
+        Ok(Value::String(value.to_string(), None))
     }
 
     fn serialize_str(self, value: &str) -> Result<Value> {
-        Ok(Value::String(value.to_owned()))
+        Ok(Value::String(value.to_owned(), None))
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Value> {
         let vec = value
             .iter()
-            .map(|&b| Value::Number(Number::from(b)))
+            .map(|&b| Value::Number(Number::from(b), None))
             .collect();
-        Ok(Value::Sequence(vec))
+        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
     }
 
     fn serialize_unit(self) -> Result<Value> {
-        Ok(Value::Null)
+        Ok(Value::Null(None))
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Value> {
@@ -157,7 +158,7 @@ impl ser::Serializer for Serializer {
         _variant_index: u32,
         variant: &str,
     ) -> Result<Value> {
-        Ok(Value::String(variant.to_owned()))
+        Ok(Value::String(variant.to_owned(), None))
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Value>
@@ -369,7 +370,7 @@ impl ser::SerializeMap for SerializeMap {
             SerializeMap::Tagged(tagged) => {
                 let mut mapping = Mapping::new();
                 mapping.insert(
-                    Value::String(tagged.tag.to_string()),
+                    Value::String(tagged.tag.to_string(), None),
                     mem::take(&mut tagged.value),
                 );
                 *self = SerializeMap::Untagged {
@@ -617,7 +618,7 @@ impl ser::SerializeMap for SerializeMap {
             {
                 match tagged::check_for_tag(value) {
                     MaybeTag::Tag(tag) => Ok(MaybeTag::Tag(tag)),
-                    MaybeTag::NotTag(string) => Ok(MaybeTag::NotTag(Value::String(string))),
+                    MaybeTag::NotTag(string) => Ok(MaybeTag::NotTag(Value::String(string, None))),
                     MaybeTag::Error => Err(error::new(ErrorImpl::TagError))
                 }
             }
@@ -772,7 +773,7 @@ impl ser::SerializeMap for SerializeMap {
             SerializeMap::Tagged(tagged) => {
                 let mut mapping = Mapping::new();
                 mapping.insert(
-                    Value::String(tagged.tag.to_string()),
+                    Value::String(tagged.tag.to_string(), None),
                     mem::take(&mut tagged.value),
                 );
                 mapping.insert(to_value(key)?, to_value(value)?);

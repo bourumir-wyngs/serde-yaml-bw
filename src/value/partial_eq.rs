@@ -7,7 +7,7 @@ impl PartialEq<str> for Value {
     ///
     /// ```
     /// # use serde_yaml_bw::Value;
-    /// assert!(Value::String("lorem".into()) == *"lorem");
+    /// assert!(Value::String("lorem".into(), None) == *"lorem");
     /// ```
     fn eq(&self, other: &str) -> bool {
         self.as_str().map_or(false, |s| s == other)
@@ -21,7 +21,7 @@ impl<'a> PartialEq<&'a str> for Value {
     ///
     /// ```
     /// # use serde_yaml_bw::Value;
-    /// assert!(Value::String("lorem".into()) == "lorem");
+    /// assert!(Value::String("lorem".into(), None) == "lorem");
     /// ```
     fn eq(&self, other: &&str) -> bool {
         self.as_str().map_or(false, |s| s == *other)
@@ -35,7 +35,7 @@ impl PartialEq<String> for Value {
     ///
     /// ```
     /// # use serde_yaml_bw::Value;
-    /// assert!(Value::String("lorem".into()) == "lorem".to_string());
+    /// assert!(Value::String("lorem".into(), None) == "lorem".to_string());
     /// ```
     fn eq(&self, other: &String) -> bool {
         self.as_str().map_or(false, |s| s == other)
@@ -49,7 +49,7 @@ impl PartialEq<bool> for Value {
     ///
     /// ```
     /// # use serde_yaml_bw::Value;
-    /// assert!(Value::Bool(true) == true);
+    /// assert!(Value::Bool(true, None) == true);
     /// ```
     fn eq(&self, other: &bool) -> bool {
         self.as_bool().map_or(false, |b| b == *other)
