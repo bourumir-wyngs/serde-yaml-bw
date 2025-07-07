@@ -1,3 +1,5 @@
+#![cfg(feature = "anchor_test")]
+
 use serde_yaml_bw::{from_str, to_string, Value};
 
 #[test]
