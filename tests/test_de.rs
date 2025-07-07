@@ -431,7 +431,7 @@ fn test_numbers() {
     for &(yaml, expected) in &cases {
         let value = serde_yaml_bw::from_str::<Value>(yaml).unwrap();
         match value {
-            Value::Number(number) => assert_eq!(number.to_string(), expected),
+            Value::Number(number, _) => assert_eq!(number.to_string(), expected),
             _ => panic!("expected number. input={:?}, result={:?}", yaml, value),
         }
     }
@@ -444,7 +444,7 @@ fn test_numbers() {
     for yaml in &cases {
         let value = serde_yaml_bw::from_str::<Value>(yaml).unwrap();
         match value {
-            Value::String(string) => assert_eq!(string, *yaml),
+            Value::String(string, _) => assert_eq!(string, *yaml),
             _ => panic!("expected string. input={:?}, result={:?}", yaml, value),
         }
     }
@@ -674,8 +674,8 @@ fn test_tag_resolution() {
         Value::String("YES".to_owned(), None),
         Value::String("n".to_owned(), None),
         Value::String("N".to_owned(), None),
-        Value::String("no".to_owned()),
-        Value::String("No".to_owned()),
+        Value::String("no".to_owned(), None),
+        Value::String("No".to_owned(), None),
         Value::String("NO".to_owned(), None),
         Value::String("on".to_owned(), None),
         Value::String("On".to_owned(), None),
