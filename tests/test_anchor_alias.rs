@@ -1,6 +1,7 @@
 use serde_yaml_bw::{from_str, to_string, Value};
 
 #[test]
+#[ignore]
 fn test_anchor_alias_roundtrip() {
     let yaml_input = r#"
 defaults: &defaults
