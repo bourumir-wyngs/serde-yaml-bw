@@ -1,10 +1,14 @@
-use crate::de::{Event, Progress};
+use crate::de::{Event, Progress, ScalarEvent, SequenceStartEvent, MappingStartEvent};
 use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::error::Mark;
-use crate::libyaml::parser::{Event as YamlEvent, Parser};
+use crate::libyaml::parser::{Event as YamlEvent, Parser, Anchor};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
+
+fn anchor_to_string(anchor: &Anchor) -> String {
+    String::from_utf8_lossy(&anchor.0).into_owned()
+}
 
 pub(crate) struct Loader<'input> {
     parser: Option<Parser<'input>>,
@@ -90,34 +94,62 @@ impl<'input> Loader<'input> {
                     }
                 },
                 YamlEvent::Scalar(mut scalar) => {
-                    if let Some(anchor) = scalar.anchor.take() {
+                    let anchor_name = scalar.anchor.take().map(|a| {
+                        let name = anchor_to_string(&a);
                         let id = anchors.len();
-                        anchors.insert(anchor, id);
+                        anchors.insert(a, id);
                         document.aliases.insert(id, document.events.len());
-                    }
-                    Event::Scalar(scalar)
+                        name
+                    });
+                    Event::Scalar(ScalarEvent { anchor: anchor_name, value: scalar })
                 }
                 YamlEvent::SequenceStart(mut sequence_start) => {
-                    if let Some(anchor) = sequence_start.anchor.take() {
+                    let anchor_name = sequence_start.anchor.take().map(|a| {
+                        let name = anchor_to_string(&a);
                         let id = anchors.len();
-                        anchors.insert(anchor, id);
+                        anchors.insert(a, id);
                         document.aliases.insert(id, document.events.len());
-                    }
-                    Event::SequenceStart(sequence_start)
+                        name
+                    });
+                    Event::SequenceStart(SequenceStartEvent { anchor: anchor_name, tag: sequence_start.tag })
                 }
                 YamlEvent::SequenceEnd => Event::SequenceEnd,
                 YamlEvent::MappingStart(mut mapping_start) => {
-                    if let Some(anchor) = mapping_start.anchor.take() {
+                    let anchor_name = mapping_start.anchor.take().map(|a| {
+                        let name = anchor_to_string(&a);
                         let id = anchors.len();
-                        anchors.insert(anchor, id);
+                        anchors.insert(a, id);
                         document.aliases.insert(id, document.events.len());
-                    }
-                    Event::MappingStart(mapping_start)
+                        name
+                    });
+                    Event::MappingStart(MappingStartEvent { anchor: anchor_name, tag: mapping_start.tag })
                 }
                 YamlEvent::MappingEnd => Event::MappingEnd,
                 YamlEvent::Void => Event::Void,
             };
             document.events.push((event, mark));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anchored_scalar_event_keeps_anchor() {
+        let yaml = "a: &id 1\nb: *id\n";
+        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let document = loader.next_document().unwrap();
+        let mut found = false;
+        for (event, _) in &document.events {
+            if let Event::Scalar(scalar) = event {
+                if let Some(name) = &scalar.anchor {
+                    assert_eq!(name, "id");
+                    found = true;
+                }
+            }
+        }
+        assert!(found, "anchored scalar not found");
     }
 }
