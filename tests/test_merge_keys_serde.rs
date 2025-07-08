@@ -1,5 +1,5 @@
 use serde_derive::Deserialize;
-use serde_yaml_bw::from_str_with_merge;
+use serde_yaml_bw::{from_str_with_merge, Value};
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Config {
@@ -65,37 +65,55 @@ struct Entry {
     label: String,
 }
 
-// #[test] this test currently fails
-fn test_merge_partial_ancestor() {
+#[test]
+fn test_merge_fake_anchors() {
     let yaml = r#"
-# Ancestors do not contain all fields of the final structure,
-# final value can only be built by merging multiple ancestors.
-- &CENTER { x: 1, y: 2 }
-- &LEFT { x: 0, y: 2 }
-- &BIG { r: 10 }
-- &SMALL { r: 1 }
+# Anchors define values not sufficient to build complete Rust structure.
+# Complet structure can only be build by merging multiple
+_anchors:
+  CENTER: &CENTER { x: 1, y: 2 }
+  LEFT: &LEFT { x: 0, y: 2 }
+  BIG: &BIG { r: 10 }
+  SMALL: &SMALL { r: 1 }
 
-- x: 1
-  y: 2
-  r: 10
-  label: center/big
+entries:
+  - x: 1
+    y: 2
+    r: 10
+    label: center/big
 
-- <<: *CENTER
-  r: 10
-  label: center/big
+  - <<: *CENTER
+    r: 10
+    label: center/big
 
-- <<: [ *CENTER, *BIG ]
-  label: center/big
+  - <<: [ *CENTER, *BIG ]
+    label: center/big
 
-- <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
-  label: center/big
+  - <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
+    label: center/big
 "#;
 
-    // Deserialize YAML directly into a Vec<Entry> using Serde
-    let entries: Vec<Entry> = serde_yaml_bw::from_str_with_merge(yaml).unwrap();
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Entry {
+        x: i32,
+        y: i32,
+        r: i32,
+        label: String,
+    }
 
-    // Check total entries (the first 4 YAML anchors are skipped as they do not match the Entry struct)
-    assert_eq!(entries.len(), 4);
+    #[derive(Debug, Deserialize)]
+    struct Root {
+        // Define the structure we actually do not serialize
+        #[serde(skip)]
+        _anchors: serde_yaml_bw::Value,
+
+        entries: Vec<Entry>,
+    }
+
+    let root: Root = serde_yaml_bw::from_str_with_merge(yaml).unwrap();
+
+    // Check total entries (anchors are explicitly skipped)
+    assert_eq!(root.entries.len(), 4);
 
     let base = Entry {
         x: 1,
@@ -104,11 +122,14 @@ fn test_merge_partial_ancestor() {
         label: "center/big".to_string(),
     };
 
-    assert_eq!(entries[0], base);
-    assert_eq!(entries[1], base);
-    assert_eq!(entries[2], base);
-    assert_eq!(entries[3], base);
+    assert_eq!(root.entries[0], base);
+    assert_eq!(root.entries[1], base);
+    assert_eq!(root.entries[2], base);
+    assert_eq!(root.entries[3], base);
+
+    assert!(root._anchors.is_null()); // fake anchors get null.
 }
+
 
 #[test]
 fn test_merge_full_ancestor() {
