@@ -32,7 +32,7 @@ production:
 "#;
 
     // Deserialize YAML with anchors, aliases and merge keys into the Config struct
-    let parsed: Config = from_str_with_merge(yaml_input).expect("Failed to deserialize YAML");
+    let parsed: Config = serde_yaml_bw::from_str_with_merge(yaml_input).expect("Failed to deserialize YAML");
 
     // Define expected Config structure explicitly
     let expected = Config {
@@ -55,4 +55,121 @@ production:
 
     // Assert parsed config matches expected
     assert_eq!(parsed, expected);
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Entry {
+    x: i32,
+    y: i32,
+    r: i32,
+    label: String,
+}
+
+// #[test] this test currently fails
+fn test_merge_partial_ancestor() {
+    let yaml = r#"
+# Ancestors do not contain all fields of the final structure,
+# final value can only be built by merging multiple ancestors.
+- &CENTER { x: 1, y: 2 }
+- &LEFT { x: 0, y: 2 }
+- &BIG { r: 10 }
+- &SMALL { r: 1 }
+
+- x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- <<: *CENTER
+  r: 10
+  label: center/big
+
+- <<: [ *CENTER, *BIG ]
+  label: center/big
+
+- <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
+  label: center/big
+"#;
+
+    // Deserialize YAML directly into a Vec<Entry> using Serde
+    let entries: Vec<Entry> = serde_yaml_bw::from_str_with_merge(yaml).unwrap();
+
+    // Check total entries (the first 4 YAML anchors are skipped as they do not match the Entry struct)
+    assert_eq!(entries.len(), 4);
+
+    let base = Entry {
+        x: 1,
+        y: 2,
+        r: 10,
+        label: "center/big".to_string(),
+    };
+
+    assert_eq!(entries[0], base);
+    assert_eq!(entries[1], base);
+    assert_eq!(entries[2], base);
+    assert_eq!(entries[3], base);
+}
+
+#[test]
+fn test_merge_full_ancestor() {
+    let yaml = r#"
+# Ancestors contain all fields of the final structures, even if these values can be overridden.
+- &CENTER { x: 0, y: 0, r: 5, label: from_CENTER }
+- &LEFT { x: -1000, y: -4, r: 12, label: from_LEFT }
+- &BIG { r: 1000, x: -1, y: -1, label: from_BIG }
+- &SMALL { r: 1, x: -2, y: -2, label: from_SMALL }
+
+- x: 1
+  y: 2
+  r: 10
+  label: own_override
+
+- <<: *CENTER
+  r: 10
+
+- <<: [ *CENTER, *BIG ]
+  label: my_center_big
+
+- <<: [ *BIG, *LEFT, { y: 2 } ]
+"#;
+
+    // Deserialize YAML directly into a Vec<Entry> using Serde
+    let entries: Vec<Entry> = serde_yaml_bw::from_str_with_merge(yaml).unwrap();
+
+    // Check total entries (the first 4 YAML anchors are skipped as they do not match the Entry struct)
+    assert_eq!(entries.len(), 8);
+
+    let e1 = Entry {
+        x: 1,
+        y: 2,
+        r: 10,
+        label: "own_override".to_string(),
+    };
+
+    let e2 = Entry {
+        x: 0,
+        y: 0,
+        r: 10,
+        label: "from_CENTER".to_string(),
+    };
+
+    let e3 = Entry {
+        x: -1,
+        y: -1,
+        r: 1000,
+        label: "my_center_big".to_string(),
+    };
+
+    let e4 = Entry {
+        x: -1000,
+        y: 2,
+        r: 12,
+        label: "from_LEFT".to_string(),
+    };
+
+
+    assert_eq!(entries[4], e1);
+    assert_eq!(entries[5], e2);
+    assert_eq!(entries[6], e3);
+    assert_eq!(entries[7], e4);
 }
