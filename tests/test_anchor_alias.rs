@@ -1,7 +1,6 @@
-use serde_yaml_bw::{from_str, to_string, Value};
+use serde_yaml_bw::{to_string, Value, from_str_value_preserve};
 
 #[test]
-#[ignore]
 fn test_anchor_alias_roundtrip() {
     let yaml_input = r#"
 defaults: &defaults
@@ -18,7 +17,7 @@ production:
 "#;
 
     // Deserialize YAML with anchors and aliases
-    let parsed: Value = from_str(yaml_input).expect("Failed to parse YAML");
+    let parsed: Value = from_str_value_preserve(yaml_input).expect("Failed to parse YAML");
 
     // Serialize back to YAML
     let serialized = to_string(&parsed).expect("Failed to serialize YAML");

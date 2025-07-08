@@ -4,6 +4,7 @@ use crate::libyaml::parser::{Scalar, ScalarStyle};
 use crate::libyaml::tag::Tag;
 use crate::loader::{Document, Loader};
 use crate::path::Path;
+use std::str::FromStr;
 use serde::de::value::StrDeserializer;
 use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny, Unexpected, Visitor,
@@ -11,6 +12,8 @@ use serde::de::{
 use std::fmt;
 use std::collections::HashSet;
 use crate::duplicate_key::DuplicateKeyError;
+use crate::value::{Value, Sequence, Mapping};
+use crate::number::Number;
 use std::io;
 use std::mem;
 use std::num::ParseIntError;
@@ -693,6 +696,58 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         self.remaining_depth = previous_depth;
         result
     }
+
+    pub(crate) fn parse_value(&mut self) -> Result<Value> {
+        use Event::*;
+        let (event, _mark) = self.next_event_mark()?;
+        match event {
+            Alias(id) => {
+                let alias_index = match self.document.aliases.get(&id) {
+                    Some(idx) => *idx,
+                    None => return Err(error::new(ErrorImpl::UnresolvedAlias)),
+                };
+                let name = match &self.document.events[alias_index].0 {
+                    Scalar(s) => s.anchor.clone(),
+                    SequenceStart(s) => s.anchor.clone(),
+                    MappingStart(m) => m.anchor.clone(),
+                    _ => None,
+                }
+                .ok_or_else(|| error::new(ErrorImpl::UnresolvedAlias))?;
+                Ok(Value::Alias(name))
+            }
+            Scalar(scalar) => Ok(parse_scalar_value(&scalar)),
+            SequenceStart(seq) => {
+                let anchor = seq.anchor.clone();
+                let mut elements = Vec::new();
+                while !matches!(self.peek_event()?, SequenceEnd) {
+                    elements.push(self.parse_value()?);
+                }
+                self.next_event()?; // consume SequenceEnd
+                Ok(Value::Sequence(Sequence { anchor, elements }))
+            }
+            MappingStart(map) => {
+                let anchor = map.anchor.clone();
+                let mut mapping = Mapping::new();
+                while !matches!(self.peek_event()?, MappingEnd) {
+                    let key = self.parse_value()?;
+                    if mapping.contains_key(&key) {
+                        return Err(error::new(ErrorImpl::Message(
+                            DuplicateKeyError::from_value(&key).to_string(),
+                            None,
+                        )));
+                    }
+                    let value = self.parse_value()?;
+                    mapping.insert(key, value);
+                }
+                self.next_event()?; // consume MappingEnd
+                mapping.anchor = anchor;
+                Ok(Value::Mapping(mapping))
+            }
+            SequenceEnd => Err(error::new(ErrorImpl::UnexpectedEndOfSequence)),
+            MappingEnd => Err(error::new(ErrorImpl::UnexpectedEndOfMapping)),
+            Void => Ok(Value::Null(None)),
+        }
+    }
 }
 
 struct SeqAccess<'de, 'document, 'seq> {
@@ -989,6 +1044,26 @@ fn parse_bool(scalar: &str) -> Option<bool> {
         "false" | "False" | "FALSE" => Some(false),
         _ => None,
     }
+}
+
+fn parse_scalar_value(scalar: &ScalarEvent) -> Value {
+    let anchor = scalar.anchor.clone();
+    let repr = match std::str::from_utf8(&scalar.value.value) {
+        Ok(s) => s,
+        Err(_) => return Value::String(String::from_utf8_lossy(&scalar.value.value).to_string(), anchor),
+    };
+    if scalar.value.style == ScalarStyle::Plain {
+        if parse_null(&scalar.value.value).is_some() {
+            return Value::Null(anchor);
+        }
+        if let Some(b) = parse_bool(repr) {
+            return Value::Bool(b, anchor);
+        }
+        if let Ok(num) = Number::from_str(repr) {
+            return Value::Number(num, anchor);
+        }
+    }
+    Value::String(repr.to_owned(), anchor)
 }
 
 fn make_negative(rest: &str) -> String {
@@ -1918,4 +1993,9 @@ where
     T: Deserialize<'de>,
 {
     T::deserialize(Deserializer::from_slice(v))
+}
+
+/// Deserialize a YAML `Value` while preserving anchors and aliases.
+pub fn from_str_value_preserve(s: &str) -> Result<Value> {
+    Deserializer::from_str(s).de(|state| state.parse_value())
 }
