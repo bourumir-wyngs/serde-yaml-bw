@@ -1,5 +1,4 @@
-use serde_yaml_bw::{to_string, Value};
-use serde_yaml_bw::de::from_str_value_preserve;
+use serde_yaml_bw::{to_string, Value, from_str_value_preserve};
 
 #[test]
 fn test_anchor_alias_roundtrip() {

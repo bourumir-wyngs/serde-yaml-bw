@@ -160,7 +160,7 @@
     clippy::must_use_candidate,
 )]
 
-pub use crate::de::{from_reader, from_slice, from_str, Deserializer};
+pub use crate::de::{from_reader, from_slice, from_str, from_str_value_preserve, Deserializer};
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{to_string, to_writer, Serializer};
 #[doc(inline)]
