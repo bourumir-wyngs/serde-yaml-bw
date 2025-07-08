@@ -1,6 +1,5 @@
-use serde::Deserialize;
-use std::collections::HashMap;
 use serde_derive::Deserialize;
+use serde_yaml_bw::from_str_with_merge;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Config {
@@ -16,7 +15,7 @@ struct Connection {
     database: Option<String>,
 }
 
-// #[test] // this test is currently failing
+#[test]
 fn test_anchor_alias_deserialization() {
     let yaml_input = r#"
 defaults: &defaults
@@ -32,8 +31,8 @@ production:
   database: prod_db
 "#;
 
-    // Deserialize YAML with anchors and aliases into the Config struct
-    let parsed: Config = serde_yaml::from_str(yaml_input).expect("Failed to deserialize YAML");
+    // Deserialize YAML with anchors, aliases and merge keys into the Config struct
+    let parsed: Config = from_str_with_merge(yaml_input).expect("Failed to deserialize YAML");
 
     // Define expected Config structure explicitly
     let expected = Config {

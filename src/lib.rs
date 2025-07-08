@@ -166,6 +166,8 @@ pub use crate::ser::{to_string, to_writer, Serializer};
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 
+use serde::de::DeserializeOwned;
+
 #[doc(inline)]
 pub use crate::mapping::Mapping;
 
@@ -180,6 +182,20 @@ mod path;
 mod ser;
 pub mod value;
 pub mod with;
+
+/// Deserialize YAML and apply YAML merge keys before converting to `T`.
+///
+/// This helper first parses the input into a [`Value`], performs
+/// [`Value::apply_merge`] to handle `<<` entries, and finally deserializes the
+/// merged value into the requested type.
+pub fn from_str_with_merge<'de, T>(s: &'de str) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    let mut value: Value = de::from_str(s)?;
+    value.apply_merge()?;
+    value::from_value(value)
+}
 
 // Prevent downstream code from implementing the Index trait.
 mod private {
