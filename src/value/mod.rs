@@ -722,7 +722,7 @@ impl Value {
                             }
                         }
                         Some(Value::Sequence(sequence)) => {
-                            for value in sequence {
+                            for value in sequence.into_iter().rev() {
                                 match value {
                                     Value::Mapping(merge) => {
                                         for (k, v) in merge {
