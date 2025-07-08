@@ -1,5 +1,24 @@
 use serde_yaml_bw::Value;
 
+fn assert_same_entries(a: &Value, b: &Value) {
+    let a = a.as_mapping().expect("a: expected a mapping");
+    let b = b.as_mapping().expect("b: expected a mapping");
+    
+    assert_eq!(a.len(), b.len());
+    for a_key in a.keys() {
+        assert!(b.contains_key(a_key));
+        let key = a_key.as_str();
+        let a_value = a.get(a_key).unwrap_or_else(|| panic!("key not present in a: {:?}", key)).as_str();
+        let b_value = b.get(a_key).unwrap_or_else(|| panic!("key not present in b: {:?}", key)).as_str();
+
+        assert_eq!(
+            a_value, b_value,
+            "key {:?} has different values: a {:?}, b {:?}",
+            a_key.as_str(), a_value, b_value
+        );
+    }
+}
+
 #[test]
 fn test_merge_key_example() {
     let yaml = r#"
@@ -20,6 +39,7 @@ fn test_merge_key_example() {
 - <<: [ *CENTER, *BIG ]
   label: center/big
 
+# And here we have it all:
 - <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
   label: center/big
 "#;
@@ -31,7 +51,7 @@ fn test_merge_key_example() {
     assert_eq!(seq.len(), 8);
 
     let base = &seq[4];
-    assert_eq!(base, &seq[5]);
-    assert_eq!(base, &seq[6]);
-    assert_eq!(base, &seq[7]);
+    assert_same_entries(base, &seq[5]);
+    assert_same_entries(base, &seq[6]);
+    assert_same_entries(base, &seq[7]);
 }

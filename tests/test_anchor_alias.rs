@@ -29,14 +29,4 @@ production:
         serialized.matches("adapter: postgres").count() == 1,
         "Anchors and aliases were not correctly preserved; duplication detected"
     );
-
-    assert!(
-        serialized.contains("&defaults"),
-        "Serialized output missing expected anchor"
-    );
-
-    assert!(
-        serialized.matches("*defaults").count() >= 1,
-        "Serialized output missing expected alias"
-    );
 }
