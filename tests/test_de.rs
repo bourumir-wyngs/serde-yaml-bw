@@ -8,6 +8,7 @@
 
 use indoc::indoc;
 use serde_derive::Deserialize;
+use serde::Deserialize as _;
 use serde_yaml_bw::{Deserializer, Number, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
@@ -16,7 +17,7 @@ fn test_de<T>(yaml: &str, expected: &T)
 where
     T: serde::de::DeserializeOwned + PartialEq + Debug,
 {
-    let deserialized: T = serde_yaml_bw::from_str(yaml).unwrap();
+    let deserialized: T = T::deserialize(Deserializer::from_str(yaml)).unwrap();
     assert_eq!(*expected, deserialized);
 
     let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
@@ -39,7 +40,7 @@ fn test_de_no_value<'de, T>(yaml: &'de str, expected: &T)
 where
     T: serde::de::Deserialize<'de> + PartialEq + Debug,
 {
-    let deserialized: T = serde_yaml_bw::from_str(yaml).unwrap();
+    let deserialized: T = T::deserialize(Deserializer::from_str(yaml)).unwrap();
     assert_eq!(*expected, deserialized);
 
     serde_yaml_bw::from_str::<serde_yaml_bw::Value>(yaml).unwrap();
@@ -282,12 +283,12 @@ fn test_i128_big() {
     let yaml = indoc! {"
         -9223372036854775809
     "};
-    assert_eq!(expected, serde_yaml_bw::from_str::<i128>(yaml).unwrap());
+    assert_eq!(expected, i128::deserialize(Deserializer::from_str(yaml)).unwrap());
 
     let octal = indoc! {"
         -0o1000000000000000000001
     "};
-    assert_eq!(expected, serde_yaml_bw::from_str::<i128>(octal).unwrap());
+    assert_eq!(expected, i128::deserialize(Deserializer::from_str(octal)).unwrap());
 }
 
 #[test]
@@ -296,12 +297,12 @@ fn test_u128_big() {
     let yaml = indoc! {"
         18446744073709551616
     "};
-    assert_eq!(expected, serde_yaml_bw::from_str::<u128>(yaml).unwrap());
+    assert_eq!(expected, u128::deserialize(Deserializer::from_str(yaml)).unwrap());
 
     let octal = indoc! {"
         0o2000000000000000000000
     "};
-    assert_eq!(expected, serde_yaml_bw::from_str::<u128>(octal).unwrap());
+    assert_eq!(expected, u128::deserialize(Deserializer::from_str(octal)).unwrap());
 }
 
 #[test]
@@ -399,7 +400,7 @@ fn test_bomb() {
         expected: "string".to_owned(),
     };
 
-    assert_eq!(expected, serde_yaml_bw::from_str::<Data>(yaml).unwrap());
+    assert_eq!(expected, Data::deserialize(Deserializer::from_str(yaml)).unwrap());
 }
 
 #[test]

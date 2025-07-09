@@ -1,9 +1,10 @@
 use serde_derive::Deserialize;
-use serde_yaml_bw::{Value};
+use serde_yaml_bw::{Deserializer, Value};
+use serde::Deserialize as _;
 
 #[test]
 fn null_key() {
-    let yaml: serde_json::Value = serde_yaml_bw::from_str(r#"null: "key_value""#).unwrap();
+    let yaml: serde_json::Value = serde_json::Value::deserialize(Deserializer::from_str(r#"null: "key_value""#)).unwrap();
     let json_str = serde_json::to_string(&yaml).unwrap();
     assert_eq!("{\"null\":\"key_value\"}", json_str);
 }

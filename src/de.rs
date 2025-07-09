@@ -1948,6 +1948,9 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
 
 /// Deserialize an instance of type `T` from a string of YAML text.
 ///
+/// YAML merge keys are resolved automatically before the deserialization into
+/// `T` happens.
+///
 /// This conversion can fail if the structure of the Value does not match the
 /// structure expected by `T`, for example if `T` is a struct type but the Value
 /// contains something other than a YAML map. It can also fail if the structure
@@ -1957,12 +1960,17 @@ impl<'de, 'document> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, 
 /// type.
 pub fn from_str<'de, T>(s: &'de str) -> Result<T>
 where
-    T: Deserialize<'de>,
+    T: DeserializeOwned,
 {
-    T::deserialize(Deserializer::from_str(s))
+    let mut value: Value = Value::deserialize(Deserializer::from_str(s))?;
+    value.apply_merge()?;
+    crate::value::from_value(value)
 }
 
 /// Deserialize an instance of type `T` from an IO stream of YAML.
+///
+/// YAML merge keys are resolved automatically before the deserialization into
+/// `T` happens.
 ///
 /// This conversion can fail if the structure of the Value does not match the
 /// structure expected by `T`, for example if `T` is a struct type but the Value
@@ -1976,10 +1984,15 @@ where
     R: io::Read,
     T: DeserializeOwned,
 {
-    T::deserialize(Deserializer::from_reader(rdr))
+    let mut value: Value = Value::deserialize(Deserializer::from_reader(rdr))?;
+    value.apply_merge()?;
+    crate::value::from_value(value)
 }
 
 /// Deserialize an instance of type `T` from bytes of YAML text.
+///
+/// YAML merge keys are resolved automatically before the deserialization into
+/// `T` happens.
 ///
 /// This conversion can fail if the structure of the Value does not match the
 /// structure expected by `T`, for example if `T` is a struct type but the Value
@@ -1990,9 +2003,11 @@ where
 /// type.
 pub fn from_slice<'de, T>(v: &'de [u8]) -> Result<T>
 where
-    T: Deserialize<'de>,
+    T: DeserializeOwned,
 {
-    T::deserialize(Deserializer::from_slice(v))
+    let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
+    value.apply_merge()?;
+    crate::value::from_value(value)
 }
 
 /// Deserialize a YAML `Value` while preserving anchors and aliases.
