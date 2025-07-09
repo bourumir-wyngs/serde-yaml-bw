@@ -76,8 +76,7 @@ fn test_merge_key_example() {
   label: center/big
 "#;
 
-    let mut value: Value = serde_yaml_bw::from_str(yaml).unwrap();
-    value.apply_merge().unwrap();
+    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
 
     let seq = value.as_sequence().expect("root should be a sequence");
     assert_eq!(seq.len(), 8);

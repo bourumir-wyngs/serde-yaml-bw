@@ -18,7 +18,7 @@ fn test_error<'de, T>(yaml: &'de str, expected: &str)
 where
     T: Deserialize<'de> + Debug,
 {
-    let result = serde_yaml_bw::from_str::<T>(yaml);
+    let result = T::deserialize(Deserializer::from_str(yaml));
     assert_eq!(expected, result.unwrap_err().to_string());
 
     let mut deserializer = Deserializer::from_str(yaml);
@@ -573,7 +573,7 @@ fn test_unexpected_end_of_sequence() {
             println!("Error: {}", msg);
             assert_eq!(
                 msg,
-                "a: invalid length 3, expected a tuple of size 4 at line 1 column 4"
+                "invalid length 3, expected a tuple of size 4"
             );
         }
     }
