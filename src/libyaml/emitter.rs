@@ -190,7 +190,7 @@ impl<'a> Emitter<'a> {
         if let Some(write_error) = emitter.write_error.take() {
             Error::Io(write_error)
         } else {
-            Error::Libyaml(unsafe { libyaml::Error::emit_error(&emitter.sys) })
+            Error::Libyaml(unsafe { libyaml::Error::emit_error(&raw const emitter.sys) })
         }
     }
 }
@@ -210,8 +210,8 @@ unsafe fn write_handler(data: *mut c_void, buffer: *mut u8, size: u64) -> i32 {
     }
 }
 
-impl<'a> Drop for EmitterPinned<'a> {
+impl Drop for EmitterPinned<'_> {
     fn drop(&mut self) {
-        unsafe { sys::yaml_emitter_delete(&mut self.sys) }
+        unsafe { sys::yaml_emitter_delete(&raw mut self.sys) }
     }
 }

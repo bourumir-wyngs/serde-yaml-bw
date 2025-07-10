@@ -2,7 +2,7 @@ use serde_yaml_bw::{to_string, Value, from_str_value_preserve};
 
 #[test]
 fn test_field_inheritance() {
-    let yaml_input = r#"
+    let yaml_input = r"
 defaults: &defaults
   adapter: postgres
   host: localhost
@@ -14,7 +14,7 @@ development:
 production:
   <<: *defaults
   database: prod_db
-"#;
+";
 
     // Deserialize YAML with anchors and aliases
     let parsed: Value = from_str_value_preserve(yaml_input).expect("Failed to parse YAML");
@@ -22,7 +22,7 @@ production:
     // Serialize back to YAML
     let serialized = to_string(&parsed).expect("Failed to serialize YAML");
 
-    println!("Serialized output:\n{}", serialized);
+    println!("Serialized output:\n{serialized}");
 
     // Verify anchor/alias roundtrip (anchors preserved, aliases not expanded)
     assert!(
@@ -53,7 +53,7 @@ fn assert_same_entries(a: &Value, b: &Value) {
 
 #[test]
 fn test_merge_key_example() {
-    let yaml = r#"
+    let yaml = r"
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
 - &BIG { r: 10 }
@@ -74,7 +74,7 @@ fn test_merge_key_example() {
 # And here we have it all:
 - <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
   label: center/big
-"#;
+";
 
     let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
 

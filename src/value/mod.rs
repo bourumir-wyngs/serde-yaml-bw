@@ -715,7 +715,7 @@ impl Value {
         let mut visited = HashSet::new();
         stack.push(self);
         while let Some(node) = stack.pop() {
-            let ptr = node as *const Value as usize;
+            let ptr = std::ptr::from_ref::<Value>(node) as usize;
             if !visited.insert(ptr) {
                 return Err(error::new(ErrorImpl::MergeRecursion));
             }
@@ -782,7 +782,7 @@ impl Hash for Value {
     }
 }
 
-impl<'de> IntoDeserializer<'de, Error> for Value {
+impl IntoDeserializer<'_, Error> for Value {
     type Deserializer = Self;
 
     fn into_deserializer(self) -> Self::Deserializer {

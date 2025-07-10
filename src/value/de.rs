@@ -496,7 +496,7 @@ struct EnumDeserializer<'a> {
     value: Option<Value>,
 }
 
-impl<'a, 'de> EnumAccess<'de> for EnumDeserializer<'a> {
+impl<'de> EnumAccess<'de> for EnumDeserializer<'_> {
     type Error = Error;
     type Variant = VariantDeserializer;
 

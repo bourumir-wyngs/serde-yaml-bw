@@ -20,7 +20,7 @@ fn test_yaml_malformed() {
     let yaml_input = "\n    x {\n        ";
 
     let result: Result<TestStruct, _> = serde_yaml_bw::from_str(yaml_input);
-    println!("{:?}", result);
+    println!("{result:?}");
 
     // Confirm parsing yields an error, and does not panic or succeed.
     assert!(result.is_err(), "Parsing invalid YAML should fail with an error, not succeed.");

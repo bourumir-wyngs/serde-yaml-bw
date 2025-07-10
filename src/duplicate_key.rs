@@ -18,7 +18,7 @@ pub(crate) struct DuplicateKeyError {
 
 impl DuplicateKeyError {
     pub(crate) fn from_value(value: &Value) -> Self {
-        use DuplicateKeyKind::*;
+        use DuplicateKeyKind::{Bool, Null, Number, Other, String};
         let kind = match value {
             Value::Null(_) => Null,
             Value::Bool(b, _) => Bool(*b),
@@ -30,7 +30,7 @@ impl DuplicateKeyError {
     }
 
     pub(crate) fn from_scalar(bytes: &[u8]) -> Self {
-        use DuplicateKeyKind::*;
+        use DuplicateKeyKind::{Bool, Null, Number, Other, String};
         if is_null(bytes) {
             return DuplicateKeyError { kind: Null };
         }
@@ -61,7 +61,7 @@ fn parse_bool(s: &str) -> Option<bool> {
 
 impl Display for DuplicateKeyError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use DuplicateKeyKind::*;
+        use DuplicateKeyKind::{Bool, Null, Number, Other, String};
         formatter.write_str("duplicate entry ")?;
         match &self.kind {
             Null => formatter.write_str("with null key"),
