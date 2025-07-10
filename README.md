@@ -25,7 +25,7 @@ across threads.
 
 ## Usage Example
 
-Here's a concise example demonstrating how to parse YAML into a Rust structure using `serde_yaml_bw` with proper error
+Here's an example demonstrating how to parse YAML into a Rust structure using `serde_yaml_bw` with proper error
 handling:
 
 ```rust
