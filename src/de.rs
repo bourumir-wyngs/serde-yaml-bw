@@ -1289,7 +1289,7 @@ fn is_plain_or_tagged_literal_scalar(
 ) -> bool {
     match (scalar.style, &scalar.tag, tagged_already) {
         (ScalarStyle::Plain, _, _) => true,
-        (ScalarStyle::Literal, Some(tag), false) => tag == expected,
+        (ScalarStyle::Literal | ScalarStyle::Folded, Some(tag), false) => tag == expected,
         _ => false,
     }
 }
