@@ -1,7 +1,7 @@
 [package]
 name = "serde_yaml_bw"
 version = "2.0.2"
-# authors = ["David Tolnay <dtolnay@gmail.com>"] # Keeping commented out line as the sign of respect
+# authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
 description = "YAML data format for Serde"
