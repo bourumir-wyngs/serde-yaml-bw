@@ -498,7 +498,13 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         pos: &'anchor mut usize,
     ) -> Result<DeserializerFromEvents<'de, 'anchor>> {
         *self.jumpcount += 1;
-        if *self.jumpcount > self.document.events.len() * 100 {
+        let limit = self
+            .document
+            .events
+            .len()
+            .checked_mul(100)
+            .ok_or_else(|| error::new(ErrorImpl::RepetitionLimitExceeded))?;
+        if *self.jumpcount > limit {
             return Err(error::new(ErrorImpl::RepetitionLimitExceeded));
         }
         match self.document.aliases.get(pos) {
