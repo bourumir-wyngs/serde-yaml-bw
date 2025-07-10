@@ -86,3 +86,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo generate-lockfile -Z minimal-versions
       - run: cargo check --locked
+
+  audit:
+    name: Cargo Audit
+    needs: pre_ci
+    if: needs.pre_ci.outputs.continue
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+      - name: Run cargo audit
+        run: cargo audit
