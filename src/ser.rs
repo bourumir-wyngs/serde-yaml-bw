@@ -27,7 +27,8 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 /// use std::collections::BTreeMap;
 ///
 /// fn main() -> Result<()> {
-///     let mut ser = serde_yaml_bw::Serializer::new(Vec::new())?;
+///     let mut buffer = Vec::new();
+///     let mut ser = serde_yaml_bw::Serializer::new(&mut buffer)?;
 ///
 ///     let mut object = BTreeMap::new();
 ///     object.insert("k", 107);
@@ -36,7 +37,6 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 ///     object.insert("J", 74);
 ///     object.serialize(&mut ser)?;
 ///
-///     let buffer = ser.into_inner()?;
 ///     assert_eq!(buffer, b"k: 107\n---\nJ: 74\nk: 107\n");
 ///     Ok(())
 /// }
@@ -58,12 +58,14 @@ enum State {
 
 impl<W> Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     /// Creates a new YAML serializer.
     pub fn new(writer: W) -> Result<Self> {
-        let writer: Box<dyn io::Write> = Box::new(writer);
-        let mut emitter = Emitter::new(writer)?;
+        let mut emitter = Emitter::new({
+            let writer = Box::new(writer);
+            unsafe { mem::transmute::<Box<dyn io::Write>, Box<dyn io::Write>>(writer) }
+        })?;
         emitter.emit(Event::StreamStart)?;
         Ok(Serializer {
             depth: 0,
@@ -166,7 +168,7 @@ where
 
 impl<'a, W> ser::Serializer for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -524,7 +526,7 @@ where
 
 impl<'a, W> ser::SerializeSeq for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -543,7 +545,7 @@ where
 
 impl<'a, W> ser::SerializeTuple for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -562,7 +564,7 @@ where
 
 impl<'a, W> ser::SerializeTupleStruct for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -581,7 +583,7 @@ where
 
 impl<'a, W> ser::SerializeTupleVariant for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -600,7 +602,7 @@ where
 
 impl<'a, W> ser::SerializeMap for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -648,7 +650,7 @@ where
 
 impl<'a, W> ser::SerializeStruct for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -668,7 +670,7 @@ where
 
 impl<'a, W> ser::SerializeStructVariant for &'a mut Serializer<W>
 where
-    W: io::Write + 'static,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -692,7 +694,7 @@ where
 /// return an error.
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
 where
-    W: io::Write + 'static,
+    W: io::Write,
     T: ?Sized + ser::Serialize,
 {
     let mut serializer = Serializer::new(writer)?;
@@ -707,9 +709,7 @@ pub fn to_string<T>(value: &T) -> Result<String>
 where
     T: ?Sized + ser::Serialize,
 {
-    let writer = Vec::with_capacity(128);
-    let mut serializer = Serializer::new(writer)?;
-    value.serialize(&mut serializer)?;
-    let vec = serializer.into_inner()?;
+    let mut vec = Vec::with_capacity(128);
+    to_writer(&mut vec, value)?;
     String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
 }
