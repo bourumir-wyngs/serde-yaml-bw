@@ -164,7 +164,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::Serializer for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::Serializer for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -306,7 +306,7 @@ where
     fn serialize_str(self, value: &str) -> Result<()> {
         struct InferScalarStyle;
 
-        impl<'de> Visitor<'de> for InferScalarStyle {
+        impl Visitor<'_> for InferScalarStyle {
             type Value = ScalarStyle;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -522,7 +522,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeSeq for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeSeq for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -541,7 +541,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeTuple for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeTuple for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -560,7 +560,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeTupleStruct for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeTupleStruct for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -579,7 +579,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeTupleVariant for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeTupleVariant for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -598,7 +598,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeMap for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeMap for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -646,7 +646,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeStruct for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeStruct for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {
@@ -666,7 +666,7 @@ where
     }
 }
 
-impl<'ser, 'a, W> ser::SerializeStructVariant for &'ser mut Serializer<'a, W>
+impl<'a, W> ser::SerializeStructVariant for &mut Serializer<'a, W>
 where
     W: io::Write + 'a,
 {

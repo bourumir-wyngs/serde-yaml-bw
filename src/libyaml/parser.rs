@@ -86,7 +86,7 @@ impl<'input> Parser<'input> {
         let mut event = MaybeUninit::<sys::yaml_event_t>::uninit();
         unsafe {
             let parser = addr_of_mut!((*self.pin.ptr).sys);
-            if (&(*parser)).error != sys::YAML_NO_ERROR {
+            if (*parser).error != sys::YAML_NO_ERROR {
                 return Err(Error::parse_error(parser));
             }
             let event = event.as_mut_ptr();
@@ -114,9 +114,7 @@ unsafe fn convert_event<'input>(
         sys::YAML_DOCUMENT_END_EVENT => Event::DocumentEnd,
         sys::YAML_ALIAS_EVENT => {
             // If we are unable to obtain anchor, if is still alias event.
-            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap_or_else(|| Anchor {
-                0: "invalid_anchor".as_bytes().into(),
-            }))
+            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into())))
         }
         sys::YAML_SCALAR_EVENT => Event::Scalar(Scalar {
             anchor: unsafe { optional_anchor(sys.data.scalar.anchor) },
@@ -167,7 +165,7 @@ unsafe fn optional_tag(tag: *const u8) -> Option<Tag> {
     Some(Tag(Box::from(cstr.to_bytes())))
 }
 
-impl<'input> Debug for Scalar<'input> {
+impl Debug for Scalar<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let Scalar {
             anchor,
@@ -179,7 +177,7 @@ impl<'input> Debug for Scalar<'input> {
 
         struct LossySlice<'a>(&'a [u8]);
 
-        impl<'a> Debug for LossySlice<'a> {
+        impl Debug for LossySlice<'_> {
             fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 cstr::debug_lossy(self.0, formatter)
             }
@@ -201,8 +199,8 @@ impl Debug for Anchor {
     }
 }
 
-impl<'input> Drop for ParserPinned<'input> {
+impl Drop for ParserPinned<'_> {
     fn drop(&mut self) {
-        unsafe { sys::yaml_parser_delete(&mut self.sys) }
+        unsafe { sys::yaml_parser_delete(&raw mut self.sys) }
     }
 }

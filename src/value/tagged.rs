@@ -178,7 +178,7 @@ impl Serialize for TaggedValue {
     {
         struct SerializeTag<'a>(&'a Tag);
 
-        impl<'a> Serialize for SerializeTag<'a> {
+        impl Serialize for SerializeTag<'_> {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -382,7 +382,7 @@ impl<'de> VariantAccess<'de> for &'de Value {
 
 pub(crate) struct TagStringVisitor;
 
-impl<'de> Visitor<'de> for TagStringVisitor {
+impl Visitor<'_> for TagStringVisitor {
     type Value = Tag;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -466,9 +466,9 @@ where
 
     let mut check_for_tag = CheckForTag::Empty;
     match fmt::write(&mut check_for_tag, format_args!("{}", value)) {
-        Ok(_) => {},
-        Err(_) => return MaybeTag::Error
-    };
+        Ok(()) => {}
+        Err(_) => return MaybeTag::Error,
+    }
     
     match check_for_tag {
         CheckForTag::Empty => MaybeTag::NotTag(String::new()),
