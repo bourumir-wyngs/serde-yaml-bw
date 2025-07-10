@@ -53,14 +53,13 @@ fn main() {
     }
 }
 ```
-This libarary does not need any work-arounds for merge keys (inherited properties):
-
+Here is example with merge keys (inherited properties):
 ```rust
-use serde::Deserialize;
+use serde_derive::Deserialize;
 
+/// Configuration to parse into. Does not include "defaults"
 #[derive(Debug, Deserialize, PartialEq)]
 struct Config {
-    defaults: Connection,
     development: Connection,
     production: Connection,
 }
@@ -69,11 +68,13 @@ struct Config {
 struct Connection {
     adapter: String,
     host: String,
-    database: Option<String>, // Optional because defaults do not provide it
+    database: String,
 }
 
-fn main() {
+#[test]
+fn test_anchor_alias_deserialization() {
     let yaml_input = r#"
+# Here we define "default configuration"    
 defaults: &defaults
   adapter: postgres
   host: localhost
@@ -87,28 +88,25 @@ production:
   database: prod_db
 "#;
 
-    // Deserialize YAML with anchors, aliases, and merge keys into the Config struct
+    // Deserialize YAML with anchors, aliases and merge keys into the Config struct
     let parsed: Config = serde_yaml_bw::from_str(yaml_input).expect("Failed to deserialize YAML");
 
-    // Expected struct after deserialization
+    // Define expected Config structure explicitly
     let expected = Config {
-        defaults: Connection {
-            adapter: "postgres".into(),      // inherited
-            host: "localhost".into(),        // inherited
-            database: None,                  // not specified in defaults
-        },
         development: Connection {
-            adapter: "postgres".into(),      // inherited
-            host: "localhost".into(),        // inherited
-            database: Some("dev_db".into()), // explicitly set
+            adapter: "postgres".into(),
+            host: "localhost".into(),
+            database: "dev_db".into(),
         },
         production: Connection {
-            adapter: "postgres".into(),      // inherited
-            host: "localhost".into(),        // inherited
-            database: Some("prod_db".into()),// explicitly set
+            adapter: "postgres".into(),
+            host: "localhost".into(),
+            database: "prod_db".into(),
         },
     };
 
+    // Assert parsed config matches expected
     assert_eq!(parsed, expected);
 }
 ```
+It is possible to construct infinite recursion with merge keys in YAML (RecursionLimitExceeded error would be returned)

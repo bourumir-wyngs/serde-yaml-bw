@@ -1,8 +1,8 @@
 use serde_derive::Deserialize;
 
+/// Configuration to parse into. Does not include "defaults"
 #[derive(Debug, Deserialize, PartialEq)]
 struct Config {
-    defaults: Connection,
     development: Connection,
     production: Connection,
 }
@@ -11,12 +11,13 @@ struct Config {
 struct Connection {
     adapter: String,
     host: String,
-    database: Option<String>,
+    database: String,
 }
 
 #[test]
 fn test_anchor_alias_deserialization() {
     let yaml_input = r#"
+# Here we define "default configuration"    
 defaults: &defaults
   adapter: postgres
   host: localhost
@@ -35,20 +36,15 @@ production:
 
     // Define expected Config structure explicitly
     let expected = Config {
-        defaults: Connection {
-            adapter: "postgres".into(),
-            host: "localhost".into(),
-            database: None,
-        },
         development: Connection {
             adapter: "postgres".into(),
             host: "localhost".into(),
-            database: Some("dev_db".into()),
+            database: "dev_db".into(),
         },
         production: Connection {
             adapter: "postgres".into(),
             host: "localhost".into(),
-            database: Some("prod_db".into()),
+            database: "prod_db".into(),
         },
     };
 
@@ -69,6 +65,7 @@ fn test_merge_fake_anchors() {
     let yaml = r#"
 # Anchors define values not sufficient to build complete Rust structure.
 # Complet structure can only be build by merging multiple
+# _anchors themselves are not serialized into Rust structures
 _anchors:
   CENTER: &CENTER { x: 1, y: 2 }
   LEFT: &LEFT { x: 0, y: 2 }
@@ -102,10 +99,6 @@ entries:
 
     #[derive(Debug, Deserialize)]
     struct Root {
-        // Define the structure we actually do not serialize
-        #[serde(skip)]
-        _anchors: serde_yaml_bw::Value,
-
         entries: Vec<Entry>,
     }
 
@@ -125,8 +118,6 @@ entries:
     assert_eq!(root.entries[1], base);
     assert_eq!(root.entries[2], base);
     assert_eq!(root.entries[3], base);
-
-    assert!(root._anchors.is_null()); // fake anchors get null.
 }
 
 
