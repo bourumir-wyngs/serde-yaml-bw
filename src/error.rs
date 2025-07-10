@@ -34,6 +34,7 @@ pub(crate) enum ErrorImpl {
     TaggedInMerge,
     ScalarInMergeElement,
     SequenceInMergeElement,
+    MergeRecursion,
     EmptyTag,
     FailedToParseNumber,
     UnexpectedEndOfSequence,
@@ -263,6 +264,7 @@ impl ErrorImpl {
             ErrorImpl::SequenceInMergeElement => {
                 f.write_str("expected a mapping for merging, but found sequence")
             }
+            ErrorImpl::MergeRecursion => f.write_str("encountered recursive merge alias"),
             ErrorImpl::EmptyTag => f.write_str("empty YAML tag is not allowed"),
             ErrorImpl::FailedToParseNumber => f.write_str("failed to parse YAML number"),
             ErrorImpl::Shared(err) => err.display(f),

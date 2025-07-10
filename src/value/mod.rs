@@ -710,9 +710,15 @@ impl Value {
     /// assert_eq!(value["tasks"]["start"]["args"], "start");
     /// ```
     pub fn apply_merge(&mut self) -> Result<(), Error> {
+        use std::collections::HashSet;
         let mut stack = Vec::new();
+        let mut visited = HashSet::new();
         stack.push(self);
         while let Some(node) = stack.pop() {
+            let ptr = node as *const Value as usize;
+            if !visited.insert(ptr) {
+                return Err(error::new(ErrorImpl::MergeRecursion));
+            }
             match node {
                 Value::Mapping(mapping) => {
                     match mapping.remove("<<") {
