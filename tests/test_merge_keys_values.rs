@@ -40,8 +40,14 @@ fn assert_same_entries(a: &Value, b: &Value) {
     for a_key in a.keys() {
         assert!(b.contains_key(a_key));
         let key = a_key.as_str();
-        let a_value = a.get(a_key).unwrap_or_else(|| panic!("key not present in a: {:?}", key)).as_str();
-        let b_value = b.get(a_key).unwrap_or_else(|| panic!("key not present in b: {:?}", key)).as_str();
+        let a_value = a
+            .get(a_key)
+            .unwrap_or_else(|| panic!("key not present in a: {key:?}"))
+            .as_str();
+        let b_value = b
+            .get(a_key)
+            .unwrap_or_else(|| panic!("key not present in b: {key:?}"))
+            .as_str();
 
         assert_eq!(
             a_value, b_value,
