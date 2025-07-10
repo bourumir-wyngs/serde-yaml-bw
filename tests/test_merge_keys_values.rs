@@ -22,13 +22,12 @@ production:
     // Serialize back to YAML
     let serialized = to_string(&parsed).expect("Failed to serialize YAML");
 
-    println!("Serialized output:\n{serialized}");
-
     // Verify anchor/alias roundtrip (anchors preserved, aliases not expanded)
-    assert!(
-        serialized.matches("adapter: postgres").count() == 1,
-        "Anchors and aliases were not correctly preserved; duplication detected"
-    );
+    if serialized.matches("adapter: postgres").count() != 1 {
+        panic!("Anchors and aliases were not correctly preserved; duplication detected. \
+        Serialized output {serialized}"
+        );
+    }
 }
 
 
