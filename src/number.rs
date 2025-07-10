@@ -51,7 +51,6 @@ impl Number {
     }
 
     /// Returns true if the `Number` can be represented by f64.
-    /// ```
     #[inline]
     pub fn is_f64(&self) -> bool {
         match self.n {
@@ -62,7 +61,6 @@ impl Number {
 
     /// If the `Number` is an integer, represent it as i64 if possible. Returns
     /// None otherwise.
-    /// ```
     #[inline]
     pub fn as_i64(&self) -> Option<i64> {
         match self.n {
@@ -80,7 +78,6 @@ impl Number {
 
     /// If the `Number` is an integer, represent it as u64 if possible. Returns
     /// None otherwise.
-    /// ```
     #[inline]
     pub fn as_u64(&self) -> Option<u64> {
         match self.n {
