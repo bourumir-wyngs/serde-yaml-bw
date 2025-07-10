@@ -1,5 +1,4 @@
 use serde_derive::Deserialize;
-use serde_yaml_bw::{from_str, Value};
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Config {

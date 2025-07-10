@@ -166,8 +166,6 @@ pub use crate::ser::{to_string, to_writer, Serializer};
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 
-use serde::de::DeserializeOwned;
-
 #[doc(inline)]
 pub use crate::mapping::Mapping;
 
