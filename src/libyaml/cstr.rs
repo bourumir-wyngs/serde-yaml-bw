@@ -4,14 +4,23 @@ use std::ptr::NonNull;
 use std::slice;
 use std::str;
 
+/// Wrapper around a null-terminated C string used by libyaml.
+///
+/// `CStr` is parametrized by the lifetime of the referenced bytes. The type is
+/// only `Send` and `Sync` when the bytes live for the `'static` lifetime, which
+/// ensures they remain valid across threads.
+
 #[derive(Copy, Clone)]
 pub(crate) struct CStr<'a> {
     ptr: NonNull<u8>,
     marker: PhantomData<&'a [u8]>,
 }
 
-unsafe impl Send for CStr<'_> {}
-unsafe impl Sync for CStr<'_> {}
+// CStr only implements Send and Sync for pointers that are valid for the
+// `'static` lifetime. This prevents accidentally sending a reference to data
+// that may be freed before another thread finishes using it.
+unsafe impl Send for CStr<'static> {}
+unsafe impl Sync for CStr<'static> {}
 
 impl<'a> CStr<'a> {
     pub fn from_bytes_with_nul(bytes: &'static [u8]) -> Self {
@@ -41,6 +50,23 @@ impl<'a> CStr<'a> {
     pub fn to_bytes(self) -> &'a [u8] {
         let len = self.len();
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), len) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::thread;
+
+    #[test]
+    fn send_sync_static() {
+        static BYTES: &[u8] = b"static\0";
+        let cstr = CStr::from_bytes_with_nul(BYTES);
+        thread::spawn(move || {
+            assert_eq!(cstr.to_bytes(), b"static");
+        })
+        .join()
+        .unwrap();
     }
 }
 
