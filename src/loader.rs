@@ -20,6 +20,8 @@ pub(crate) struct Document<'input> {
     pub error: Option<Arc<ErrorImpl>>,
     /// Map from alias id to index in events.
     pub aliases: BTreeMap<usize, usize>,
+    /// Location of the explicit document end marker if present.
+    pub end_mark: Option<Mark>,
 }
 
 impl<'input> Loader<'input> {
@@ -59,12 +61,21 @@ impl<'input> Loader<'input> {
             events: Vec::new(),
             error: None,
             aliases: BTreeMap::new(),
+            end_mark: None,
         };
 
+        let mut seen = false;
         loop {
             let (event, mark) = match parser.next() {
-                Ok((event, mark)) => (event, mark),
+                Ok((event, mark)) => {
+                    seen = true;
+                    (event, mark)
+                }
                 Err(err) => {
+                    if !seen {
+                        self.parser = None;
+                        return None;
+                    }
                     document.error = Some(Error::from(err).shared());
                     return Some(document);
                 }
@@ -83,7 +94,10 @@ impl<'input> Loader<'input> {
                     };
                 }
                 YamlEvent::DocumentStart => continue,
-                YamlEvent::DocumentEnd => return Some(document),
+                YamlEvent::DocumentEnd => {
+                    document.end_mark = Some(mark);
+                    return Some(document);
+                }
                 YamlEvent::Alias(alias) => match anchors.get(&alias) {
                     Some(id) => Event::Alias(*id),
                     None => {
