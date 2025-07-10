@@ -10,7 +10,6 @@ use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
 use std::fmt::{self, Display};
 use std::io;
-use std::marker::PhantomData;
 use std::mem;
 use std::num;
 use std::str;
@@ -42,11 +41,13 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 ///     Ok(())
 /// }
 /// ```
-pub struct Serializer<'a, W> {
+pub struct Serializer<W>
+where
+    W: io::Write,
+{
     depth: usize,
     state: State,
-    emitter: Emitter<'a>,
-    writer: PhantomData<W>,
+    emitter: Emitter<W>,
 }
 
 enum State {
@@ -57,19 +58,18 @@ enum State {
     AlreadyTagged,
 }
 
-impl<'a, W> Serializer<'a, W>
+impl<W> Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     /// Creates a new YAML serializer.
     pub fn new(writer: W) -> Result<Self> {
-        let mut emitter = Emitter::new(Box::new(writer))?;
+        let mut emitter = Emitter::new(writer)?;
         emitter.emit(Event::StreamStart)?;
         Ok(Serializer {
             depth: 0,
             state: State::NothingInParticular,
             emitter,
-            writer: PhantomData,
         })
     }
 
@@ -85,7 +85,7 @@ where
         self.emitter.emit(Event::StreamEnd)?;
         self.emitter.flush()?;
         let writer = self.emitter.into_inner();
-        Ok(*unsafe { Box::from_raw(Box::into_raw(writer).cast::<W>()) })
+        Ok(writer)
     }
 
     fn emit_scalar(&mut self, mut scalar: Scalar) -> Result<()> {
@@ -164,9 +164,9 @@ where
     }
 }
 
-impl<'a, W> ser::Serializer for &mut Serializer<'a, W>
+impl<W> ser::Serializer for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -522,9 +522,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeSeq for &mut Serializer<'a, W>
+impl<W> ser::SerializeSeq for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -541,9 +541,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeTuple for &mut Serializer<'a, W>
+impl<W> ser::SerializeTuple for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -560,9 +560,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeTupleStruct for &mut Serializer<'a, W>
+impl<W> ser::SerializeTupleStruct for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -579,9 +579,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeTupleVariant for &mut Serializer<'a, W>
+impl<W> ser::SerializeTupleVariant for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -598,9 +598,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeMap for &mut Serializer<'a, W>
+impl<W> ser::SerializeMap for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -646,9 +646,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeStruct for &mut Serializer<'a, W>
+impl<W> ser::SerializeStruct for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
@@ -666,9 +666,9 @@ where
     }
 }
 
-impl<'a, W> ser::SerializeStructVariant for &mut Serializer<'a, W>
+impl<W> ser::SerializeStructVariant for &mut Serializer<W>
 where
-    W: io::Write + 'a,
+    W: io::Write,
 {
     type Ok = ();
     type Error = Error;
