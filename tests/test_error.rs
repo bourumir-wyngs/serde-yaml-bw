@@ -610,3 +610,50 @@ b: *missing_anchor
         }
     }
 }
+
+#[cfg(not(miri))]
+#[test]
+fn test_extreme_nesting_error_message() {
+    // Construct YAML with extremely deep nesting to exceed the recursion limit.
+    let yaml = "[".repeat(20_000) + &"]".repeat(20_000);
+    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.starts_with("recursion limit exceeded"),
+        "unexpected error: {}",
+        msg
+    );
+}
+
+#[cfg(not(miri))]
+#[test]
+fn test_long_alias_chain_error() {
+    use std::fmt::Write;
+
+    // Create a YAML document with a long chain of aliases. Each anchor
+    // references the one defined immediately before it.
+    let mut yaml = String::new();
+    writeln!(&mut yaml, "k0: &a0 [1]").unwrap();
+    for i in 1..150 {
+        let curr_anchor = format!("a{}", i);
+        let prev_anchor = format!("a{}", i - 1);
+        writeln!(
+            &mut yaml,
+            "k{}: &{} [*{}]",
+            i,
+            curr_anchor,
+            prev_anchor
+        )
+        .unwrap();
+    }
+    yaml.push_str(&format!("final: *a{}", 149));
+
+    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("recursion limit exceeded"),
+        "unexpected error: {}",
+        msg
+    );
+}
+
