@@ -1,5 +1,4 @@
 use serde_derive::Deserialize;
-use serde::Deserialize as _;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Person {
