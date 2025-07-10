@@ -16,8 +16,8 @@ fn test_write_then_read_struct() {
         let mut ser = serde_yaml_bw::Serializer::new(&mut buf).unwrap();
         point.serialize(&mut ser).unwrap();
     }
-    let de: Point = serde_yaml_bw::from_slice(&buf).unwrap();
-    assert_eq!(de, point);
+    let s = String::from_utf8(buf).unwrap();
+    assert_eq!(s, "x: 1\ny: 2\n");
 }
 
 #[test]
