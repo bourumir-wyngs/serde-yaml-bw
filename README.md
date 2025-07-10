@@ -46,6 +46,8 @@ fn main() {
         name: "My Application"
         enabled: true
         retries: 5
+        ...
+        Three dots optionally mark the end of the document. You can write anything after this marker.
     "#;
 
     let config: Result<Config, _> = serde_yaml_bw::from_str(yaml_input);
