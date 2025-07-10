@@ -37,6 +37,7 @@ age: 30
 fn test_legitimate_triple_dots() {
     let yaml_input = "\
 ---
+# Three dots ... can be legitimate
 name: John ... Smith ...
 age: 30
 note: ...
