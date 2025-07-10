@@ -15,6 +15,13 @@ Since the API has changed to a more restrictive version, the major version numbe
 
 If a panic does occur under some short and clear input, please report it as a bug.
 
+### Thread Safety
+
+Internally the library uses a `CStr` wrapper for libyaml strings. This type is
+`Send` and `Sync` only when referencing data that lives for the `'static`
+lifetime, so short-lived pointers returned by the parser must not be shared
+across threads.
+
 
 ## Usage Example
 
