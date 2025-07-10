@@ -36,6 +36,36 @@ where
     assert!(deserializer.next().is_none());
 }
 
+#[test]
+fn test_folded_block_scalar_bool() {
+    let yaml = indoc! {"!!bool >-\n  true\n"};
+    test_de(yaml, &true);
+}
+
+#[test]
+fn test_folded_block_scalar_int() {
+    let yaml = indoc! {"!!int >-\n  42\n"};
+    test_de(yaml, &42_i32);
+}
+
+#[test]
+fn test_folded_block_scalar_float() {
+    let yaml = indoc! {"!!float >-\n  1.5\n"};
+    test_de(yaml, &1.5_f64);
+}
+
+#[test]
+fn test_folded_block_scalar_string() {
+    let yaml = ">-\n  folded\n  block\n";
+    test_de(yaml, &"folded block".to_owned());
+}
+
+#[test]
+fn test_literal_block_scalar_string() {
+    let yaml = "|-\n  literal\n  block\n";
+    test_de(yaml, &"literal\nblock".to_owned());
+}
+
 fn test_de_no_value<'de, T>(yaml: &'de str, expected: &T)
 where
     T: serde::de::Deserialize<'de> + PartialEq + Debug,
