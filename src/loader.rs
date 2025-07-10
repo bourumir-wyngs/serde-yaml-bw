@@ -61,10 +61,18 @@ impl<'input> Loader<'input> {
             aliases: BTreeMap::new(),
         };
 
+        let mut seen = false;
         loop {
             let (event, mark) = match parser.next() {
-                Ok((event, mark)) => (event, mark),
+                Ok((event, mark)) => {
+                    seen = true;
+                    (event, mark)
+                }
                 Err(err) => {
+                    if !seen {
+                        self.parser = None;
+                        return None;
+                    }
                     document.error = Some(Error::from(err).shared());
                     return Some(document);
                 }
