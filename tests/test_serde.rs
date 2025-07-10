@@ -579,3 +579,15 @@ fn test_long_string() {
 
     test_serde(&thing, yaml);
 }
+
+#[test]
+fn test_serializer_into_vec() {
+    use serde::Serialize as _;
+
+    let mut buffer = Vec::new();
+    {
+        let mut ser = serde_yaml_bw::Serializer::new(&mut buffer).unwrap();
+        "hi".serialize(&mut ser).unwrap();
+    }
+    assert_eq!(buffer, b"hi\n");
+}
