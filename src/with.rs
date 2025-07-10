@@ -926,6 +926,7 @@ pub mod singleton_map {
 ///     let mut buf = Vec::new();
 ///     let mut serializer = serde_yaml_bw::Serializer::new(&mut buf)?;
 ///     serde_yaml_bw::with::singleton_map_recursive::serialize(&object, &mut serializer).unwrap();
+///     drop(serializer);
 ///     io::stdout().write_all(&buf).unwrap();
 ///
 ///     let deserializer = serde_yaml_bw::Deserializer::from_slice(&buf);
