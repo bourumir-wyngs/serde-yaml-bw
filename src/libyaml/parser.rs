@@ -93,7 +93,7 @@ impl<'input> Parser<'input> {
             if sys::yaml_parser_parse(parser, event).fail {
                 return Err(Error::parse_error(parser));
             }
-            let ret = convert_event(&*event, &(*self.pin.ptr).input);
+            let ret = convert_event(&*event, &(*self.pin.ptr).input)?;
             let mark = Mark {
                 sys: (*event).start_mark,
             };
@@ -106,19 +106,21 @@ impl<'input> Parser<'input> {
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
     input: &Cow<'input, [u8]>,
-) -> Event<'input> {
+) -> Result<Event<'input>> {
     match sys.type_ {
-        sys::YAML_STREAM_START_EVENT => Event::StreamStart,
-        sys::YAML_STREAM_END_EVENT => Event::StreamEnd,
-        sys::YAML_DOCUMENT_START_EVENT => Event::DocumentStart,
-        sys::YAML_DOCUMENT_END_EVENT => Event::DocumentEnd,
+        sys::YAML_STREAM_START_EVENT => Ok(Event::StreamStart),
+        sys::YAML_STREAM_END_EVENT => Ok(Event::StreamEnd),
+        sys::YAML_DOCUMENT_START_EVENT => Ok(Event::DocumentStart),
+        sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd),
         sys::YAML_ALIAS_EVENT => {
-            // If we are unable to obtain anchor, if is still alias event.
-            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into())))
+            // If we are unable to obtain anchor, it is still alias event.
+            let anchor = unsafe { optional_anchor(sys.data.alias.anchor)? }
+                .unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into()));
+            Ok(Event::Alias(anchor))
         }
-        sys::YAML_SCALAR_EVENT => Event::Scalar(Scalar {
-            anchor: unsafe { optional_anchor(sys.data.scalar.anchor) },
-            tag: unsafe { optional_tag(sys.data.scalar.tag) },
+        sys::YAML_SCALAR_EVENT => Ok(Event::Scalar(Scalar {
+            anchor: unsafe { optional_anchor(sys.data.scalar.anchor)? },
+            tag: unsafe { optional_tag(sys.data.scalar.tag)? },
             value: Box::from(unsafe {
                 slice::from_raw_parts(sys.data.scalar.value, sys.data.scalar.length as usize)
             }),
@@ -136,33 +138,45 @@ unsafe fn convert_event<'input>(
             } else {
                 None
             },
-        }),
-        sys::YAML_SEQUENCE_START_EVENT => Event::SequenceStart(SequenceStart {
-            anchor: unsafe { optional_anchor(sys.data.sequence_start.anchor) },
-            tag: unsafe { optional_tag(sys.data.sequence_start.tag) },
-        }),
-        sys::YAML_SEQUENCE_END_EVENT => Event::SequenceEnd,
-        sys::YAML_MAPPING_START_EVENT => Event::MappingStart(MappingStart {
-            anchor: unsafe { optional_anchor(sys.data.mapping_start.anchor) },
-            tag: unsafe { optional_tag(sys.data.mapping_start.tag) },
-        }),
-        sys::YAML_MAPPING_END_EVENT => Event::MappingEnd,
+        })),
+        sys::YAML_SEQUENCE_START_EVENT => Ok(Event::SequenceStart(SequenceStart {
+            anchor: unsafe { optional_anchor(sys.data.sequence_start.anchor)? },
+            tag: unsafe { optional_tag(sys.data.sequence_start.tag)? },
+        })),
+        sys::YAML_SEQUENCE_END_EVENT => Ok(Event::SequenceEnd),
+        sys::YAML_MAPPING_START_EVENT => Ok(Event::MappingStart(MappingStart {
+            anchor: unsafe { optional_anchor(sys.data.mapping_start.anchor)? },
+            tag: unsafe { optional_tag(sys.data.mapping_start.tag)? },
+        })),
+        sys::YAML_MAPPING_END_EVENT => Ok(Event::MappingEnd),
         // Unknown or empty events should not cause a panic
-        sys::YAML_NO_EVENT => Event::Void,
-        _ => Event::Void,
+        sys::YAML_NO_EVENT => Ok(Event::Void),
+        _ => Ok(Event::Void),
     }
 }
 
-unsafe fn optional_anchor(anchor: *const u8) -> Option<Anchor> {
-    let ptr = NonNull::new(anchor as *mut i8)?;
+unsafe fn optional_anchor(anchor: *const u8) -> Result<Option<Anchor>> {
+    let ptr = match NonNull::new(anchor as *mut i8) {
+        None => return Ok(None),
+        Some(ptr) => ptr,
+    };
+    if (ptr.as_ptr() as usize) < 32 {
+        return Err(Error::invalid_pointer());
+    }
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Some(Anchor(Box::from(cstr.to_bytes())))
+    Ok(Some(Anchor(Box::from(cstr.to_bytes()))))
 }
 
-unsafe fn optional_tag(tag: *const u8) -> Option<Tag> {
-    let ptr = NonNull::new(tag as *mut i8)?;
+unsafe fn optional_tag(tag: *const u8) -> Result<Option<Tag>> {
+    let ptr = match NonNull::new(tag as *mut i8) {
+        None => return Ok(None),
+        Some(ptr) => ptr,
+    };
+    if (ptr.as_ptr() as usize) < 32 {
+        return Err(Error::invalid_pointer());
+    }
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Some(Tag(Box::from(cstr.to_bytes())))
+    Ok(Some(Tag(Box::from(cstr.to_bytes()))))
 }
 
 impl Debug for Scalar<'_> {
@@ -202,5 +216,47 @@ impl Debug for Anchor {
 impl Drop for ParserPinned<'_> {
     fn drop(&mut self) {
         unsafe { sys::yaml_parser_delete(&raw mut self.sys) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::mem::MaybeUninit;
+
+    unsafe fn empty_mark() -> sys::yaml_mark_t {
+        unsafe { MaybeUninit::zeroed().assume_init() }
+    }
+
+    #[test]
+    fn invalid_anchor_in_alias_event() {
+        unsafe {
+            let mut event: sys::yaml_event_t = MaybeUninit::zeroed().assume_init();
+            event.type_ = sys::YAML_ALIAS_EVENT;
+            event.data.alias.anchor = 1 as *mut u8;
+            event.start_mark = empty_mark();
+            event.end_mark = empty_mark();
+            let input = Cow::Borrowed(&[] as &[u8]);
+            assert!(convert_event(&event, &input).is_err());
+        }
+    }
+
+    #[test]
+    fn invalid_tag_in_scalar_event() {
+        unsafe {
+            let mut event: sys::yaml_event_t = MaybeUninit::zeroed().assume_init();
+            event.type_ = sys::YAML_SCALAR_EVENT;
+            event.data.scalar.anchor = std::ptr::null_mut();
+            event.data.scalar.tag = 1 as *mut u8;
+            event.data.scalar.value = b"v\0".as_ptr() as *mut u8;
+            event.data.scalar.length = 1;
+            event.data.scalar.plain_implicit = true;
+            event.data.scalar.quoted_implicit = true;
+            event.data.scalar.style = sys::YAML_PLAIN_SCALAR_STYLE;
+            event.start_mark = empty_mark();
+            event.end_mark = empty_mark();
+            let input = Cow::Borrowed(b"v" as &[u8]);
+            assert!(convert_event(&event, &input).is_err());
+        }
     }
 }

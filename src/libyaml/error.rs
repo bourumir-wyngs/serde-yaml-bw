@@ -57,6 +57,21 @@ impl Error {
         }
     }
 
+    pub fn invalid_pointer() -> Self {
+        Error {
+            kind: sys::YAML_READER_ERROR,
+            problem: CStr::from_bytes_with_nul(b"invalid pointer provided\0"),
+            problem_offset: 0,
+            problem_mark: Mark {
+                sys: unsafe { MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init() },
+            },
+            context: None,
+            context_mark: Mark {
+                sys: unsafe { MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init() },
+            },
+        }
+    }
+
     pub fn mark(&self) -> Mark {
         self.problem_mark
     }
