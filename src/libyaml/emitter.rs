@@ -189,8 +189,16 @@ where
         Ok(())
     }
 
-    pub fn into_inner(self) -> W {
-        unsafe { (*self.pin.ptr).write.take().unwrap() }
+    pub fn into_inner(self) -> Result<W, Error> {
+        unsafe {
+            match (*self.pin.ptr).write.take() {
+                Some(writer) => Ok(writer),
+                None => Err(Error::Io(io::Error::new(
+                    io::ErrorKind::Other,
+                    "emitter writer missing",
+                ))),
+            }
+        }
     }
 
     fn error(&mut self) -> Error {
@@ -208,14 +216,19 @@ where
     W: io::Write,
 {
     let data = data.cast::<EmitterPinned<W>>();
-    match io::Write::write_all(unsafe { &mut *(*data).write.as_mut().unwrap() }, unsafe {
-        slice::from_raw_parts(buffer, size as usize)
-    }) {
-        Ok(()) => 1,
-        Err(err) => {
-            unsafe {
-                (*data).write_error = Some(err);
+    let ptr = unsafe { &mut *data };
+    match ptr.write.as_mut() {
+        Some(writer) => match io::Write::write_all(writer, unsafe {
+            slice::from_raw_parts(buffer, size as usize)
+        }) {
+            Ok(()) => 1,
+            Err(err) => {
+                ptr.write_error = Some(err);
+                0
             }
+        },
+        None => {
+            ptr.write_error = Some(io::Error::new(io::ErrorKind::Other, "emitter writer missing"));
             0
         }
     }
