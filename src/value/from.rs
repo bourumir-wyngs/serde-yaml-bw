@@ -128,7 +128,6 @@ impl<T: Into<Value>> From<Vec<T>> for Value {
         Value::Sequence(Sequence {
             anchor: None,
             elements: f.into_iter().map(Into::into).collect(),
-            id: crate::value::next_id(),
         })
     }
 }
@@ -148,7 +147,6 @@ impl<'a, T: Clone + Into<Value>> From<&'a [T]> for Value {
         Value::Sequence(Sequence {
             anchor: None,
             elements: f.iter().cloned().map(Into::into).collect(),
-            id: crate::value::next_id(),
         })
     }
 }
@@ -184,7 +182,6 @@ impl<T: Into<Value>> FromIterator<T> for Value {
         Value::Sequence(Sequence {
             anchor: None,
             elements: vec,
-            id: crate::value::next_id(),
         })
     }
 }

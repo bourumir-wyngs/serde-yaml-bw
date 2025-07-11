@@ -94,8 +94,6 @@ pub struct Sequence {
     pub anchor: Option<String>,
     /// Elements of the YAML sequence.
     pub elements: Vec<Value>,
-    #[doc(hidden)]
-    pub(crate) id: usize,
 }
 
 impl Default for Sequence {
@@ -103,7 +101,6 @@ impl Default for Sequence {
         Sequence {
             anchor: None,
             elements: Vec::new(),
-            id: next_id(),
         }
     }
 }
@@ -147,7 +144,7 @@ impl<'de> serde::Deserialize<'de> for Sequence {
         D: serde::Deserializer<'de>,
     {
         let elements = Vec::<Value>::deserialize(deserializer)?;
-        Ok(Sequence { anchor: None, elements, id: next_id() })
+        Ok(Sequence { anchor: None, elements })
     }
 }
 
@@ -195,7 +192,6 @@ impl Sequence {
         Sequence {
             anchor: None,
             elements: Vec::new(),
-            id: next_id(),
         }
     }
 
@@ -205,7 +201,6 @@ impl Sequence {
         Sequence {
             anchor: None,
             elements: Vec::with_capacity(capacity),
-            id: next_id(),
         }
     }
 
@@ -214,7 +209,6 @@ impl Sequence {
         Sequence {
             anchor: None,
             elements: Vec::new(),
-            id: 0,
         }
     }
 }
@@ -261,14 +255,6 @@ where
 }
 
 impl Value {
-    pub(crate) fn id(&self) -> usize {
-        match self {
-            Value::Sequence(seq) => seq.id,
-            Value::Mapping(map) => map.id,
-            Value::Tagged(tagged) => tagged.value.id(),
-            _ => self as *const _ as usize,
-        }
-    }
     /// Index into a YAML sequence or map. A string index can be used to access
     /// a value in a map, and a usize index can be used to access an element of
     /// an sequence.
