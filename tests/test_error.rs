@@ -214,9 +214,9 @@ fn test_serialize_nested_enum() {
     assert_eq!(error.to_string(), expected);
 
     let e = Value::Tagged(Box::new(TaggedValue {
-        tag: Tag::new("Outer"),
+        tag: Tag::new("Outer").unwrap(),
         value: Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new("Inner"),
+            tag: Tag::new("Inner").unwrap(),
             value: Value::Null(None),
         })),
     }));
