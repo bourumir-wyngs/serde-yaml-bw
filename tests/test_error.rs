@@ -121,6 +121,19 @@ fn test_ignored_unknown_anchor() {
 }
 
 #[test]
+fn test_invalid_anchor_reference_message() {
+    let yaml = "*invalid_anchor";
+    let result: Result<Value, _> = serde_yaml_bw::from_str(yaml);
+    match result {
+        Ok(_) => panic!("Expected error for invalid anchor"),
+        Err(e) => {
+            let msg = e.to_string();
+            assert!(msg.contains("invalid_anchor"), "Unexpected error: {}", msg);
+        }
+    }
+}
+
+#[test]
 fn test_bytes() {
     let expected = "serialization and deserialization of bytes in YAML is not implemented";
     test_error::<&[u8]>("...", expected);
