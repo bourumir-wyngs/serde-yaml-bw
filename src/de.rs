@@ -1079,8 +1079,11 @@ fn parse_unsigned_int<T>(
     from_str_radix: fn(&str, radix: u32) -> Result<T, ParseIntError>,
 ) -> Option<T> {
     let unpositive = scalar.strip_prefix('+').unwrap_or(scalar);
+    if unpositive.contains(['+', '-']) {
+        return None;
+    }
     if let Some(rest) = unpositive.strip_prefix("0x") {
-        if rest.starts_with(['+', '-']) {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
             return None;
         }
         if let Ok(int) = from_str_radix(rest, 16) {
@@ -1088,7 +1091,7 @@ fn parse_unsigned_int<T>(
         }
     }
     if let Some(rest) = unpositive.strip_prefix("0o") {
-        if rest.starts_with(['+', '-']) {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
             return None;
         }
         if let Ok(int) = from_str_radix(rest, 8) {
@@ -1096,7 +1099,7 @@ fn parse_unsigned_int<T>(
         }
     }
     if let Some(rest) = unpositive.strip_prefix("0b") {
-        if rest.starts_with(['+', '-']) {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
             return None;
         }
         if let Ok(int) = from_str_radix(rest, 2) {
@@ -1176,19 +1179,35 @@ fn parse_negative_int<T>(
     scalar: &str,
     from_str_radix: fn(&str, radix: u32) -> Result<T, ParseIntError>,
 ) -> Option<T> {
+    if !scalar.starts_with('-') {
+        return None;
+    }
+    let unsigned = &scalar[1..];
+    if unsigned.starts_with(['+', '-']) || unsigned.contains('+') || unsigned.contains('-') {
+        return None;
+    }
     if let Some(rest) = scalar.strip_prefix("-0x") {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
+            return None;
+        }
         let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 16) {
             return Some(int);
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0o") {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
+            return None;
+        }
         let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 8) {
             return Some(int);
         }
     }
     if let Some(rest) = scalar.strip_prefix("-0b") {
+        if rest.is_empty() || rest.starts_with(['+', '-']) {
+            return None;
+        }
         let negative = make_negative(rest);
         if let Ok(int) = from_str_radix(&negative, 2) {
             return Some(int);
