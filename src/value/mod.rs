@@ -11,6 +11,7 @@ pub(crate) mod tagged;
 use crate::error::{self, Error, ErrorImpl};
 use serde::de::{Deserialize, DeserializeOwned, IntoDeserializer};
 use serde::Serialize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::hash::{Hash, Hasher};
 use std::mem;
 
@@ -20,6 +21,12 @@ pub use self::tagged::{Tag, TaggedValue};
 #[doc(inline)]
 pub use crate::mapping::Mapping;
 pub use crate::number::Number;
+
+static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
+
+pub(crate) fn next_id() -> usize {
+    NEXT_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 /// Represents any valid YAML value or in some cases error
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -81,12 +88,48 @@ impl Default for Value {
 }
 
 /// A YAML sequence in which the elements are `serde_yaml_bw::Value`.
-#[derive(Clone, Default, PartialEq, PartialOrd, Eq, Hash, Debug)]
+#[derive(Clone, Debug)]
 pub struct Sequence {
     /// Optional anchor associated with this sequence.
     pub anchor: Option<String>,
     /// Elements of the YAML sequence.
     pub elements: Vec<Value>,
+    #[doc(hidden)]
+    pub(crate) id: usize,
+}
+
+impl Default for Sequence {
+    fn default() -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::new(),
+            id: next_id(),
+        }
+    }
+}
+
+impl PartialEq for Sequence {
+    fn eq(&self, other: &Self) -> bool {
+        self.anchor == other.anchor && self.elements == other.elements
+    }
+}
+
+impl Eq for Sequence {}
+
+impl PartialOrd for Sequence {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.anchor.partial_cmp(&other.anchor) {
+            Some(std::cmp::Ordering::Equal) => self.elements.partial_cmp(&other.elements),
+            non_eq => non_eq,
+        }
+    }
+}
+
+impl std::hash::Hash for Sequence {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.anchor.hash(state);
+        self.elements.hash(state);
+    }
 }
 
 impl serde::Serialize for Sequence {
@@ -104,7 +147,7 @@ impl<'de> serde::Deserialize<'de> for Sequence {
         D: serde::Deserializer<'de>,
     {
         let elements = Vec::<Value>::deserialize(deserializer)?;
-        Ok(Sequence { anchor: None, elements })
+        Ok(Sequence { anchor: None, elements, id: next_id() })
     }
 }
 
@@ -148,10 +191,11 @@ impl std::ops::DerefMut for Sequence {
 impl Sequence {
     /// Creates an empty YAML sequence.
     #[inline]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Sequence {
             anchor: None,
             elements: Vec::new(),
+            id: next_id(),
         }
     }
 
@@ -161,6 +205,16 @@ impl Sequence {
         Sequence {
             anchor: None,
             elements: Vec::with_capacity(capacity),
+            id: next_id(),
+        }
+    }
+
+    /// Const constructor used for statics.
+    pub const fn const_new() -> Self {
+        Sequence {
+            anchor: None,
+            elements: Vec::new(),
+            id: 0,
         }
     }
 }
@@ -207,6 +261,14 @@ where
 }
 
 impl Value {
+    pub(crate) fn id(&self) -> usize {
+        match self {
+            Value::Sequence(seq) => seq.id,
+            Value::Mapping(map) => map.id,
+            Value::Tagged(tagged) => tagged.value.id(),
+            _ => self as *const _ as usize,
+        }
+    }
     /// Index into a YAML sequence or map. A string index can be used to access
     /// a value in a map, and a usize index can be used to access an element of
     /// an sequence.
@@ -561,13 +623,12 @@ impl Value {
     /// ```
     /// # use serde_yaml_bw::{Value, Number, Sequence};
     /// let v: Value = serde_yaml_bw::from_str("[1, 2]").unwrap();
-    /// let expected = Sequence {
-    ///     anchor: None,
-    ///     elements: vec![
-    ///         Value::Number(Number::from(1), None),
-    ///         Value::Number(Number::from(2), None),
-    ///     ],
-    /// };
+    /// let mut expected = Sequence::new();
+    /// expected.elements = vec![
+    ///     Value::Number(Number::from(1), None),
+    ///     Value::Number(Number::from(2), None),
+    /// ];
+    /// let expected = expected;
     /// assert_eq!(v.as_sequence(), Some(&expected));
     /// ```
     ///
@@ -591,13 +652,12 @@ impl Value {
     /// let mut v: Value = serde_yaml_bw::from_str("[1]").unwrap();
     /// let s = v.as_sequence_mut().unwrap();
     /// s.push(Value::Number(Number::from(2), None));
-    /// let expected = Sequence {
-    ///     anchor: None,
-    ///     elements: vec![
-    ///         Value::Number(Number::from(1), None),
-    ///         Value::Number(Number::from(2), None),
-    ///     ],
-    /// };
+    /// let mut expected = Sequence::new();
+    /// expected.elements = vec![
+    ///     Value::Number(Number::from(1), None),
+    ///     Value::Number(Number::from(2), None),
+    /// ];
+    /// let expected = expected;
     /// assert_eq!(s, &expected);
     /// ```
     ///
@@ -715,12 +775,12 @@ impl Value {
         let mut visited = HashSet::new();
         stack.push(self);
         while let Some(node) = stack.pop() {
-            let ptr = std::ptr::from_ref::<Value>(node) as usize;
-            if !visited.insert(ptr) {
-                return Err(error::new(ErrorImpl::MergeRecursion));
-            }
             match node {
                 Value::Mapping(mapping) => {
+                    let id = mapping.id;
+                    if id != 0 && !visited.insert(id) {
+                        return Err(error::new(ErrorImpl::MergeRecursion));
+                    }
                     match mapping.remove("<<") {
                         Some(Value::Mapping(merge)) => {
                             for (k, v) in merge {

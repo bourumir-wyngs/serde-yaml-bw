@@ -728,7 +728,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     elements.push(self.parse_value()?);
                 }
                 self.next_event()?; // consume SequenceEnd
-                Ok(Value::Sequence(Sequence { anchor, elements }))
+                Ok(Value::Sequence(Sequence { anchor, elements, id: crate::value::next_id() }))
             }
             MappingStart(map) => {
                 let anchor = map.anchor.clone();

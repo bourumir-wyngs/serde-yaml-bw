@@ -11,12 +11,32 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 
 /// A YAML mapping in which the keys and values are both `serde_yaml_bw::Value`.
-#[derive(Clone, Default, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct Mapping {
     /// Optional anchor associated with this mapping.
     pub anchor: Option<String>,
     map: IndexMap<Value, Value>,
+    #[doc(hidden)]
+    pub(crate) id: usize,
 }
+
+impl Default for Mapping {
+    fn default() -> Self {
+        Mapping {
+            anchor: None,
+            map: IndexMap::new(),
+            id: crate::value::next_id(),
+        }
+    }
+}
+
+impl PartialEq for Mapping {
+    fn eq(&self, other: &Self) -> bool {
+        self.anchor == other.anchor && self.map == other.map
+    }
+}
+
+impl Eq for Mapping {}
 
 impl Mapping {
     /// Creates an empty YAML map.
@@ -25,6 +45,7 @@ impl Mapping {
         Mapping {
             anchor: None,
             map: IndexMap::new(),
+            id: crate::value::next_id(),
         }
     }
 
@@ -34,6 +55,7 @@ impl Mapping {
         Mapping {
             anchor: None,
             map: IndexMap::with_capacity(capacity),
+            id: crate::value::next_id(),
         }
     }
 
@@ -520,6 +542,7 @@ impl FromIterator<(Value, Value)> for Mapping {
         Mapping {
             anchor: None,
             map: IndexMap::from_iter(iter),
+            id: crate::value::next_id(),
         }
     }
 }
