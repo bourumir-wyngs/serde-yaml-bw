@@ -80,11 +80,15 @@ where
         Ok(())
     }
 
-    /// Unwrap the underlying `io::Write` object from the `Serializer`.
+    /// Return the underlying `io::Write` object from the `Serializer`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the writer has already been taken.
     pub fn into_inner(mut self) -> Result<W> {
         self.emitter.emit(Event::StreamEnd)?;
         self.emitter.flush()?;
-        let writer = self.emitter.into_inner();
+        let writer = self.emitter.into_inner()?;
         Ok(writer)
     }
 
