@@ -1,17 +1,18 @@
-use crate::libyaml::cstr::CStr;
-use std::fmt::{self, Debug, Display};
+use crate::libyaml::cstr::{self, CStr};
+use std::fmt::{self, Debug, Display, Write as _};
 use std::mem::MaybeUninit;
 use std::ptr::NonNull;
+use std::str;
 use unsafe_libyaml as sys;
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
 pub(crate) struct Error {
     kind: sys::yaml_error_type_t,
-    problem: CStr<'static>,
+    problem: Box<[u8]>,
     problem_offset: u64,
     problem_mark: Mark,
-    context: Option<CStr<'static>>,
+    context: Option<Box<[u8]>>,
     context_mark: Mark,
 }
 
@@ -20,15 +21,15 @@ impl Error {
         Error {
             kind: unsafe { (&*parser).error },
             problem: match NonNull::new(unsafe { (&*parser).problem.cast_mut() }) {
-                Some(problem) => unsafe { CStr::from_ptr(problem) },
-                None => CStr::from_bytes_with_nul(b"libyaml parser failed but there is no error\0"),
+                Some(problem) => Box::from(unsafe { CStr::from_ptr(problem) }.to_bytes()),
+                None => Box::from(&b"libyaml parser failed but there is no error"[..]),
             },
             problem_offset: unsafe { (&*parser).problem_offset },
             problem_mark: Mark {
                 sys: unsafe { (&*parser).problem_mark },
             },
             context: match NonNull::new(unsafe { (&*parser).context.cast_mut() }) {
-                Some(context) => Some(unsafe { CStr::from_ptr(context) }),
+                Some(context) => Some(Box::from(unsafe { CStr::from_ptr(context) }.to_bytes())),
                 None => None,
             },
             context_mark: Mark {
@@ -41,10 +42,8 @@ impl Error {
         Error {
             kind: unsafe { (&*emitter).error },
             problem: match NonNull::new(unsafe { (&*emitter).problem.cast_mut() }) {
-                Some(problem) => unsafe { CStr::from_ptr(problem) },
-                None => {
-                    CStr::from_bytes_with_nul(b"libyaml emitter failed but there is no error\0")
-                }
+                Some(problem) => Box::from(unsafe { CStr::from_ptr(problem) }.to_bytes()),
+                None => Box::from(&b"libyaml emitter failed but there is no error"[..]),
             },
             problem_offset: 0,
             problem_mark: Mark {
@@ -64,14 +63,15 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}", self.problem)?;
+        display_lossy(&self.problem, formatter)?;
         if self.problem_mark.sys.line != 0 || self.problem_mark.sys.column != 0 {
             write!(formatter, " at {}", self.problem_mark)?;
         } else if self.problem_offset != 0 {
             write!(formatter, " at position {}", self.problem_offset)?;
         }
         if let Some(context) = &self.context {
-            write!(formatter, ", {}", context)?;
+            formatter.write_str(", ")?;
+            display_lossy(context, formatter)?;
             if (self.context_mark.sys.line != 0 || self.context_mark.sys.column != 0)
                 && (self.context_mark.sys.line != self.problem_mark.sys.line
                     || self.context_mark.sys.column != self.problem_mark.sys.column)
@@ -98,14 +98,20 @@ impl Debug for Error {
         } {
             formatter.field("kind", &format_args!("{}", kind));
         }
-        formatter.field("problem", &self.problem);
+        struct DebugLossy<'a>(&'a [u8]);
+        impl Debug for DebugLossy<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                cstr::debug_lossy(self.0, f)
+            }
+        }
+        formatter.field("problem", &DebugLossy(&self.problem));
         if self.problem_mark.sys.line != 0 || self.problem_mark.sys.column != 0 {
             formatter.field("problem_mark", &self.problem_mark);
         } else if self.problem_offset != 0 {
             formatter.field("problem_offset", &self.problem_offset);
         }
         if let Some(context) = &self.context {
-            formatter.field("context", context);
+            formatter.field("context", &DebugLossy(context));
             if self.context_mark.sys.line != 0 || self.context_mark.sys.column != 0 {
                 formatter.field("context_mark", &self.context_mark);
             }
@@ -158,5 +164,55 @@ impl Debug for Mark {
             formatter.field("index", &self.sys.index);
         }
         formatter.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::libyaml::parser::Parser;
+    use crate::libyaml::emitter::{Emitter, Event, Error as EmitterError};
+    use std::borrow::Cow;
+
+    #[test]
+    fn parse_error_after_drop() {
+        let err = {
+            let mut parser = Parser::new(Cow::Borrowed(b"@" as &[u8])).unwrap();
+            parser.next().unwrap();
+            parser.next().unwrap_err()
+        };
+        let _ = format!("{}", err);
+        let _ = format!("{:?}", err);
+    }
+
+    #[test]
+    fn emit_error_after_drop() {
+        let err = {
+            let mut emitter = Emitter::new(Vec::<u8>::new()).unwrap();
+            emitter.emit(Event::MappingEnd).unwrap_err()
+        };
+        if let EmitterError::Libyaml(inner) = err {
+            let _ = format!("{}", inner);
+            let _ = format!("{:?}", inner);
+        } else {
+            panic!("expected libyaml error");
+        }
+    }
+}
+
+fn display_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Result {
+    loop {
+        match str::from_utf8(bytes) {
+            Ok(valid) => return formatter.write_str(valid),
+            Err(utf8_error) => {
+                let valid_up_to = utf8_error.valid_up_to();
+                formatter.write_str(str::from_utf8(&bytes[..valid_up_to]).unwrap())?;
+                formatter.write_char(char::REPLACEMENT_CHARACTER)?;
+                if let Some(error_len) = utf8_error.error_len() {
+                    bytes = &bytes[valid_up_to + error_len..];
+                } else {
+                    return Ok(());
+                }
+            }
+        }
     }
 }
