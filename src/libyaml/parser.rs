@@ -92,7 +92,8 @@ impl<'input> Parser<'input> {
             }
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
-                return Err(Error::from(LibyamlError::parse_error(parser)));
+                sys::yaml_event_delete(event);
+                return Err(Error::parse_error(parser));
             }
             let ret = convert_event(&*event, &(*self.pin.ptr).input)
                 .map_err(|_| error::new(ErrorImpl::TagError))?;
@@ -213,5 +214,25 @@ impl Debug for Anchor {
 impl Drop for ParserPinned<'_> {
     fn drop(&mut self) {
         unsafe { sys::yaml_parser_delete(&raw mut self.sys) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::borrow::Cow;
+
+    #[test]
+    fn repeated_parse_errors_do_not_leak() {
+        let yaml = ":";
+        for _ in 0..100 {
+            let mut parser = Parser::new(Cow::Borrowed(yaml.as_bytes())).unwrap();
+            loop {
+                match parser.next() {
+                    Ok(_) => continue,
+                    Err(_) => break,
+                }
+            }
+        }
     }
 }
