@@ -5,6 +5,28 @@ use crate::libyaml::parser::{Event as YamlEvent, Parser, Anchor};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::fs;
+use std::io::Read;
+
+const RAM_SAFETY_MARGIN: f64 = 25.0;
+
+/// Returns recommended allocatable RAM in bytes after applying the margin.
+/// On non-Linux platforms this falls back to `None`.
+fn safe_allocatable_ram(margin_percent: f64) -> Option<u64> {
+    let meminfo = fs::read_to_string("/proc/meminfo").ok()?;
+    for line in meminfo.lines() {
+        if let Some(rest) = line.strip_prefix("MemAvailable:") {
+            if let Some(kb) = rest.split_whitespace().next() {
+                if let Ok(kb) = kb.parse::<u64>() {
+                    let bytes = kb * 1024;
+                    let margin = (bytes as f64 * margin_percent / 100.0) as u64;
+                    return Some(bytes.saturating_sub(margin));
+                }
+            }
+        }
+    }
+    None
+}
 
 fn anchor_to_string(anchor: &Anchor) -> String {
     String::from_utf8_lossy(&anchor.0).into_owned()
@@ -30,9 +52,23 @@ impl<'input> Loader<'input> {
             Progress::Str(s) => Cow::Borrowed(s.as_bytes()),
             Progress::Slice(bytes) => Cow::Borrowed(bytes),
             Progress::Read(mut rdr) => {
+                let limit = safe_allocatable_ram(RAM_SAFETY_MARGIN).unwrap_or(u64::MAX) as usize;
                 let mut buffer = Vec::new();
-                if let Err(io_error) = rdr.read_to_end(&mut buffer) {
-                    return Err(error::new(ErrorImpl::Io(io_error)));
+                loop {
+                    let mut chunk = [0u8; 8192];
+                    match rdr.read(&mut chunk) {
+                        Ok(0) => break,
+                        Ok(n) => {
+                            if buffer.len() + n > limit {
+                                return Err(error::new(ErrorImpl::Message(
+                                    "input exceeds available memory".into(),
+                                    None,
+                                )));
+                            }
+                            buffer.extend_from_slice(&chunk[..n]);
+                        }
+                        Err(io_error) => return Err(error::new(ErrorImpl::Io(io_error))),
+                    }
                 }
                 Cow::Owned(buffer)
             }
