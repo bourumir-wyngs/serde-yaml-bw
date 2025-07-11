@@ -95,7 +95,7 @@ pub struct Sequence {
     /// Elements of the YAML sequence.
     pub elements: Vec<Value>,
     #[doc(hidden)]
-    pub id: usize,
+    pub(crate) id: usize,
 }
 
 impl Default for Sequence {

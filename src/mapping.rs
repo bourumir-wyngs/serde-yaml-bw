@@ -17,7 +17,7 @@ pub struct Mapping {
     pub anchor: Option<String>,
     map: IndexMap<Value, Value>,
     #[doc(hidden)]
-    pub id: usize,
+    pub(crate) id: usize,
 }
 
 impl Default for Mapping {
