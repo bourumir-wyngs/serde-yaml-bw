@@ -1,6 +1,7 @@
 use crate::value::de::{MapDeserializer, MapRefDeserializer, SeqDeserializer, SeqRefDeserializer};
 use crate::value::Value;
 use crate::Error;
+use crate::error::{self, ErrorImpl};
 use serde::de::value::{BorrowedStrDeserializer, StrDeserializer};
 use serde::de::{
     Deserialize, DeserializeSeed, Deserializer, EnumAccess, Error as _, VariantAccess, Visitor,
@@ -64,14 +65,14 @@ impl Tag {
     /// ```
     /// use serde_yaml_bw::value::Tag;
     ///
-    /// assert_eq!(Tag::new("!Thing"), Tag::new("Thing"));
+    /// assert_eq!(Tag::new("!Thing").unwrap(), Tag::new("Thing").unwrap());
     ///
-    /// let tag = Tag::new("Thing");
+    /// let tag = Tag::new("Thing").unwrap();
     /// assert!(tag == "Thing");
     /// assert!(tag == "!Thing");
     /// assert!(tag.to_string() == "!Thing");
     ///
-    /// let tag = Tag::new("!Thing");
+    /// let tag = Tag::new("!Thing").unwrap();
     /// assert!(tag == "Thing");
     /// assert!(tag == "!Thing");
     /// assert!(tag.to_string() == "!Thing");
@@ -80,14 +81,16 @@ impl Tag {
     /// Such a tag would serialize to `!Thing` in YAML regardless of whether a
     /// '!' was included in the call to `Tag::new`.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `string.is_empty()`. There is no syntax in YAML for an empty
+    /// Returns an error if `string.is_empty()`. There is no syntax in YAML for an empty
     /// tag.
-    pub fn new(string: impl Into<String>) -> Self {
+    pub fn new(string: impl Into<String>) -> Result<Self, Error> {
         let tag: String = string.into();
-        assert!(!tag.is_empty(), "empty YAML tag is not allowed");
-        Tag { string: tag }
+        if tag.is_empty() {
+            return Err(error::new(ErrorImpl::EmptyTag));
+        }
+        Ok(Tag { string: tag })
     }
 }
 
@@ -403,7 +406,7 @@ impl Visitor<'_> for TagStringVisitor {
         if string.is_empty() {
             return Err(E::custom("empty YAML tag is not allowed"));
         }
-        Ok(Tag::new(string))
+        Tag::new(string).map_err(|e| E::custom(e.to_string()))
     }
 }
 
