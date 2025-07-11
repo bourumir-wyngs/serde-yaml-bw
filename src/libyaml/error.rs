@@ -14,12 +14,18 @@ pub(crate) struct Error {
     context_mark: Mark,
 }
 
+unsafe fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
+    const EMPTY_Z: [u8; 1] = [0];
+    Box::from(unsafe { CStr::from_ptr(problem) }
+        .to_bytes().unwrap_or(&EMPTY_Z))
+}
+
 impl Error {
     pub unsafe fn parse_error(parser: *const sys::yaml_parser_t) -> Self {
         Error {
             kind: unsafe { (&*parser).error },
             problem: match NonNull::new(unsafe { (&*parser).problem.cast_mut() }) {
-                Some(problem) => Box::from(unsafe { CStr::from_ptr(problem) }.to_bytes()),
+                Some(problem) => unsafe { define_string(problem) },
                 None => Box::from(&b"libyaml parser failed but there is no error"[..]),
             },
             problem_offset: unsafe { (&*parser).problem_offset },
@@ -27,7 +33,7 @@ impl Error {
                 sys: unsafe { (&*parser).problem_mark },
             },
             context: match NonNull::new(unsafe { (&*parser).context.cast_mut() }) {
-                Some(context) => Some(Box::from(unsafe { CStr::from_ptr(context) }.to_bytes())),
+                Some(context) => unsafe { Some(define_string(context)) },
                 None => None,
             },
             context_mark: Mark {
@@ -40,7 +46,7 @@ impl Error {
         Error {
             kind: unsafe { (&*emitter).error },
             problem: match NonNull::new(unsafe { (&*emitter).problem.cast_mut() }) {
-                Some(problem) => Box::from(unsafe { CStr::from_ptr(problem) }.to_bytes()),
+                Some(problem) => unsafe { define_string(problem) },
                 None => Box::from(&b"libyaml emitter failed but there is no error"[..]),
             },
             problem_offset: 0,
