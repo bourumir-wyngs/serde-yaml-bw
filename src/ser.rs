@@ -84,7 +84,7 @@ where
     pub fn into_inner(mut self) -> Result<W> {
         self.emitter.emit(Event::StreamEnd)?;
         self.emitter.flush()?;
-        let writer = self.emitter.into_inner();
+        let writer = self.emitter.into_inner()?;
         Ok(writer)
     }
 

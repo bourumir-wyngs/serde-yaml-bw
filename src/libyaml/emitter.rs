@@ -189,8 +189,15 @@ where
         Ok(())
     }
 
-    pub fn into_inner(self) -> W {
-        unsafe { (*self.pin.ptr).write.take().unwrap() }
+    pub fn into_inner(self) -> Result<W, Error> {
+        unsafe {
+            (*self.pin.ptr).write.take().ok_or_else(|| {
+                Error::Io(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Emitter writer missing",
+                ))
+            })
+        }
     }
 
     fn error(&mut self) -> Error {
@@ -208,13 +215,23 @@ where
     W: io::Write,
 {
     let data = data.cast::<EmitterPinned<W>>();
-    match io::Write::write_all(unsafe { &mut *(*data).write.as_mut().unwrap() }, unsafe {
-        slice::from_raw_parts(buffer, size as usize)
-    }) {
-        Ok(()) => 1,
-        Err(err) => {
+    let buffer = unsafe { slice::from_raw_parts(buffer, size as usize) };
+    match unsafe { &mut *data }.write.as_mut() {
+        Some(writer) => match io::Write::write_all(writer, buffer) {
+            Ok(()) => 1,
+            Err(err) => {
+                unsafe {
+                    (*data).write_error = Some(err);
+                }
+                0
+            }
+        },
+        None => {
             unsafe {
-                (*data).write_error = Some(err);
+                (*data).write_error = Some(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Emitter writer missing",
+                ));
             }
             0
         }
@@ -227,5 +244,34 @@ where
 {
     fn drop(&mut self) {
         unsafe { sys::yaml_emitter_delete(&raw mut self.sys) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::c_void;
+
+    #[test]
+    fn into_inner_none() {
+        let emitter = Emitter::new(Vec::<u8>::new()).unwrap();
+        unsafe {
+            (*emitter.pin.ptr).write = None;
+        }
+        let result = emitter.into_inner();
+        assert!(matches!(result, Err(Error::Io(_))));
+    }
+
+    #[test]
+    fn write_handler_without_writer() {
+        let emitter = Emitter::new(Vec::<u8>::new()).unwrap();
+        unsafe {
+            (*emitter.pin.ptr).write = None;
+            let data = emitter.pin.ptr.cast::<c_void>();
+            let mut buf = [0u8; 1];
+            let ret = super::write_handler::<Vec<u8>>(data, buf.as_mut_ptr(), 1);
+            assert_eq!(ret, 0);
+            assert!((*emitter.pin.ptr).write_error.is_some());
+        }
     }
 }
