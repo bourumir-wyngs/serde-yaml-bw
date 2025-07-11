@@ -18,13 +18,7 @@ If a panic does occur under some short and clear input, please report it as a bu
 ### Memory usage
 
 `from_reader` and `from_slice` first load the entire YAML stream into memory.
-For very large or malicious inputs this may exhaust available memory.  As of
-[issue #3](https://github.com/bourumir-wyngs/serde-yaml-bw/issues/3), these
-functions optionally accept a size limit that aborts parsing once exceeded.
-The loader also checks that the input fits into available RAM while keeping a
-25% safety margin. On non-Linux platforms this check may be unavailable so
-the explicit size limit provides a portable safeguard.
-Use the limit when processing untrusted documents.
+This library monitors buffer size and memory usage and will simply return an error if limits are exceeded.
 
 ### Thread Safety
 
