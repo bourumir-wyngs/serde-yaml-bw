@@ -93,7 +93,7 @@ impl<'input> Parser<'input> {
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
                 sys::yaml_event_delete(event);
-                return Err(Error::parse_error(parser));
+                return Err(Error::from(LibyamlError::parse_error(parser)));
             }
             let ret = convert_event(&*event, &(*self.pin.ptr).input)
                 .map_err(|_| error::new(ErrorImpl::TagError))?;

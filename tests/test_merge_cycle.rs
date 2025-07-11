@@ -11,7 +11,7 @@ fn test_self_referential_merge() {
 #[test]
 fn test_self_referential_after_reallocation() {
     let yaml = "a: &a\n  b: 1\n  <<: *a";
-    let mut value: Value = from_str_value_preserve(yaml).unwrap();
+    let value: Value = from_str_value_preserve(yaml).unwrap();
     let mut vec = Vec::new();
     vec.push(Value::Null(None));
     vec.push(value);
