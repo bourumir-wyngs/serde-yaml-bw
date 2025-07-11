@@ -23,10 +23,13 @@ unsafe impl Send for CStr<'static> {}
 unsafe impl Sync for CStr<'static> {}
 
 impl<'a> CStr<'a> {
-    pub fn from_bytes_with_nul(bytes: &'static [u8]) -> Self {
-        assert_eq!(bytes.last(), Some(&b'\0'));
-        let ptr = NonNull::from(bytes).cast();
-        unsafe { Self::from_ptr(ptr) }
+    pub fn from_bytes_with_nul(bytes: &'static [u8]) -> Option<Self> {
+        if bytes.last() == Some(&b'\0') {
+            let ptr = NonNull::from(bytes).cast();
+            Some(unsafe { Self::from_ptr(ptr) })
+        } else {
+            None
+        }
     }
 
     pub unsafe fn from_ptr(ptr: NonNull<i8>) -> Self {
@@ -61,12 +64,18 @@ mod tests {
     #[test]
     fn send_sync_static() {
         static BYTES: &[u8] = b"static\0";
-        let cstr = CStr::from_bytes_with_nul(BYTES);
+        let cstr = CStr::from_bytes_with_nul(BYTES).unwrap();
         thread::spawn(move || {
             assert_eq!(cstr.to_bytes(), b"static");
         })
         .join()
         .unwrap();
+    }
+
+    #[test]
+    fn rejects_non_nul_terminated() {
+        static BYTES: &[u8] = b"missingnul";
+        assert!(CStr::from_bytes_with_nul(BYTES).is_none());
     }
 }
 

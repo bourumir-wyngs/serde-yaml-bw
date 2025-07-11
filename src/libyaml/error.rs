@@ -21,7 +21,7 @@ impl Error {
             kind: unsafe { (&*parser).error },
             problem: match NonNull::new(unsafe { (&*parser).problem.cast_mut() }) {
                 Some(problem) => unsafe { CStr::from_ptr(problem) },
-                None => CStr::from_bytes_with_nul(b"libyaml parser failed but there is no error\0"),
+                None => CStr::from_bytes_with_nul(b"libyaml parser failed but there is no error\0").unwrap(),
             },
             problem_offset: unsafe { (&*parser).problem_offset },
             problem_mark: Mark {
@@ -43,7 +43,7 @@ impl Error {
             problem: match NonNull::new(unsafe { (&*emitter).problem.cast_mut() }) {
                 Some(problem) => unsafe { CStr::from_ptr(problem) },
                 None => {
-                    CStr::from_bytes_with_nul(b"libyaml emitter failed but there is no error\0")
+                    CStr::from_bytes_with_nul(b"libyaml emitter failed but there is no error\0").unwrap()
                 }
             },
             problem_offset: 0,
