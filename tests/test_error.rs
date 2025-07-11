@@ -121,6 +121,19 @@ fn test_ignored_unknown_anchor() {
 }
 
 #[test]
+fn test_invalid_anchor_reference_message() {
+    let yaml = "*invalid_anchor";
+    let result: Result<Value, _> = serde_yaml_bw::from_str(yaml);
+    match result {
+        Ok(_) => panic!("Expected error for invalid anchor"),
+        Err(e) => {
+            let msg = e.to_string();
+            assert!(msg.contains("invalid_anchor"), "Unexpected error: {}", msg);
+        }
+    }
+}
+
+#[test]
 fn test_bytes() {
     let expected = "serialization and deserialization of bytes in YAML is not implemented";
     test_error::<&[u8]>("...", expected);
@@ -201,9 +214,9 @@ fn test_serialize_nested_enum() {
     assert_eq!(error.to_string(), expected);
 
     let e = Value::Tagged(Box::new(TaggedValue {
-        tag: Tag::new("Outer"),
+        tag: Tag::new("Outer").unwrap(),
         value: Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new("Inner"),
+            tag: Tag::new("Inner").unwrap(),
             value: Value::Null(None),
         })),
     }));
@@ -257,6 +270,16 @@ fn test_variant_not_a_seq() {
     "};
     let expected = "invalid type: map, expected usize at line 2 column 1";
     test_error::<E>(yaml, expected);
+}
+
+#[test]
+fn test_anchor_too_long() {
+    use serde_yaml_bw::Value;
+    const MAX: usize = 65_536;
+    let long = "a".repeat(MAX + 1);
+    let yaml = format!("&{long} 1\n");
+    let expected = "unexpected tag error";
+    test_error::<Value>(&yaml, expected);
 }
 
 #[test]

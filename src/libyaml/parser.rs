@@ -1,5 +1,6 @@
-use crate::libyaml::cstr::{self, CStr};
-use crate::libyaml::error::{Error, Mark, Result};
+use crate::libyaml::cstr::{self, CStr, CStrError};
+use crate::libyaml::error::{Error as LibyamlError, Mark};
+use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::tag::Tag;
 use crate::libyaml::util::Owned;
 use std::borrow::Cow;
@@ -72,7 +73,7 @@ impl<'input> Parser<'input> {
         let pin = unsafe {
             let parser = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_parser_initialize(parser).fail {
-                return Err(Error::parse_error(parser));
+                return Err(Error::from(LibyamlError::parse_error(parser)));
             }
             sys::yaml_parser_set_encoding(parser, sys::YAML_UTF8_ENCODING);
             sys::yaml_parser_set_input_string(parser, input.as_ptr(), input.len() as u64);
@@ -87,13 +88,15 @@ impl<'input> Parser<'input> {
         unsafe {
             let parser = addr_of_mut!((*self.pin.ptr).sys);
             if (&*parser).error != sys::YAML_NO_ERROR {
-                return Err(Error::parse_error(parser));
+                return Err(Error::from(LibyamlError::parse_error(parser)));
             }
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
-                return Err(Error::parse_error(parser));
+                sys::yaml_event_delete(event);
+                return Err(Error::from(LibyamlError::parse_error(parser)));
             }
-            let ret = convert_event(&*event, &(*self.pin.ptr).input);
+            let ret = convert_event(&*event, &(*self.pin.ptr).input)
+                .map_err(|_| error::new(ErrorImpl::TagError))?;
             let mark = Mark {
                 sys: (*event).start_mark,
             };
@@ -106,19 +109,22 @@ impl<'input> Parser<'input> {
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
     input: &Cow<'input, [u8]>,
-) -> Event<'input> {
+) -> std::result::Result<Event<'input>, CStrError> {
     match sys.type_ {
-        sys::YAML_STREAM_START_EVENT => Event::StreamStart,
-        sys::YAML_STREAM_END_EVENT => Event::StreamEnd,
-        sys::YAML_DOCUMENT_START_EVENT => Event::DocumentStart,
-        sys::YAML_DOCUMENT_END_EVENT => Event::DocumentEnd,
+        sys::YAML_STREAM_START_EVENT => Ok(Event::StreamStart),
+        sys::YAML_STREAM_END_EVENT => Ok(Event::StreamEnd),
+        sys::YAML_DOCUMENT_START_EVENT => Ok(Event::DocumentStart),
+        sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd),
         sys::YAML_ALIAS_EVENT => {
             // If we are unable to obtain anchor, if is still alias event.
-            Event::Alias(unsafe { optional_anchor(sys.data.alias.anchor) }.unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into())))
+            Ok(Event::Alias(
+                unsafe { optional_anchor(sys.data.alias.anchor) }?
+                    .unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into())),
+            ))
         }
-        sys::YAML_SCALAR_EVENT => Event::Scalar(Scalar {
-            anchor: unsafe { optional_anchor(sys.data.scalar.anchor) },
-            tag: unsafe { optional_tag(sys.data.scalar.tag) },
+        sys::YAML_SCALAR_EVENT => Ok(Event::Scalar(Scalar {
+            anchor: unsafe { optional_anchor(sys.data.scalar.anchor) }?,
+            tag: unsafe { optional_tag(sys.data.scalar.tag) }?,
             value: Box::from(unsafe {
                 slice::from_raw_parts(sys.data.scalar.value, sys.data.scalar.length as usize)
             }),
@@ -136,33 +142,39 @@ unsafe fn convert_event<'input>(
             } else {
                 None
             },
-        }),
-        sys::YAML_SEQUENCE_START_EVENT => Event::SequenceStart(SequenceStart {
-            anchor: unsafe { optional_anchor(sys.data.sequence_start.anchor) },
-            tag: unsafe { optional_tag(sys.data.sequence_start.tag) },
-        }),
-        sys::YAML_SEQUENCE_END_EVENT => Event::SequenceEnd,
-        sys::YAML_MAPPING_START_EVENT => Event::MappingStart(MappingStart {
-            anchor: unsafe { optional_anchor(sys.data.mapping_start.anchor) },
-            tag: unsafe { optional_tag(sys.data.mapping_start.tag) },
-        }),
-        sys::YAML_MAPPING_END_EVENT => Event::MappingEnd,
+        })),
+        sys::YAML_SEQUENCE_START_EVENT => Ok(Event::SequenceStart(SequenceStart {
+            anchor: unsafe { optional_anchor(sys.data.sequence_start.anchor) }?,
+            tag: unsafe { optional_tag(sys.data.sequence_start.tag) }?,
+        })),
+        sys::YAML_SEQUENCE_END_EVENT => Ok(Event::SequenceEnd),
+        sys::YAML_MAPPING_START_EVENT => Ok(Event::MappingStart(MappingStart {
+            anchor: unsafe { optional_anchor(sys.data.mapping_start.anchor) }?,
+            tag: unsafe { optional_tag(sys.data.mapping_start.tag) }?,
+        })),
+        sys::YAML_MAPPING_END_EVENT => Ok(Event::MappingEnd),
         // Unknown or empty events should not cause a panic
-        sys::YAML_NO_EVENT => Event::Void,
-        _ => Event::Void,
+        sys::YAML_NO_EVENT => Ok(Event::Void),
+        _ => Ok(Event::Void),
     }
 }
 
-unsafe fn optional_anchor(anchor: *const u8) -> Option<Anchor> {
-    let ptr = NonNull::new(anchor as *mut i8)?;
+unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Anchor>, CStrError> {
+    let ptr = match NonNull::new(anchor as *mut i8) {
+        Some(p) => p,
+        None => return Ok(None),
+    };
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Some(Anchor(Box::from(cstr.to_bytes())))
+    Ok(Some(Anchor(Box::from(cstr.to_bytes()?))))
 }
 
-unsafe fn optional_tag(tag: *const u8) -> Option<Tag> {
-    let ptr = NonNull::new(tag as *mut i8)?;
+unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, CStrError> {
+    let ptr = match NonNull::new(tag as *mut i8) {
+        Some(p) => p,
+        None => return Ok(None),
+    };
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Some(Tag(Box::from(cstr.to_bytes())))
+    Ok(Some(Tag(Box::from(cstr.to_bytes()?))))
 }
 
 impl Debug for Scalar<'_> {
@@ -202,5 +214,25 @@ impl Debug for Anchor {
 impl Drop for ParserPinned<'_> {
     fn drop(&mut self) {
         unsafe { sys::yaml_parser_delete(&raw mut self.sys) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::borrow::Cow;
+
+    #[test]
+    fn repeated_parse_errors_do_not_leak() {
+        let yaml = ":";
+        for _ in 0..100 {
+            let mut parser = Parser::new(Cow::Borrowed(yaml.as_bytes())).unwrap();
+            loop {
+                match parser.next() {
+                    Ok(_) => continue,
+                    Err(_) => break,
+                }
+            }
+        }
     }
 }

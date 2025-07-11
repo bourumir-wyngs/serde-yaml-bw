@@ -141,7 +141,7 @@ impl ser::Serializer for Serializer {
             .iter()
             .map(|&b| Value::Number(Number::from(b), None))
             .collect();
-        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
+        Ok(Value::Sequence(Sequence { anchor: None, elements: vec, id: crate::value::next_id() }))
     }
 
     fn serialize_unit(self) -> Result<Value> {
@@ -182,7 +182,7 @@ impl ser::Serializer for Serializer {
             return Err(error::new(ErrorImpl::EmptyTag));
         }
         Ok(Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new(variant),
+            tag: Tag::new(variant)?,
             value: to_value(value)?,
         })))
     }
@@ -336,7 +336,7 @@ impl ser::SerializeTupleVariant for SerializeTupleVariant {
 
     fn end(self) -> Result<Value> {
         Ok(Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new(self.tag),
+            tag: Tag::new(self.tag)?,
             value: Value::Sequence(self.sequence),
         })))
     }
@@ -758,7 +758,7 @@ impl ser::SerializeMap for SerializeMap {
                 *self = match key {
                     MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                     MaybeTag::Tag(string) => SerializeMap::Tagged(TaggedValue {
-                        tag: Tag::new(string),
+                        tag: Tag::new(string)?,
                         value: to_value(value)?,
                     }),
                     MaybeTag::NotTag(key) => {
@@ -838,7 +838,7 @@ impl ser::SerializeStructVariant for SerializeStructVariant {
 
     fn end(self) -> Result<Value> {
         Ok(Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new(self.tag),
+            tag: Tag::new(self.tag)?,
             value: Value::Mapping(self.mapping),
         })))
     }

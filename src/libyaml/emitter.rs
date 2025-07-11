@@ -233,6 +233,9 @@ where
                     "Emitter writer missing",
                 ));
             }
+        },
+        None => {
+            ptr.write_error = Some(io::Error::new(io::ErrorKind::Other, "emitter writer missing"));
             0
         }
     }

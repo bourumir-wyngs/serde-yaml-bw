@@ -7,6 +7,20 @@ fn test_self_referential_merge() {
     let mut value: Value = from_str_value_preserve(yaml).unwrap();
     assert!(value.apply_merge().is_err());
 }
+
+#[test]
+fn test_self_referential_after_reallocation() {
+    let yaml = "a: &a\n  b: 1\n  <<: *a";
+    let value: Value = from_str_value_preserve(yaml).unwrap();
+    let mut vec = Vec::new();
+    vec.push(Value::Null(None));
+    vec.push(value);
+    for _ in 0..100 {
+        vec.push(Value::Null(None));
+    }
+    let mut moved = vec.remove(1);
+    assert!(moved.apply_merge().is_err());
+}
 #[test]
 fn test_self_referential_merge_serde() {
     #[derive(Debug, Serialize, Deserialize)]
