@@ -141,7 +141,7 @@ impl ser::Serializer for Serializer {
             .iter()
             .map(|&b| Value::Number(Number::from(b), None))
             .collect();
-        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
+        Ok(Value::Sequence(Sequence { anchor: None, elements: vec, id: crate::value::next_id() }))
     }
 
     fn serialize_unit(self) -> Result<Value> {

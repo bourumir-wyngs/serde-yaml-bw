@@ -910,7 +910,7 @@ impl<'de> Deserializer<'de> for &'de Value {
     where
         V: Visitor<'de>,
     {
-        static EMPTY: Sequence = Sequence::new();
+        static EMPTY: Sequence = Sequence::const_new();
         match self.untag_ref() {
             Value::Sequence(v) => visit_sequence_ref(v, visitor),
             Value::Null(_) => visit_sequence_ref(&EMPTY, visitor),
