@@ -260,6 +260,16 @@ fn test_variant_not_a_seq() {
 }
 
 #[test]
+fn test_anchor_too_long() {
+    use serde_yaml_bw::Value;
+    const MAX: usize = 65_536;
+    let long = "a".repeat(MAX + 1);
+    let yaml = format!("&{long} 1\n");
+    let expected = "unexpected tag error";
+    test_error::<Value>(&yaml, expected);
+}
+
+#[test]
 fn test_struct_from_sequence() {
     #[derive(Deserialize, Debug)]
     pub struct Struct {

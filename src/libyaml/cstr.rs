@@ -4,6 +4,15 @@ use std::ptr::NonNull;
 use std::slice;
 use std::str;
 
+/// Maximum length of libyaml strings such as anchor and tag names.
+///
+/// The limit is enforced while scanning null-terminated strings to avoid
+/// reading arbitrary memory when libyaml provides malformed data.
+pub const MAX_NAME_LENGTH: usize = 65_536;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CStrError;
+
 /// Wrapper around a null-terminated C string used by libyaml.
 ///
 /// `CStr` is parametrized by the lifetime of the referenced bytes. The type is
@@ -36,20 +45,25 @@ impl<'a> CStr<'a> {
         }
     }
 
-    pub fn len(self) -> usize {
+    pub fn len(self) -> Result<usize, CStrError> {
         let start = self.ptr.as_ptr();
         let mut end = start;
+        let mut len = 0usize;
         unsafe {
             while *end != 0 {
+                if len >= MAX_NAME_LENGTH {
+                    return Err(CStrError);
+                }
                 end = end.add(1);
+                len += 1;
             }
-            end.offset_from(start) as usize
+            Ok(len)
         }
     }
 
-    pub fn to_bytes(self) -> &'a [u8] {
-        let len = self.len();
-        unsafe { slice::from_raw_parts(self.ptr.as_ptr(), len) }
+    pub fn to_bytes(self) -> Result<&'a [u8], CStrError> {
+        let len = self.len()?;
+        unsafe { Ok(slice::from_raw_parts(self.ptr.as_ptr(), len)) }
     }
 }
 
@@ -57,23 +71,40 @@ impl<'a> CStr<'a> {
 mod tests {
     use super::*;
     use std::thread;
+    use std::ptr::NonNull;
 
     #[test]
     fn send_sync_static() {
         static BYTES: &[u8] = b"static\0";
         let cstr = CStr::from_bytes_with_nul(BYTES);
         thread::spawn(move || {
-            assert_eq!(cstr.to_bytes(), b"static");
+            assert_eq!(cstr.to_bytes().unwrap(), b"static");
         })
         .join()
         .unwrap();
+    }
+
+    #[test]
+    fn len_ok() {
+        static BYTES: &[u8] = b"abc\0";
+        let cstr = CStr::from_bytes_with_nul(BYTES);
+        assert_eq!(cstr.len().unwrap(), 3);
+    }
+
+    #[test]
+    fn len_too_long() {
+        let mut bytes = vec![b'a'; MAX_NAME_LENGTH + 1];
+        bytes.push(0);
+        let ptr = NonNull::new(bytes.as_mut_ptr() as *mut i8).unwrap();
+        let cstr = unsafe { CStr::from_ptr(ptr) };
+        assert!(cstr.len().is_err());
     }
 }
 
 impl Display for CStr<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let ptr = self.ptr.as_ptr();
-        let len = self.len();
+        let len = self.len().map_err(|_| fmt::Error)?;
         let bytes = unsafe { slice::from_raw_parts(ptr, len) };
         display_lossy(bytes, formatter)
     }
@@ -82,7 +113,7 @@ impl Display for CStr<'_> {
 impl Debug for CStr<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let ptr = self.ptr.as_ptr();
-        let len = self.len();
+        let len = self.len().map_err(|_| fmt::Error)?;
         let bytes = unsafe { slice::from_raw_parts(ptr, len) };
         debug_lossy(bytes, formatter)
     }

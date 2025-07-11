@@ -1,5 +1,5 @@
 use crate::de::{Event, Progress, ScalarEvent, SequenceStartEvent, MappingStartEvent};
-use crate::error::{self, Error, ErrorImpl, Result};
+use crate::error::{self, ErrorImpl, Result};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Event as YamlEvent, Parser, Anchor};
 use std::borrow::Cow;
@@ -76,7 +76,7 @@ impl<'input> Loader<'input> {
                         self.parser = None;
                         return None;
                     }
-                    document.error = Some(Error::from(err).shared());
+                    document.error = Some(err.shared());
                     return Some(document);
                 }
             };
