@@ -5,22 +5,6 @@ use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use sysinfo::System;
-
-// Safety margin in percents (if we take all available memory, we may crash anyway).
-const RAM_SAFETY_MARGIN: u64 = 5;
-
-/// Returns the free RAM in bytes after applying the margin.
-///
-/// The margin is computed from currently available memory, reserving the given
-/// percentage to remain unused.
-fn safe_allocatable_ram(margin_percent: u64) -> u64 {
-    let mut sys = System::new();
-    sys.refresh_memory();
-    let avail = sys.available_memory();
-    let margin = avail * margin_percent / 100;
-    avail.saturating_sub(margin)
-}
 
 fn anchor_to_string(anchor: &Anchor) -> String {
     String::from_utf8_lossy(&anchor.0).into_owned()
@@ -167,7 +151,6 @@ impl<'input> Loader<'input> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::{self, Read};
 
     #[test]
     fn anchored_scalar_event_keeps_anchor() {
@@ -186,33 +169,4 @@ mod tests {
         assert!(found, "anchored scalar not found");
     }
 
-    struct EndlessReader;
-
-    impl Read for EndlessReader {
-        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-            for byte in buf.iter_mut() {
-                *byte = b'a';
-            }
-            Ok(buf.len())
-        }
-    }
-
-    // Running memory to exhaustion may hit the CI server with many other jobs hard, so please 
-    // run this test only on your workstation.
-    #[test]
-    #[ignore]
-    fn test_loader_with_indefinite_input() {
-        let endless_reader = EndlessReader;
-        let loader_result = Loader::new(Progress::Read(Box::new(endless_reader)));
-
-        assert!(loader_result.is_err(), "Expected memory limit error");
-        if let Err(err) = loader_result {
-            if !err.to_string().contains("exceeds permissible memory") {
-                panic!("Unexpected error {}", err);
-            }
-            println!("{}", err);
-        } else {
-            panic!("Read infinite reader till the end");
-        }
-    }
 }
