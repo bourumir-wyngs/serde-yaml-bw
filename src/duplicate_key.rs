@@ -73,3 +73,41 @@ impl Display for DuplicateKeyError {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{parse_bool, is_null, DuplicateKeyError, DuplicateKeyKind};
+    use crate::number::Number;
+
+    #[test]
+    fn test_is_null_variants() {
+        assert!(is_null(b"null"));
+        assert!(is_null(b"Null"));
+        assert!(is_null(b"NULL"));
+        assert!(is_null(b"~"));
+        assert!(!is_null(b"nul"));
+    }
+
+    #[test]
+    fn test_parse_bool_variants() {
+        assert_eq!(parse_bool("true"), Some(true));
+        assert_eq!(parse_bool("True"), Some(true));
+        assert_eq!(parse_bool("TRUE"), Some(true));
+        assert_eq!(parse_bool("false"), Some(false));
+        assert_eq!(parse_bool("False"), Some(false));
+        assert_eq!(parse_bool("FALSE"), Some(false));
+        assert_eq!(parse_bool("other"), None);
+    }
+
+    #[test]
+    fn test_from_scalar_parsing() {
+        let err = DuplicateKeyError::from_scalar(b"null");
+        matches!(err.kind, DuplicateKeyKind::Null);
+
+        let err = DuplicateKeyError::from_scalar(b"true");
+        matches!(err.kind, DuplicateKeyKind::Bool(true));
+
+        let err = DuplicateKeyError::from_scalar(b"42");
+        assert!(matches!(err.kind, DuplicateKeyKind::Number(n) if n == Number::from(42)));
+    }
+}
+

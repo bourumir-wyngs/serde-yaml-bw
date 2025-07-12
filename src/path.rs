@@ -32,3 +32,26 @@ impl Display for Path<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Path;
+
+    #[test]
+    fn test_display_variants() {
+        let root = Path::Root;
+        assert_eq!(format!("{}", root), ".");
+
+        let seq = Path::Seq { parent: &root, index: 1 };
+        assert_eq!(format!("{}", seq), ".[1]");
+
+        let map = Path::Map { parent: &seq, key: "name" };
+        assert_eq!(format!("{}", map), ".[1].name");
+
+        let alias = Path::Alias { parent: &map };
+        assert_eq!(format!("{}", alias), ".[1].name");
+
+        let unknown = Path::Unknown { parent: &map };
+        assert_eq!(format!("{}", unknown), ".[1].name.?");
+    }
+}
