@@ -17,8 +17,10 @@ If a panic does occur under some short and clear input, please report it as a bu
 
 ### Memory usage
 
-`from_reader` and `from_slice` first load the entire YAML stream into memory.
-This library monitors buffer size and memory usage and will simply return an error if limits are exceeded.
+`from_reader` streams the YAML input using libyaml's callback interface and does
+not buffer the entire stream. `from_slice` still loads the bytes that are passed
+in by the caller. Memory consumption is monitored based on available system
+memory and the parser will return an error if limits are exceeded.
 
 ### Thread Safety
 

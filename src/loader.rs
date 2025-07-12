@@ -4,7 +4,6 @@ use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::io::Read;
 use std::sync::Arc;
 use sysinfo::System;
 
@@ -12,11 +11,15 @@ use sysinfo::System;
 const RAM_SAFETY_MARGIN: u64 = 5;
 
 /// Returns the free RAM in bytes after applying the margin.
+///
+/// The margin is computed from currently available memory, reserving the given
+/// percentage to remain unused.
 fn safe_allocatable_ram(margin_percent: u64) -> u64 {
     let mut sys = System::new();
     sys.refresh_memory();
-    let margin = sys.total_memory() * margin_percent / 100;
-    sys.available_memory().saturating_sub(margin)
+    let avail = sys.available_memory();
+    let margin = avail * margin_percent / 100;
+    avail.saturating_sub(margin)
 }
 
 fn anchor_to_string(anchor: &Anchor) -> String {
@@ -39,43 +42,10 @@ pub(crate) struct Document<'input> {
 
 impl<'input> Loader<'input> {
     pub fn new(progress: Progress<'input>) -> Result<Self> {
-        const BUFFER_SIZE: usize = 16 * 1024;
-
-        let input = match progress {
-            Progress::Str(s) => Cow::Borrowed(s.as_bytes()),
-            Progress::Slice(bytes) => Cow::Borrowed(bytes),
-            Progress::Read(mut rdr) => {
-                let mut buffer = Vec::new();
-                let mut chunk = [0u8; BUFFER_SIZE];
-                let mut memory_check: usize = 0;
-
-                loop {
-                    match rdr.read(&mut chunk) {
-                        Ok(0) => break,
-                        Ok(extend_by) => {
-                            let new_size = buffer.len() + extend_by;
-                            memory_check += 1;
-                            if new_size > 16 * BUFFER_SIZE && memory_check % 128 == 0 {
-                                // check every 8 Mb starting from 24 Kb.
-                                if extend_by > safe_allocatable_ram(RAM_SAFETY_MARGIN) as usize {
-                                    return Err(error::new(ErrorImpl::Message(
-                                        format!(
-                                            "input size {} MB exceeds permissible memory \
-                                            limit ({}% safety margin applied)",
-                                            new_size / 1024 / 1024,
-                                            RAM_SAFETY_MARGIN
-                                        ),
-                                        None,
-                                    )));
-                                }
-                            }
-                            buffer.extend_from_slice(&chunk[..extend_by]);
-                        }
-                        Err(io_error) => return Err(error::new(ErrorImpl::Io(io_error))),
-                    }
-                }
-                Cow::Owned(buffer)
-            }
+        let parser = match progress {
+            Progress::Str(s) => Parser::new(Cow::Borrowed(s.as_bytes()))?,
+            Progress::Slice(bytes) => Parser::new(Cow::Borrowed(bytes))?,
+            Progress::Read(rdr) => Parser::from_reader(rdr)?,
             Progress::Iterable(_) | Progress::Document(_) => {
                 return Err(error::new(ErrorImpl::MoreThanOneDocument));
             }
@@ -83,7 +53,7 @@ impl<'input> Loader<'input> {
         };
 
         Ok(Loader {
-            parser: Some(Parser::new(input)?),
+            parser: Some(parser),
             document_count: 0,
         })
     }
@@ -197,7 +167,7 @@ impl<'input> Loader<'input> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io;
+    use std::io::{self, Read};
 
     #[test]
     fn anchored_scalar_event_keeps_anchor() {

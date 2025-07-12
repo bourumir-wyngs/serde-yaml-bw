@@ -8,6 +8,7 @@ use std::fmt::{self, Debug};
 use std::mem::MaybeUninit;
 use std::ptr::{addr_of_mut, NonNull};
 use std::slice;
+use std::io::Read;
 use unsafe_libyaml as sys;
 
 pub(crate) struct Parser<'input> {
@@ -16,7 +17,8 @@ pub(crate) struct Parser<'input> {
 
 struct ParserPinned<'input> {
     sys: sys::yaml_parser_t,
-    input: Cow<'input, [u8]>,
+    input: Option<Cow<'input, [u8]>>,
+    reader: Option<Box<dyn Read + 'input>>,
 }
 
 #[derive(Debug)]
@@ -77,7 +79,50 @@ impl<'input> Parser<'input> {
             }
             sys::yaml_parser_set_encoding(parser, sys::YAML_UTF8_ENCODING);
             sys::yaml_parser_set_input_string(parser, input.as_ptr(), input.len() as u64);
-            addr_of_mut!((*owned.ptr).input).write(input);
+            addr_of_mut!((*owned.ptr).input).write(Some(input));
+            addr_of_mut!((*owned.ptr).reader).write(None);
+            Owned::assume_init(owned)
+        };
+        Ok(Parser { pin })
+    }
+
+    pub fn from_reader<R>(reader: R) -> Result<Parser<'input>>
+    where
+        R: Read + 'input,
+    {
+        unsafe fn read_handler(
+            data: *mut std::os::raw::c_void,
+            buffer: *mut u8,
+            size: u64,
+            size_read: *mut u64,
+        ) -> i32 {
+            unsafe {
+                let reader = &mut *(data as *mut Option<Box<dyn Read>>);
+                let slice = std::slice::from_raw_parts_mut(buffer, size as usize);
+                match reader.as_mut().unwrap().read(slice) {
+                    Ok(len) => {
+                        *size_read = len as u64;
+                        1
+                    }
+                    Err(_) => {
+                        *size_read = 0;
+                        0
+                    }
+                }
+            }
+        }
+
+        let owned = Owned::<ParserPinned>::new_uninit();
+        let pin = unsafe {
+            let parser = addr_of_mut!((*owned.ptr).sys);
+            if sys::yaml_parser_initialize(parser).fail {
+                return Err(Error::from(LibyamlError::parse_error(parser)));
+            }
+            sys::yaml_parser_set_encoding(parser, sys::YAML_UTF8_ENCODING);
+            addr_of_mut!((*owned.ptr).reader).write(Some(Box::new(reader)));
+            let data = addr_of_mut!((*owned.ptr).reader) as *mut Option<Box<dyn Read>>;
+            sys::yaml_parser_set_input(parser, read_handler as sys::yaml_read_handler_t, data.cast());
+            addr_of_mut!((*owned.ptr).input).write(None);
             Owned::assume_init(owned)
         };
         Ok(Parser { pin })
@@ -108,7 +153,7 @@ impl<'input> Parser<'input> {
 
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
-    input: &Cow<'input, [u8]>,
+    input: &Option<Cow<'input, [u8]>>,
 ) -> std::result::Result<Event<'input>, CStrError> {
     match sys.type_ {
         sys::YAML_STREAM_START_EVENT => Ok(Event::StreamStart),
@@ -137,7 +182,7 @@ unsafe fn convert_event<'input>(
                 // Treat any unrecognized style as plain to avoid panicking
                 sys::YAML_ANY_SCALAR_STYLE | _ => ScalarStyle::Plain,
             },
-            repr: if let Cow::Borrowed(input) = input {
+            repr: if let Some(Cow::Borrowed(input)) = input {
                 Some(&input[sys.start_mark.index as usize..sys.end_mark.index as usize])
             } else {
                 None
