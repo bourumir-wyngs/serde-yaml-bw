@@ -57,7 +57,7 @@ pub(crate) struct MappingStart {
     pub tag: Option<Tag>,
 }
 
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct Anchor(pub(crate) Box<[u8]>);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

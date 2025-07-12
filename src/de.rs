@@ -507,7 +507,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         if *self.jumpcount > limit {
             return Err(error::new(ErrorImpl::RepetitionLimitExceeded));
         }
-        match self.document.aliases.get(pos) {
+        match self.document.aliases.get(*pos) {
             Some(found) => {
                 *pos = *found;
                 Ok(DeserializerFromEvents {
@@ -706,7 +706,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         use Event::{Alias, MappingEnd, MappingStart, Scalar, SequenceEnd, SequenceStart, Void};
         let (event, _mark) = self.next_event_mark()?;
         match event {
-            Alias(id) => {
+            &Alias(id) => {
                 let alias_index = match self.document.aliases.get(id) {
                     Some(idx) => *idx,
                     None => return Err(error::new(ErrorImpl::UnresolvedAlias)),
