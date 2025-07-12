@@ -3,7 +3,7 @@ use crate::error::{self, ErrorImpl, Result};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 fn anchor_to_string(anchor: &Anchor) -> String {
@@ -19,7 +19,7 @@ pub(crate) struct Document<'input> {
     pub events: Vec<(Event<'input>, Mark)>,
     pub error: Option<Arc<ErrorImpl>>,
     /// Map from alias id to index in events.
-    pub aliases: BTreeMap<usize, usize>,
+    pub aliases: Vec<usize>,
     /// Location of the explicit document end marker if present.
     pub end_mark: Option<Mark>,
 }
@@ -50,11 +50,11 @@ impl<'input> Loader<'input> {
         let first = self.document_count == 0;
         self.document_count += 1;
 
-        let mut anchors = BTreeMap::new();
+        let mut anchors = HashMap::new();
         let mut document = Document {
             events: Vec::new(),
             error: None,
-            aliases: BTreeMap::new(),
+            aliases: Vec::new(),
             end_mark: None,
         };
 
@@ -105,7 +105,7 @@ impl<'input> Loader<'input> {
                         let name = anchor_to_string(&a);
                         let id = anchors.len();
                         anchors.insert(a, id);
-                        document.aliases.insert(id, document.events.len());
+                        document.aliases.push(document.events.len());
                         name
                     });
                     Event::Scalar(ScalarEvent {
@@ -118,7 +118,7 @@ impl<'input> Loader<'input> {
                         let name = anchor_to_string(&a);
                         let id = anchors.len();
                         anchors.insert(a, id);
-                        document.aliases.insert(id, document.events.len());
+                        document.aliases.push(document.events.len());
                         name
                     });
                     Event::SequenceStart(SequenceStartEvent {
@@ -132,7 +132,7 @@ impl<'input> Loader<'input> {
                         let name = anchor_to_string(&a);
                         let id = anchors.len();
                         anchors.insert(a, id);
-                        document.aliases.insert(id, document.events.len());
+                        document.aliases.push(document.events.len());
                         name
                     });
                     Event::MappingStart(MappingStartEvent {
