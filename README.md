@@ -15,13 +15,6 @@ Since the API has changed to a more restrictive version, the major version numbe
 
 If a panic does occur under some short and clear input, please report it as a bug.
 
-### Memory usage
-
-`from_reader` streams the YAML input using libyaml's callback interface and does
-not buffer the entire stream. `from_slice` still loads the bytes that are passed
-in by the caller. Memory consumption is monitored based on available system
-memory and the parser will return an error if limits are exceeded.
-
 ### Thread Safety
 
 Internally the library uses a `CStr` wrapper for libyaml strings. This type is
