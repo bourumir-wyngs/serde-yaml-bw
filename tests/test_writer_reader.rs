@@ -28,3 +28,22 @@ fn test_reader_deserialize() {
     let p = Point::deserialize(de).unwrap();
     assert_eq!(p, Point { x: 3, y: 4 });
 }
+
+#[test]
+fn test_large_reader_input() {
+    let mut yaml = String::new();
+    let mut i = 0usize;
+    while yaml.len() < 64 * 1024 {
+        yaml.push_str(&format!("k{0}: v{0}\n", i));
+        i += 1;
+    }
+
+    let reader = std::io::Cursor::new(yaml.as_bytes());
+    let value: serde_yaml_bw::Value = serde_yaml_bw::from_reader(reader).unwrap();
+
+    if let serde_yaml_bw::Value::Mapping(map) = value {
+        assert!(map.len() > 0);
+    } else {
+        panic!("Expected mapping");
+    }
+}
