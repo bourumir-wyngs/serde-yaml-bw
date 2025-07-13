@@ -5,7 +5,7 @@ use serde::de::Deserialize;
 #[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
 use serde_derive::{Deserialize, Serialize};
-use serde_yaml_bw::value::{Tag, TaggedValue};
+
 use serde_yaml_bw::{Deserializer, Value};
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
@@ -208,17 +208,6 @@ fn test_serialize_nested_enum() {
     let yaml = serde_yaml_bw::to_string(&Outer::Inner(Inner::Struct { x: 0 })).unwrap();
     assert_eq!(yaml, "!Struct\nx: 0\n");
 
-    let expected = "serializing nested enums in YAML is not supported yet";
-
-    let e = Value::Tagged(Box::new(TaggedValue {
-        tag: Tag::new("Outer").unwrap(),
-        value: Value::Tagged(Box::new(TaggedValue {
-            tag: Tag::new("Inner").unwrap(),
-            value: Value::Null(None),
-        })),
-    }));
-    let error = serde_yaml_bw::to_string(&e).unwrap_err();
-    assert_eq!(error.to_string(), expected);
 }
 
 #[test]

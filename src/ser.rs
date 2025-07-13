@@ -517,12 +517,8 @@ where
                 MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                 MaybeTag::NotTag(string) => string,
                 MaybeTag::Tag(string) => {
-                    return if !self.tag_stack.is_empty() || matches!(self.state, State::CheckForDuplicateTag) {
-                        Err(error::new(ErrorImpl::SerializeNestedEnum))
-                    } else {
-                        self.state = State::FoundTag(string);
-                        Ok(())
-                    };
+                    self.state = State::FoundTag(string);
+                    return Ok(());
                 }
             }
         } else {
