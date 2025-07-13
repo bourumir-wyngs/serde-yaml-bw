@@ -202,16 +202,16 @@ fn test_serialize_nested_enum() {
     let expected = "serializing nested enums in YAML is not supported yet";
 
     let e = Outer::Inner(Inner::Newtype(0));
-    let error = serde_yaml_bw::to_string(&e).unwrap_err();
-    assert_eq!(error.to_string(), expected);
+    let yaml = "!Newtype 0\n";
+    assert_eq!(serde_yaml_bw::to_string(&e).unwrap(), yaml);
 
     let e = Outer::Inner(Inner::Tuple(0, 0));
-    let error = serde_yaml_bw::to_string(&e).unwrap_err();
-    assert_eq!(error.to_string(), expected);
+    let yaml = indoc!("!Tuple\n- 0\n- 0\n");
+    assert_eq!(serde_yaml_bw::to_string(&e).unwrap(), yaml);
 
     let e = Outer::Inner(Inner::Struct { x: 0 });
-    let error = serde_yaml_bw::to_string(&e).unwrap_err();
-    assert_eq!(error.to_string(), expected);
+    let yaml = indoc!("!Struct\nx: 0\n");
+    assert_eq!(serde_yaml_bw::to_string(&e).unwrap(), yaml);
 
     let e = Value::Tagged(Box::new(TaggedValue {
         tag: Tag::new("Outer").unwrap(),

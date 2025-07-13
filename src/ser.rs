@@ -169,6 +169,18 @@ where
         }
         Ok(())
     }
+
+    fn push_tag(&mut self) {
+        if let State::FoundTag(tag) = mem::replace(&mut self.state, State::NothingInParticular) {
+            self.tag_stack.push(tag);
+        }
+    }
+
+    fn pop_tag(&mut self) {
+        if let Some(tag) = self.tag_stack.pop() {
+            self.state = State::FoundTag(tag);
+        }
+    }
 }
 
 impl<W> ser::Serializer for &mut Serializer<W>
@@ -419,10 +431,12 @@ where
         T: ?Sized + ser::Serialize,
     {
         if let State::FoundTag(_) = self.state {
-            return Err(error::new(ErrorImpl::SerializeNestedEnum));
+            self.push_tag();
         }
         self.state = State::FoundTag(variant.to_owned());
-        value.serialize(&mut *self)
+        value.serialize(&mut *self)?;
+        self.pop_tag();
+        Ok(())
     }
 
     fn serialize_none(self) -> Result<()> {
@@ -463,7 +477,7 @@ where
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
         if let State::FoundTag(_) = self.state {
-            return Err(error::new(ErrorImpl::SerializeNestedEnum));
+            self.push_tag();
         }
         self.state = State::FoundTag(variant.to_owned());
         self.emit_sequence_start()?;
@@ -497,7 +511,7 @@ where
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         if let State::FoundTag(_) = self.state {
-            return Err(error::new(ErrorImpl::SerializeNestedEnum));
+            self.push_tag();
         }
         self.state = State::FoundTag(variant.to_owned());
         self.emit_mapping_start()?;
@@ -513,7 +527,7 @@ where
                 MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                 MaybeTag::NotTag(string) => string,
                 MaybeTag::Tag(string) => {
-                    return if let State::CheckForDuplicateTag = self.state {
+                    return if matches!(self.state, State::CheckForDuplicateTag) || !self.tag_stack.is_empty() {
                         Err(error::new(ErrorImpl::SerializeNestedEnum))
                     } else {
                         self.state = State::FoundTag(string);
@@ -544,7 +558,9 @@ where
     }
 
     fn end(self) -> Result<()> {
-        self.emit_sequence_end()
+        self.emit_sequence_end()?;
+        self.pop_tag();
+        Ok(())
     }
 }
 
@@ -669,7 +685,9 @@ where
     }
 
     fn end(self) -> Result<()> {
-        self.emit_mapping_end()
+        self.emit_mapping_end()?;
+        self.pop_tag();
+        Ok(())
     }
 }
 
