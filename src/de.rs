@@ -115,7 +115,7 @@ impl<'de> Deserializer<'de> {
                     jumpcount: &mut jumpcount,
                     path: Path::Root,
                     remaining_depth: 128,
-                    current_enum: None,
+                    current_enum: Vec::new(),
                 })?;
                 if let Some(parse_error) = document.error {
                     return Err(error::shared(parse_error));
@@ -135,7 +135,7 @@ impl<'de> Deserializer<'de> {
             jumpcount: &mut jumpcount,
             path: Path::Root,
             remaining_depth: 128,
-            current_enum: None,
+            current_enum: Vec::new(),
         })?;
         if let Some(parse_error) = document.error {
             return Err(error::shared(parse_error));
@@ -457,7 +457,7 @@ struct DeserializerFromEvents<'de, 'document> {
     jumpcount: &'document mut usize,
     path: Path<'document>,
     remaining_depth: u8,
-    current_enum: Option<CurrentEnum<'document>>,
+    current_enum: Vec<CurrentEnum<'document>>,
 }
 
 #[derive(Copy, Clone)]
@@ -488,7 +488,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
     fn next_event_mark(&mut self) -> Result<(&'document Event<'de>, Mark)> {
         self.peek_event_mark().map(|(event, mark)| {
             *self.pos += 1;
-            self.current_enum = None;
+            self.current_enum.clear();
             (event, mark)
         })
     }
@@ -516,7 +516,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     jumpcount: self.jumpcount,
                     path: Path::Alias { parent: &self.path },
                     remaining_depth: self.remaining_depth,
-                    current_enum: None,
+                    current_enum: self.current_enum.clone(),
                 })
             }
             None => {
@@ -783,7 +783,7 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
                         index: self.len,
                     },
                     remaining_depth: self.de.remaining_depth,
-                    current_enum: None,
+                    current_enum: self.de.current_enum.clone(),
                 };
                 self.len += 1;
                 seed.deserialize(&mut element_de).map(Some)
@@ -847,7 +847,7 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
                 }
             },
             remaining_depth: self.de.remaining_depth,
-            current_enum: None,
+            current_enum: self.de.current_enum.clone(),
         };
         seed.deserialize(&mut value_de)
     }
@@ -869,16 +869,18 @@ impl<'de, 'variant> de::EnumAccess<'de> for EnumAccess<'de, '_, 'variant> {
     {
         let str_de = StrDeserializer::<Error>::new(self.tag);
         let variant = seed.deserialize(str_de)?;
+        let mut stack = self.de.current_enum.clone();
+        stack.push(CurrentEnum {
+            name: self.name,
+            tag: self.tag,
+        });
         let visitor = DeserializerFromEvents {
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
             path: self.de.path,
             remaining_depth: self.de.remaining_depth,
-            current_enum: Some(CurrentEnum {
-                name: self.name,
-                tag: self.tag,
-            }),
+            current_enum: stack,
         };
         Ok((variant, visitor))
     }
@@ -1365,7 +1367,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
 
         fn enum_tag(tag: Option<&Tag>, tagged_already: bool) -> Option<&str> {
@@ -1436,7 +1438,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1482,7 +1484,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1507,7 +1509,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1553,7 +1555,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1578,7 +1580,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1610,7 +1612,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         loop {
             match next {
@@ -1693,7 +1695,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 return self.jump(&mut pos)?.deserialize_option(visitor);
             }
             Event::Scalar(scalar) => {
-                let tagged_already = self.current_enum.is_some();
+                let tagged_already = !self.current_enum.is_empty();
                 if scalar.value.style != ScalarStyle::Plain {
                     true
                 } else if let (Some(tag), false) = (&scalar.value.tag, tagged_already) {
@@ -1724,7 +1726,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
             visitor.visit_some(self)
         } else {
             *self.pos += 1;
-            self.current_enum = None;
+            self.current_enum.clear();
             visitor.visit_none()
         }
     }
@@ -1733,7 +1735,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let tagged_already = self.current_enum.is_some();
+        let tagged_already = !self.current_enum.is_empty();
         let (next, mark) = self.next_event_mark()?;
         match next {
             Event::Scalar(scalar) => {
@@ -1883,7 +1885,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     {
         let (next, mark) = self.peek_event_mark()?;
         loop {
-            if let Some(current_enum) = self.current_enum {
+            if let Some(current_enum) = self.current_enum.last().copied() {
                 if let Event::Scalar(scalar) = next {
                     if !scalar.value.value.is_empty() {
                         break visitor.visit_enum(UnitVariantAccess { de: self });
