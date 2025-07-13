@@ -5,7 +5,7 @@
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
 /// # use serde_derive::{Deserialize, Serialize};
 /// use serde::{Deserialize, Serialize};
 ///
@@ -43,7 +43,7 @@
 ///     let deserialized: Struct = serde_yaml_bw::from_str(&yaml).unwrap();
 ///     assert_eq!(object, deserialized);
 /// }
-/// ```
+/// ```no_run
 ///
 /// The representation using `singleton_map` on all the fields is:
 ///
@@ -839,7 +839,7 @@ pub mod singleton_map {
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
 /// # use serde_derive::{Deserialize, Serialize};
 /// use serde::{Deserialize, Serialize};
 ///

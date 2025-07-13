@@ -418,15 +418,10 @@ where
     where
         T: ?Sized + ser::Serialize,
     {
-        if let State::FoundTag(tag) = mem::replace(&mut self.state, State::NothingInParticular) {
-            self.tag_stack.push(tag);
-        }
-        self.state = State::FoundTag(variant.to_owned());
-        let result = value.serialize(&mut *self);
-        if let Some(tag) = self.tag_stack.pop() {
-            self.state = State::FoundTag(tag);
-        }
-        result
+        self.emit_mapping_start()?;
+        self.serialize_str(variant)?;
+        value.serialize(&mut *self)?;
+        self.emit_mapping_end()
     }
 
     fn serialize_none(self) -> Result<()> {
@@ -466,10 +461,8 @@ where
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        if let State::FoundTag(tag) = mem::replace(&mut self.state, State::NothingInParticular) {
-            self.tag_stack.push(tag);
-        }
-        self.state = State::FoundTag(variant.to_owned());
+        self.emit_mapping_start()?;
+        self.serialize_str(variant)?;
         self.emit_sequence_start()?;
         Ok(self)
     }
@@ -500,10 +493,8 @@ where
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        if let State::FoundTag(tag) = mem::replace(&mut self.state, State::NothingInParticular) {
-            self.tag_stack.push(tag);
-        }
-        self.state = State::FoundTag(variant.to_owned());
+        self.emit_mapping_start()?;
+        self.serialize_str(variant)?;
         self.emit_mapping_start()?;
         Ok(self)
     }
@@ -605,7 +596,8 @@ where
     }
 
     fn end(self) -> Result<()> {
-        self.emit_sequence_end()
+        self.emit_sequence_end()?;
+        self.emit_mapping_end()
     }
 }
 
@@ -697,6 +689,7 @@ where
     }
 
     fn end(self) -> Result<()> {
+        self.emit_mapping_end()?;
         self.emit_mapping_end()
     }
 }
