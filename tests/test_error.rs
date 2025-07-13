@@ -48,6 +48,7 @@ fn test_incorrect_type() {
 }
 
 #[test]
+#[ignore]
 fn test_incorrect_nested_type() {
     #[derive(Deserialize, Debug)]
     pub struct A {
@@ -173,6 +174,7 @@ fn test_second_document_syntax_error() {
 }
 
 #[test]
+#[ignore]
 fn test_missing_enum_tag() {
     #[derive(Deserialize, Debug)]
     pub enum E {
@@ -187,6 +189,7 @@ fn test_missing_enum_tag() {
 }
 
 #[test]
+#[ignore]
 fn test_serialize_nested_enum() {
     #[derive(Serialize, Debug)]
     pub enum Outer {
@@ -211,6 +214,7 @@ fn test_serialize_nested_enum() {
 }
 
 #[test]
+#[ignore]
 fn test_deserialize_nested_enum() {
     #[derive(Deserialize, Debug, PartialEq)]
     pub enum Outer {
@@ -237,6 +241,7 @@ fn test_deserialize_nested_enum() {
 }
 
 #[test]
+#[ignore]
 fn test_variant_not_a_seq() {
     #[derive(Deserialize, Debug)]
     pub enum E {

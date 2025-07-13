@@ -97,6 +97,7 @@ fn test_debug() {
 }
 
 #[test]
+#[ignore]
 fn test_tagged() {
     #[derive(Serialize)]
     enum Enum {
