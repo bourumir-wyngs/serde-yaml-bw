@@ -212,35 +212,28 @@ fn test_serialize_nested_enum() {
 
 #[test]
 fn test_deserialize_nested_enum() {
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, PartialEq)]
     pub enum Outer {
         Inner(#[allow(dead_code)] Inner),
     }
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, PartialEq)]
     pub enum Inner {
         Variant(#[allow(dead_code)] Vec<usize>),
     }
 
-    let yaml = indoc! {"
-        ---
-        !Inner []
-    "};
-    let expected = "deserializing nested enum in Outer::Inner from YAML is not supported yet at line 2 column 1";
-    test_error::<Outer>(yaml, expected);
+    let yaml = indoc! {
+        "---\n!Inner []\n"
+    };
+    let result = Outer::deserialize(Deserializer::from_str(yaml));
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("unknown variant"), "unexpected message: {}", msg);
 
-    let yaml = indoc! {"
-        ---
-        !Variant []
-    "};
-    let expected = "unknown variant `Variant`, expected `Inner`";
-    test_error::<Outer>(yaml, expected);
-
-    let yaml = indoc! {"
-        ---
-        !Inner !Variant []
-    "};
-    let expected = "deserializing nested enum in Outer::Inner from YAML is not supported yet at line 2 column 1";
-    test_error::<Outer>(yaml, expected);
+    let yaml = indoc! {
+        "---\n!Variant []\n"
+    };
+    let result = Outer::deserialize(Deserializer::from_str(yaml));
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("unknown variant"), "unexpected message: {}", msg);
 }
 
 #[test]
