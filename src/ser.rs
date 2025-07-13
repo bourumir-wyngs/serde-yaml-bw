@@ -47,6 +47,8 @@ where
 {
     depth: usize,
     state: State,
+    /// Stack of YAML tags currently in scope.
+    tag_stack: Vec<String>,
     emitter: Emitter<W>,
 }
 
@@ -69,6 +71,7 @@ where
         Ok(Serializer {
             depth: 0,
             state: State::NothingInParticular,
+            tag_stack: Vec::new(),
             emitter,
         })
     }
