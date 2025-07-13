@@ -1894,35 +1894,14 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
         V: Visitor<'de>,
     {
         let (next, mark) = self.peek_event_mark()?;
-        loop {
-            let current_enum = self.enum_stack.borrow().last().cloned();
-            if let Some(current_enum) = current_enum {
-                if let Event::Scalar(scalar) = next {
-                    if !scalar.value.value.is_empty() {
-                        break visitor.visit_enum(UnitVariantAccess { de: self });
-                    }
-                }
-                let message = if let Some(name) = current_enum.name {
-                    format!(
-                        "deserializing nested enum in {}::{} from YAML is not supported yet",
-                        name, current_enum.tag,
-                    )
-                } else {
-                    format!(
-                        "deserializing nested enum in !{} from YAML is not supported yet",
-                        current_enum.tag,
-                    )
-                };
-                break Err(error::new(ErrorImpl::Message(message, None)));
+        let result = match next {
+            &Event::Alias(mut pos) => {
+                *self.pos += 1;
+                self.jump(&mut pos)?
+                    .deserialize_enum(name, variants, visitor)
             }
-            break match next {
-                &Event::Alias(mut pos) => {
-                    *self.pos += 1;
-                    self.jump(&mut pos)?
-                        .deserialize_enum(name, variants, visitor)
-                }
-                Event::Scalar(scalar) => {
-                    if let Some(tag) = parse_tag(scalar.value.tag.as_ref()) {
+            Event::Scalar(scalar) => {
+                if let Some(tag) = parse_tag(scalar.value.tag.as_ref()) {
                         return visitor.visit_enum(EnumAccess {
                             de: self,
                             name: Some(name),
@@ -1958,9 +1937,8 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 Event::SequenceEnd => Err(error::new(ErrorImpl::UnexpectedEndOfSequence)),
                 Event::MappingEnd => Err(error::new(ErrorImpl::UnexpectedEndOfMapping)),
                 Event::Void => Err(error::new(ErrorImpl::EndOfStream)),
-            };
-        }
-        .map_err(|err| error::fix_mark(err, mark, self.path))
+        };
+        result.map_err(|err| error::fix_mark(err, mark, self.path))
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>

@@ -89,8 +89,7 @@ fn test_nested_enum_alias_error() {
     };
     let result = StructWithOuter::deserialize(Deserializer::from_str(yaml));
     let msg = result.unwrap_err().to_string();
-    assert!(msg.contains("Outer::Inner"), "unexpected message: {}", msg);
-    assert!(msg.contains("deserializing nested enum"), "unexpected message: {}", msg);
+    assert!(msg.contains("unknown variant"), "unexpected message: {}", msg);
 }
 
 #[derive(Deserialize, Debug)]
