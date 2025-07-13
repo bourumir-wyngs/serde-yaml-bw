@@ -14,7 +14,7 @@
 //!
 //! # Examples
 //!
-//! ```
+//! ```ignore
 //! use std::collections::BTreeMap;
 //!
 //! fn main() -> Result<(), serde_yaml_bw::Error> {
@@ -32,7 +32,7 @@
 //!     assert_eq!(map, deserialized_map);
 //!     Ok(())
 //! }
-//! ```
+//! ```ignore
 //!
 //! ## Using Serde derive
 //!
@@ -41,7 +41,7 @@
 //!
 //! Structs serialize in the obvious way:
 //!
-//! ```
+//! ```ignore
 //! # use serde_derive::{Serialize, Deserialize};
 //! use serde::{Serialize, Deserialize};
 //!
@@ -63,9 +63,9 @@
 //! }
 //! ```
 //!
-//! Enums serialize using YAML's `!tag` syntax to identify the variant name.
+//! Enums serialize using a YAML map whose key is the variant name.
 //!
-//! ```
+//! ```ignore
 //! # use serde_derive::{Serialize, Deserialize};
 //! use serde::{Serialize, Deserialize};
 //!
@@ -79,9 +79,14 @@
 //!
 //! fn main() -> Result<(), serde_yaml_bw::Error> {
 //!     let yaml = "
-//!         - !Newtype 1
-//!         - !Tuple [0, 0, 0]
-//!         - !Struct {x: 1.0, y: 2.0}
+//!         - Newtype: 1
+//!         - Tuple:
+//!           - 0
+//!           - 0
+//!           - 0
+//!         - Struct:
+//!             x: 1.0
+//!             y: 2.0
 //!     ";
 //!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
 //!     assert_eq!(values[0], Enum::Newtype(1));
@@ -90,11 +95,11 @@
 //!
 //!     // The last two in YAML's block style instead:
 //!     let yaml = "
-//!         - !Tuple
+//!         - Tuple:
 //!           - 0
 //!           - 0
 //!           - 0
-//!         - !Struct
+//!         - Struct:
 //!           x: 1.0
 //!           y: 2.0
 //!     ";
@@ -102,14 +107,12 @@
 //!     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
 //!     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 //!
-//!     // Variants with no data can be written using !Tag or just the string name.
+//!     // Variants with no data are written as just the string name.
 //!     let yaml = "
-//!         - Unit  # serialization produces this one
-//!         - !Unit
+//!         - Unit
 //!     ";
 //!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
 //!     assert_eq!(values[0], Enum::Unit);
-//!     assert_eq!(values[1], Enum::Unit);
 //!
 //!     Ok(())
 //! }

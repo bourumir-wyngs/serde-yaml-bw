@@ -60,18 +60,7 @@
 ///     value: 1
 /// ```
 ///
-/// Without `singleton_map`, the default behavior would have been to serialize
-/// as:
-///
-/// ```yaml
-/// w: Unit
-/// x: !Newtype 1
-/// y: !Tuple
-/// - 1
-/// - 1
-/// z: !Struct
-///   value: 1
-/// ```
+/// Without `singleton_map`, the default representation is identical.
 pub mod singleton_map {
     use crate::value::{Mapping, Sequence, Value};
     use serde::de::{
