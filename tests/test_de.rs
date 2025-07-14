@@ -188,7 +188,6 @@ fn test_option_alias() {
 }
 
 #[test]
-#[ignore]
 fn test_enum_alias() {
     #[derive(Deserialize, PartialEq, Debug)]
     enum E {
@@ -221,7 +220,6 @@ fn test_enum_alias() {
 }
 
 #[test]
-#[ignore]
 fn test_enum_representations() {
     #[derive(Deserialize, PartialEq, Debug)]
     enum Enum {
@@ -750,7 +748,6 @@ fn test_parse_number() {
 }
 
 #[test]
-#[ignore]
 fn test_enum_untagged() {
     #[derive(Deserialize, PartialEq, Debug)]
     #[serde(untagged)]

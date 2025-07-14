@@ -48,7 +48,6 @@ fn test_incorrect_type() {
 }
 
 #[test]
-#[ignore]
 fn test_incorrect_nested_type() {
     #[derive(Deserialize, Debug)]
     pub struct A {
@@ -174,7 +173,6 @@ fn test_second_document_syntax_error() {
 }
 
 #[test]
-#[ignore]
 fn test_missing_enum_tag() {
     #[derive(Deserialize, Debug)]
     pub enum E {
@@ -184,37 +182,11 @@ fn test_missing_enum_tag() {
         "V": 16
         "other": 32
     "#};
-    let expected = "invalid type: map, expected a YAML tag starting with '!'";
+    let expected = "invalid length 2, expected map containing 1 entry";
     test_error::<E>(yaml, expected);
 }
 
 #[test]
-#[ignore]
-fn test_serialize_nested_enum() {
-    #[derive(Serialize, Debug)]
-    pub enum Outer {
-        Inner(Inner),
-    }
-    #[derive(Serialize, Debug)]
-    pub enum Inner {
-        Newtype(usize),
-        Tuple(usize, usize),
-        Struct { x: usize },
-    }
-
-    let yaml = serde_yaml_bw::to_string(&Outer::Inner(Inner::Newtype(0))).unwrap();
-    assert_eq!(yaml, "!Newtype 0\n");
-
-    let yaml = serde_yaml_bw::to_string(&Outer::Inner(Inner::Tuple(0, 0))).unwrap();
-    assert_eq!(yaml, "!Tuple\n- 0\n- 0\n");
-
-    let yaml = serde_yaml_bw::to_string(&Outer::Inner(Inner::Struct { x: 0 })).unwrap();
-    assert_eq!(yaml, "!Struct\nx: 0\n");
-
-}
-
-#[test]
-#[ignore]
 fn test_deserialize_nested_enum() {
     #[derive(Deserialize, Debug, PartialEq)]
     pub enum Outer {
@@ -241,7 +213,6 @@ fn test_deserialize_nested_enum() {
 }
 
 #[test]
-#[ignore]
 fn test_variant_not_a_seq() {
     #[derive(Deserialize, Debug)]
     pub enum E {

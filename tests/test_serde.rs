@@ -350,23 +350,6 @@ fn test_nested_struct() {
     test_serde(&thing, yaml);
 }
 
-#[test]
-#[ignore]
-fn test_nested_enum() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Outer {
-        Inner(Inner),
-    }
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Inner {
-        Unit,
-    }
-    let thing = Outer::Inner(Inner::Unit);
-    let yaml = indoc! {"
-        !Inner Unit
-    "};
-    test_serde(&thing, yaml);
-}
 
 #[test]
 fn test_option() {
@@ -400,20 +383,6 @@ fn test_unit_struct() {
     test_serde(&thing, yaml);
 }
 
-#[test]
-#[ignore]
-fn test_unit_variant() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Variant {
-        First,
-        Second,
-    }
-    let thing = Variant::First;
-    let yaml = indoc! {"
-        First
-    "};
-    test_serde(&thing, yaml);
-}
 
 #[test]
 fn test_newtype_struct() {
@@ -430,80 +399,7 @@ fn test_newtype_struct() {
     test_serde(&thing, yaml);
 }
 
-#[test]
-#[ignore]
-fn test_newtype_variant() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Variant {
-        Size(usize),
-    }
-    let thing = Variant::Size(127);
-    let yaml = indoc! {"
-        !Size 127
-    "};
-    test_serde(&thing, yaml);
-}
 
-#[test]
-#[ignore]
-fn test_tuple_variant() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Variant {
-        Rgb(u8, u8, u8),
-    }
-    let thing = Variant::Rgb(32, 64, 96);
-    let yaml = indoc! {"
-        !Rgb
-        - 32
-        - 64
-        - 96
-    "};
-    test_serde(&thing, yaml);
-}
-
-#[test]
-#[ignore]
-fn test_struct_variant() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Variant {
-        Color { r: u8, g: u8, b: u8 },
-    }
-    let thing = Variant::Color {
-        r: 32,
-        g: 64,
-        b: 96,
-    };
-    let yaml = indoc! {"
-        !Color
-        r: 32
-        g: 64
-        b: 96
-    "};
-    test_serde(&thing, yaml);
-}
-
-#[test]
-#[ignore]
-fn test_tagged_map_value() {
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    struct Bindings {
-        profile: Profile,
-    }
-    #[derive(Serialize, Deserialize, PartialEq, Debug)]
-    enum Profile {
-        ClassValidator { class_name: String },
-    }
-    let thing = Bindings {
-        profile: Profile::ClassValidator {
-            class_name: "ApplicationConfig".to_owned(),
-        },
-    };
-    let yaml = indoc! {"
-        profile: !ClassValidator
-          class_name: ApplicationConfig
-    "};
-    test_serde(&thing, yaml);
-}
 
 #[test]
 fn test_value() {

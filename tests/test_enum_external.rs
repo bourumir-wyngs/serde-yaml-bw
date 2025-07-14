@@ -11,6 +11,8 @@ where
 {
     let serialized = serde_yaml_bw::to_string(thing).unwrap();
     assert_eq!(yaml, serialized);
+    let round_trip: T = T::deserialize(serde_yaml_bw::Deserializer::from_str(&serialized)).unwrap();
+    assert_eq!(*thing, round_trip);
 }
 
 #[test]

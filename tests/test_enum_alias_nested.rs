@@ -26,7 +26,6 @@ struct Wrapper {
 }
 
 #[test]
-#[ignore]
 fn test_alias_in_struct_variant() {
     let yaml = indoc! {
         "
@@ -55,7 +54,6 @@ enum TupleEnum {
 }
 
 #[test]
-#[ignore]
 fn test_alias_in_tuple_variant() {
     let yaml = indoc! {
         "
@@ -80,7 +78,6 @@ enum InnerEnum {
 }
 
 #[test]
-#[ignore]
 fn test_nested_enum_alias_error() {
     let yaml = indoc! {
         "
