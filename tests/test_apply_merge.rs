@@ -1,5 +1,7 @@
+
 use std::collections::HashMap;
 use serde_yaml_bw::{from_str_value_preserve, Value};
+use indoc::indoc;
 
 fn resolve_aliases(value: &mut Value) {
     fn collect_anchors(value: &Value, map: &mut HashMap<String, Value>) {
@@ -76,4 +78,26 @@ production:
     assert_eq!(value["development"]["adapter"].as_str().unwrap(), "postgres");
     assert_eq!(value["production"]["host"].as_str().unwrap(), "localhost");
     assert_eq!(value["production"]["database"].as_str().unwrap(), "prod_db");
+
+
+#[test]
+fn test_apply_merge_example() {
+    let config = indoc! {r#"
+        tasks:
+          build: &webpack_shared
+            command: webpack
+            args: build
+            inputs:
+              - 'src/**/*'
+          start:
+            <<: *webpack_shared
+            args: start
+    "#};
+
+    let mut value: Value = serde_yaml_bw::from_str(config).unwrap();
+    value.apply_merge().unwrap();
+
+    assert_eq!(value["tasks"]["start"]["command"], "webpack");
+    assert_eq!(value["tasks"]["start"]["args"], "start");
+
 }
