@@ -860,7 +860,6 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
 
 struct EnumAccess<'de, 'document, 'variant> {
     de: &'variant mut DeserializerFromEvents<'de, 'document>,
-    name: Option<&'static str>,
     tag: &'document str,
 }
 
@@ -1386,7 +1385,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                         *self.pos -= 1;
                         break visitor.visit_enum(EnumAccess {
                             de: self,
-                            name: None,
                             tag,
                         });
                     }
@@ -1397,7 +1395,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                         *self.pos -= 1;
                         break visitor.visit_enum(EnumAccess {
                             de: self,
-                            name: None,
                             tag,
                         });
                     }
@@ -1408,7 +1405,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                         *self.pos -= 1;
                         break visitor.visit_enum(EnumAccess {
                             de: self,
-                            name: None,
                             tag,
                         });
                     }
@@ -1898,7 +1894,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 if let Some(tag) = parse_tag(scalar.value.tag.as_ref()) {
                     return visitor.visit_enum(EnumAccess {
                         de: self,
-                        name: Some(name),
                         tag,
                     });
                 }
@@ -1908,7 +1903,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 if let Some(tag) = parse_tag(mapping.tag.as_ref()) {
                     return visitor.visit_enum(EnumAccess {
                         de: self,
-                        name: Some(name),
                         tag,
                     });
                 }
@@ -1943,7 +1937,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 };
                 let result = visitor.visit_enum(EnumAccess {
                     de: self,
-                    name: Some(name),
                     tag,
                 });
                 let result = result.and_then(|v| {
@@ -1956,7 +1949,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                     if let Some(tag) = parse_tag(sequence.tag.as_ref()) {
                         return visitor.visit_enum(EnumAccess {
                             de: self,
-                            name: Some(name),
                             tag,
                         });
                     }
