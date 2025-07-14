@@ -643,3 +643,18 @@ fn test_error_location() {
     assert_eq!(1, loc.column());
 }
 
+#[test]
+fn test_error_filters_control_chars() {
+    let yaml = "\x1b";
+    let err = serde_yaml_bw::from_str::<Value>(yaml).unwrap_err();
+    let msg = err.to_string();
+    let has_ctrl = msg
+        .bytes()
+        .any(|b| (b < 0x20 && b != b'\n' && b != b'\r' && b != b'\t') || b == 0x7f);
+    assert!(
+        !has_ctrl,
+        "error message contains control characters: {:?}",
+        msg
+    );
+}
+
