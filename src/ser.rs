@@ -383,8 +383,12 @@ where
         })
     }
 
-    fn serialize_bytes(self, _value: &[u8]) -> Result<()> {
-        Err(error::new(ErrorImpl::BytesUnsupported))
+    fn serialize_bytes(self, value: &[u8]) -> Result<()> {
+        let mut seq = self.serialize_seq(Some(value.len()))?;
+        for byte in value {
+            seq.serialize_element(byte)?;
+        }
+        seq.end()
     }
 
     fn serialize_unit(self) -> Result<()> {
