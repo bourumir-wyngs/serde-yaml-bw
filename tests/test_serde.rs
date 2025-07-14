@@ -569,3 +569,20 @@ fn test_enum() {
     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Unit);
 }
+
+#[test]
+fn test_leaf_enum() {
+    #[derive(Deserialize, Debug, PartialEq)]
+    #[allow(dead_code)]
+    enum Simple {
+        A, B, C,
+    }
+    // This YAML has identation misplaced to Struct becomes an empty map
+    let yaml = indoc! {
+        "
+        A
+        "
+    };
+    let result: Simple = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(result, Simple::A);
+}

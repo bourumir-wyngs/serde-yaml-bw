@@ -230,6 +230,7 @@ fn test_variant_not_a_seq() {
 #[test]
 fn test_enum_mapping_has_extra_keys() {
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     enum Point {
         Tuple(u8, u8, u8),
         Struct { x: f64, y: f64 },
@@ -245,10 +246,35 @@ fn test_enum_mapping_has_extra_keys() {
           y: 2.0
         "
     };
+    // Single enum only expected here, not two
     let result = Point::deserialize(Deserializer::from_str(yaml));
     let msg = result.unwrap_err().to_string();
     assert!(
-        msg.contains("mapping with a single key for the enum variant"),
+        msg.contains("invalid length 2, expected map containing 1 entry"),
+        "unexpected message: {}",
+        msg
+    );
+}
+
+#[test]
+fn test_enum_mapping_has_no_keys() {
+    #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
+    enum Point {
+        Struct { x: f64, y: f64 },
+    }
+    // This YAML has identation misplaced to Struct becomes an empty map
+    let yaml = indoc! {
+        "
+        Struct:
+        x: 1.0
+        y: 2.0
+        "
+    };
+    let result: Result<Point, _> = serde_yaml_bw::from_str(yaml);
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
         "unexpected message: {}",
         msg
     );

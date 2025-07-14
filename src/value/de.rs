@@ -496,14 +496,14 @@ impl<'de> Deserializer<'de> for Value {
                 } else {
                     return Err(Error::invalid_type(
                         Value::Mapping(map).unexpected(),
-                        &"a mapping with a single key for the enum variant",
+                        &"a leaf for empty enum, otherwise map naming the fields for enum",
                     ));
                 }
             }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),
-                    &"a mapping with a single key for the enum variant",
+                    &"a leaf for empty enum, otherwise map naming the fields for enum",
                 ));
             }
         })
@@ -1059,14 +1059,14 @@ impl<'de> Deserializer<'de> for &'de Value {
                 } else {
                     return Err(Error::invalid_type(
                         Value::Mapping(map.clone()).unexpected(),
-                        &"a mapping with a single key for the enum variant",
+                        &"a leaf for empty enum, otherwise map naming the fields for enum",
                     ));
                 }
             }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),
-                    &"a mapping with a single key for the enum variant",
+                    &"a leaf for empty enum, otherwise map naming the fields for enum",
                 ));
             }
         })
