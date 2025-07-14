@@ -2057,6 +2057,49 @@ where
     crate::value::from_value(value)
 }
 
+/// Deserialize a list of `T` from multiple YAML documents provided in a string.
+pub fn from_str_multi<T>(s: &str) -> Result<Vec<T>>
+where
+    T: DeserializeOwned,
+{
+    Deserializer::from_str(s)
+        .map(|doc| {
+            let mut value: Value = Value::deserialize(doc)?;
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        })
+        .collect()
+}
+
+/// Deserialize a list of `T` from multiple YAML documents provided in an IO stream.
+pub fn from_reader_multi<R, T>(rdr: R) -> Result<Vec<T>>
+where
+    R: io::Read,
+    T: DeserializeOwned,
+{
+    Deserializer::from_reader(rdr)
+        .map(|doc| {
+            let mut value: Value = Value::deserialize(doc)?;
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        })
+        .collect()
+}
+
+/// Deserialize a list of `T` from multiple YAML documents provided in bytes.
+pub fn from_slice_multi<T>(v: &[u8]) -> Result<Vec<T>>
+where
+    T: DeserializeOwned,
+{
+    Deserializer::from_slice(v)
+        .map(|doc| {
+            let mut value: Value = Value::deserialize(doc)?;
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        })
+        .collect()
+}
+
 /// Deserialize a YAML `Value` while preserving anchors and aliases.
 #[allow(clippy::redundant_closure_for_method_calls)]
 pub fn from_str_value_preserve(s: &str) -> Result<Value> {

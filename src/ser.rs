@@ -719,3 +719,26 @@ where
     to_writer(&mut vec, value)?;
     String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
 }
+
+/// Serialize the given array of data structures as multiple YAML documents into the IO stream.
+pub fn to_writer_multi<W, T>(writer: W, values: &[T]) -> Result<()>
+where
+    W: io::Write,
+    T: ser::Serialize,
+{
+    let mut serializer = Serializer::new(writer)?;
+    for value in values {
+        value.serialize(&mut serializer)?;
+    }
+    Ok(())
+}
+
+/// Serialize the given array of data structures as a YAML multi-document string.
+pub fn to_string_multi<T>(values: &[T]) -> Result<String>
+where
+    T: ser::Serialize,
+{
+    let mut vec = Vec::with_capacity(128);
+    to_writer_multi(&mut vec, values)?;
+    String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
+}
