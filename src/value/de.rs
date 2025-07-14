@@ -132,6 +132,63 @@ impl Value {
     }
 }
 
+fn decode_base64(input: &str) -> Option<Vec<u8>> {
+    let mut cleaned = Vec::with_capacity(input.len());
+    for b in input.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'+' | b'/' | b'=' => cleaned.push(b),
+            b' ' | b'\n' | b'\r' | b'\t' => {}
+            _ => return None,
+        }
+    }
+    if cleaned.len() % 4 != 0 {
+        return None;
+    }
+    let mut out = Vec::with_capacity(cleaned.len() / 4 * 3);
+    let mut i = 0;
+    while i < cleaned.len() {
+        let c0 = cleaned[i];
+        let c1 = cleaned[i + 1];
+        let c2 = cleaned[i + 2];
+        let c3 = cleaned[i + 3];
+        let v0 = decode_b64_char(c0)?;
+        let v1 = decode_b64_char(c1)?;
+        if c2 == b'=' {
+            if c3 != b'=' || i + 4 != cleaned.len() {
+                return None;
+            }
+            out.push((v0 << 2) | (v1 >> 4));
+            break;
+        }
+        let v2 = decode_b64_char(c2)?;
+        if c3 == b'=' {
+            if i + 4 != cleaned.len() {
+                return None;
+            }
+            out.push((v0 << 2) | (v1 >> 4));
+            out.push(((v1 & 0xf) << 4) | (v2 >> 2));
+            break;
+        }
+        let v3 = decode_b64_char(c3)?;
+        out.push((v0 << 2) | (v1 >> 4));
+        out.push(((v1 & 0xf) << 4) | (v2 >> 2));
+        out.push(((v2 & 0x3) << 6) | v3);
+        i += 4;
+    }
+    Some(out)
+}
+
+fn decode_b64_char(c: u8) -> Option<u8> {
+    match c {
+        b'A'..=b'Z' => Some(c - b'A'),
+        b'a'..=b'z' => Some(c - b'a' + 26),
+        b'0'..=b'9' => Some(c - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    }
+}
+
 fn visit_sequence<'de, V>(sequence: Sequence, visitor: V) -> Result<V::Value, Error>
 where
     V: Visitor<'de>,
@@ -343,10 +400,21 @@ impl<'de> Deserializer<'de> for Value {
     where
         V: Visitor<'de>,
     {
-        match self.untag() {
-            Value::String(v, _) => visitor.visit_string(v),
-            Value::Sequence(v) => visit_sequence(v, visitor),
-            other => Err(other.invalid_type(&visitor)),
+        match self {
+            Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
+                match tagged.value {
+                    Value::String(v, _) => match decode_base64(&v) {
+                        Some(bytes) => visitor.visit_byte_buf(bytes),
+                        None => Err(de::Error::invalid_value(Unexpected::Str(&v), &"base64")),
+                    },
+                    other => Err(other.invalid_type(&visitor)),
+                }
+            }
+            other => match other.untag() {
+                Value::String(v, _) => visitor.visit_string(v),
+                Value::Sequence(v) => visit_sequence(v, visitor),
+                other => Err(other.invalid_type(&visitor)),
+            },
         }
     }
 
@@ -854,10 +922,21 @@ impl<'de> Deserializer<'de> for &'de Value {
     where
         V: Visitor<'de>,
     {
-        match self.untag_ref() {
-            Value::String(v, _) => visitor.visit_borrowed_str(v),
-            Value::Sequence(v) => visit_sequence_ref(v, visitor),
-            other => Err(other.invalid_type(&visitor)),
+        match self {
+            Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
+                match &tagged.value {
+                    Value::String(v, _) => match decode_base64(v) {
+                        Some(bytes) => visitor.visit_byte_buf(bytes),
+                        None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                    },
+                    other => Err(other.invalid_type(&visitor)),
+                }
+            }
+            _ => match self.untag_ref() {
+                Value::String(v, _) => visitor.visit_borrowed_str(v),
+                Value::Sequence(v) => visit_sequence_ref(v, visitor),
+                other => Err(other.invalid_type(&visitor)),
+            },
         }
     }
 
@@ -865,7 +944,22 @@ impl<'de> Deserializer<'de> for &'de Value {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_bytes(visitor)
+        match self {
+            Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
+                match &tagged.value {
+                    Value::String(v, _) => match decode_base64(v) {
+                        Some(bytes) => visitor.visit_byte_buf(bytes),
+                        None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                    },
+                    other => Err(other.invalid_type(&visitor)),
+                }
+            }
+            _ => match self.untag_ref() {
+                Value::String(v, _) => visitor.visit_borrowed_str(v),
+                Value::Sequence(v) => visit_sequence_ref(v, visitor),
+                other => Err(other.invalid_type(&visitor)),
+            },
+        }
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Error>
