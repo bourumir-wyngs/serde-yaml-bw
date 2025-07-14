@@ -17,7 +17,6 @@ use crate::duplicate_key::DuplicateKeyError;
 use crate::value::{Value, Sequence, Mapping};
 use crate::number::Number;
 use std::io;
-use std::mem;
 use std::num::ParseIntError;
 use std::str;
 use std::sync::Arc;
@@ -73,6 +72,12 @@ pub(crate) enum Progress<'de> {
     Iterable(Loader<'de>),
     Document(Document<'de>),
     Fail(Arc<ErrorImpl>),
+}
+
+impl<'de> Default for Progress<'de> {
+    fn default() -> Self {
+        Progress::Str("")
+    }
 }
 
 impl<'de> Deserializer<'de> {
@@ -171,8 +176,7 @@ impl Iterator for Deserializer<'_> {
             _ => {}
         }
 
-        let dummy = Progress::Str("");
-        let input = mem::replace(&mut self.progress, dummy);
+        let input = std::mem::take(&mut self.progress);
         match Loader::new(input) {
             Ok(loader) => {
                 self.progress = Progress::Iterable(loader);

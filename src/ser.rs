@@ -10,7 +10,6 @@ use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
 use std::fmt::{self, Display};
 use std::io;
-use std::mem;
 use std::num;
 use std::str;
 
@@ -58,6 +57,12 @@ enum State {
     CheckForDuplicateTag,
     FoundTag(String),
     AlreadyTagged,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::NothingInParticular
+    }
 }
 
 impl<W> Serializer<W>
@@ -148,7 +153,7 @@ where
     }
 
     fn take_tag(&mut self) -> Option<String> {
-        let state = mem::replace(&mut self.state, State::NothingInParticular);
+        let state = std::mem::take(&mut self.state);
         if let State::FoundTag(mut tag) = state {
             if !tag.starts_with('!') {
                 tag.insert(0, '!');
