@@ -25,3 +25,27 @@ fn test_is_infinite_and_finite() {
     assert!(!finite.is_infinite());
     assert!(finite.is_finite());
 }
+
+#[test]
+fn test_parse_positive_integer() {
+    let n = "42".parse::<Number>().unwrap();
+    assert_eq!(n, Number::from(42));
+}
+
+#[test]
+fn test_parse_negative_integer() {
+    let n = "-42".parse::<Number>().unwrap();
+    assert_eq!(n, Number::from(-42));
+}
+
+#[test]
+fn test_parse_float() {
+    let n = "3.14".parse::<Number>().unwrap();
+    assert_eq!(n, Number::from(3.14));
+}
+
+#[test]
+fn test_parse_invalid() {
+    let err = "not_a_number".parse::<Number>().unwrap_err();
+    assert_eq!(err.to_string(), "failed to parse YAML number");
+}
