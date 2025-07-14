@@ -175,7 +175,6 @@ mod loader;
 pub mod mapping;
 mod duplicate_key;
 mod number;
-mod base64;
 mod path;
 mod ser;
 pub mod value;

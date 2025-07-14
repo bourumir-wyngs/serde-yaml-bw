@@ -1,7 +1,6 @@
 use crate::value::tagged::{self, TagStringVisitor};
 use crate::value::TaggedValue;
 use crate::{number, Error, Mapping, Sequence, Value};
-use crate::base64::decode_base64;
 use serde::de::value::{BorrowedStrDeserializer, StrDeserializer};
 use serde::de::{
     self, Deserialize, DeserializeSeed, Deserializer, EnumAccess, Error as _, Expected, MapAccess,
@@ -11,6 +10,8 @@ use serde::forward_to_deserialize_any;
 use std::fmt;
 use std::slice;
 use std::vec;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 
 impl<'de> Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -372,9 +373,9 @@ impl<'de> Deserializer<'de> for Value {
         match self {
             Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
                 match tagged.value {
-                    Value::String(v, _) => match decode_base64(&v) {
-                        Some(bytes) => visitor.visit_byte_buf(bytes),
-                        None => Err(de::Error::invalid_value(Unexpected::Str(&v), &"base64")),
+                    Value::String(v, _) => match BASE64_STANDARD.decode(&v) {
+                        Ok(bytes) => visitor.visit_byte_buf(bytes),
+                        Err(_err) => Err(de::Error::invalid_value(Unexpected::Str(&v), &"base64")),
                     },
                     other => Err(other.invalid_type(&visitor)),
                 }
@@ -916,9 +917,9 @@ impl<'de> Deserializer<'de> for &'de Value {
         match self {
             Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
                 match &tagged.value {
-                    Value::String(v, _) => match decode_base64(v) {
-                        Some(bytes) => visitor.visit_byte_buf(bytes),
-                        None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                    Value::String(v, _) => match BASE64_STANDARD.decode(v) {
+                        Ok(bytes) => visitor.visit_byte_buf(bytes),
+                        Err(_err) => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
                     },
                     other => Err(other.invalid_type(&visitor)),
                 }
@@ -938,9 +939,9 @@ impl<'de> Deserializer<'de> for &'de Value {
         match self {
             Value::Tagged(tagged) if tagged.tag == crate::libyaml::tag::Tag::BINARY => {
                 match &tagged.value {
-                    Value::String(v, _) => match decode_base64(v) {
-                        Some(bytes) => visitor.visit_byte_buf(bytes),
-                        None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                    Value::String(v, _) => match BASE64_STANDARD.decode(v) {
+                        Ok(bytes) => visitor.visit_byte_buf(bytes),
+                        Err(_err) => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
                     },
                     other => Err(other.invalid_type(&visitor)),
                 }

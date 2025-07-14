@@ -16,12 +16,13 @@ use std::rc::Rc;
 use crate::duplicate_key::DuplicateKeyError;
 use crate::value::{Value, Sequence, Mapping};
 use crate::number::Number;
-use crate::base64::decode_base64;
 use std::io;
 use std::mem;
 use std::num::ParseIntError;
 use std::str;
 use std::sync::Arc;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -1004,9 +1005,9 @@ where
                 None => Err(de::Error::invalid_value(Unexpected::Str(v), &"a float")),
             };
         } else if tag == Tag::BINARY {
-            match decode_base64(v) {
-                Some(bytes) => return visitor.visit_byte_buf(bytes),
-                None => return Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+            match BASE64_STANDARD.decode(v) {
+                Ok(bytes) => return visitor.visit_byte_buf(bytes),
+                Err(_err) => return Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
             }
         } else if tag == Tag::NULL {
             return match parse_null(v.as_bytes()) {
@@ -1705,9 +1706,9 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                     && matches!(scalar.value.tag.as_ref(), Some(tag) if tag == Tag::BINARY)
                 {
                     if let Ok(v) = str::from_utf8(&scalar.value.value) {
-                        match decode_base64(v) {
-                            Some(bytes) => visitor.visit_byte_buf(bytes),
-                            None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                        match BASE64_STANDARD.decode(v) {
+                            Ok(bytes) => visitor.visit_byte_buf(bytes),
+                            Err(_err) => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
                         }
                     } else {
                         Err(invalid_type(next, &visitor))
