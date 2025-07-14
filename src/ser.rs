@@ -76,7 +76,7 @@ where
         emitter.emit(Event::StreamStart)?;
         Ok(Serializer {
             depth: 0,
-            state: State::NothingInParticular,
+            state: State::default(),
             tag_stack: Vec::new(),
             emitter,
         })
