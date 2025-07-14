@@ -76,7 +76,7 @@ where
         let pin = unsafe {
             let emitter = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_emitter_initialize(emitter).fail {
-                return Err(Error::Libyaml(libyaml::Error::emit_error(emitter)));
+                return Err(Error::Libyaml(libyaml::error::Error::emit_error(emitter)));
             }
             sys::yaml_emitter_set_unicode(emitter, true);
             sys::yaml_emitter_set_width(emitter, -1);
@@ -170,7 +170,7 @@ where
                 Event::MappingEnd => sys::yaml_mapping_end_event_initialize(sys_event),
             };
             if initialize_status.fail {
-                return Err(Error::Libyaml(libyaml::Error::emit_error(emitter)));
+                return Err(Error::Libyaml(libyaml::error::Error::emit_error(emitter)));
             }
             if sys::yaml_emitter_emit(emitter, sys_event).fail {
                 return Err(self.error());
@@ -206,7 +206,7 @@ where
         if let Some(write_error) = emitter.write_error.take() {
             Error::Io(write_error)
         } else {
-            Error::Libyaml(unsafe { libyaml::Error::emit_error(&raw const emitter.sys) })
+            Error::Libyaml(unsafe { libyaml::error::Error::emit_error(&raw const emitter.sys) })
         }
     }
 }
