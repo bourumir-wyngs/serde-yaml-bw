@@ -27,7 +27,6 @@ pub(crate) enum ErrorImpl {
     MoreThanOneDocument,
     RecursionLimitExceeded(libyaml::Mark),
     RepetitionLimitExceeded,
-    BytesUnsupported,
     UnknownAnchor(libyaml::Mark, Anchor),
     ScalarInMerge,
     TaggedInMerge,
@@ -245,9 +244,6 @@ impl ErrorImpl {
             ),
             ErrorImpl::RecursionLimitExceeded(_mark) => f.write_str("recursion limit exceeded"),
             ErrorImpl::RepetitionLimitExceeded => f.write_str("repetition limit exceeded"),
-            ErrorImpl::BytesUnsupported => {
-                f.write_str("serialization and deserialization of bytes in YAML is not implemented")
-            }
             ErrorImpl::UnknownAnchor(_mark, alias) => f.write_str(
                 &format!("unknown anchor [{}]", &sanitize(alias))),
             ErrorImpl::ScalarInMerge => {
