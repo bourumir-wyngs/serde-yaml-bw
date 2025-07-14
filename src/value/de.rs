@@ -89,6 +89,31 @@ impl<'de> Deserialize<'de> for Value {
                 Deserialize::deserialize(deserializer)
             }
 
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Value, E>
+            where
+                E: de::Error,
+            {
+                let mut sequence = Sequence::with_capacity(v.len());
+                sequence.elements = v
+                    .iter()
+                    .copied()
+                    .map(|b| Value::Number(number::Number::from(b), None))
+                    .collect();
+                Ok(Value::Sequence(sequence))
+            }
+
+            fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Value, E>
+            where
+                E: de::Error,
+            {
+                let mut sequence = Sequence::with_capacity(v.len());
+                sequence.elements = v
+                    .into_iter()
+                    .map(|b| Value::Number(number::Number::from(b), None))
+                    .collect();
+                Ok(Value::Sequence(sequence))
+            }
+
             fn visit_seq<A>(self, data: A) -> Result<Value, A::Error>
             where
                 A: SeqAccess<'de>,
