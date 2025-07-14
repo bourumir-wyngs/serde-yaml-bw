@@ -1,5 +1,5 @@
 use indoc::indoc;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 #[derive(Debug, PartialEq, Deserialize)]
 struct Node {

@@ -1,7 +1,7 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
 
 use indoc::indoc;
-use serde_derive::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_yaml_bw;
 use std::fmt::Debug;
 

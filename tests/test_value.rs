@@ -7,7 +7,6 @@
 use indoc::indoc;
 use serde::de::IntoDeserializer;
 use serde::Deserialize;
-use serde_derive::{Deserialize, Serialize};
 use serde_yaml_bw::{Number, Value};
 
 #[test]
