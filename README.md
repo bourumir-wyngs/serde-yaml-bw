@@ -121,30 +121,38 @@ It is possible to construct infinite recursion with merge keys in YAML (Recursio
 
 ### Nested enums
 
-Externally tagged enums nest naturally in YAML using maps keyed by the variant
-name. The example below parses a nested enum from a YAML string.
+Externally tagged enums nest naturally in YAML using maps keyed by the variant. This allow to use polymorphic structures easily:
 
 ```rust
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-enum Outer {
-    Inner(Inner),
+#[derive(Deserialize)]
+struct Move {
+    by: f32,
+    constraints: Vec<Constraint>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-enum Inner {
-    Newtype(u8),
+#[derive(Deserialize)]
+enum Constraint {
+    StayWithin { x: f32, y: f32, r: f32 },
+    MaxSpeed { v: f32 },
 }
 
-fn parse_nested() {
-    let yaml = r#"
-Inner:
-  Newtype: 0
-"#;
+fn main() {
+let yaml = r#"
+- by: 10.0
+  constraints:
+    - StayWithin:
+      x: 0.0
+      y: 0.0
+      r: 5.0
+    - StayWithin:
+      x: 4.0
+      y: 0.0
+      r: 5.0
+    - MaxSpeed:
+      v: 3.5
+      "#;
 
-    let value: Outer = Outer::deserialize(serde_yaml_bw::Deserializer::from_str(yaml)).unwrap();
-    assert_eq!(value, Outer::Inner(Inner::Newtype(0)));
+  let robot_moves: Vec<Move> = serde_yaml::from_str(yaml).unwrap();
 }
 ```
 

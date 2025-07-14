@@ -12,7 +12,6 @@ fn example_main() {
         retries: i32,
     }
 
-
     let yaml_input = r#"
         name: "My Application"
         enabled: true
@@ -86,4 +85,65 @@ fn example_nested() {
 
     let value: Outer = Outer::deserialize(serde_yaml_bw::Deserializer::from_str(yaml)).unwrap();
     assert_eq!(value, Outer::Inner(Inner::Newtype(0)));
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[allow(dead_code)]
+struct Move {
+    by: f32,
+    constraints: Vec<Constraint>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[allow(dead_code)]
+enum Constraint {
+    StayWithin { x: f32, y: f32, r: f32 },
+    MaxSpeed { v: f32 },
+}
+
+#[test]
+#[ignore]
+fn deserialize_robot_moves() {
+    let yaml = r#"
+- by: 10.0
+  constraints:
+    - StayWithin:
+        x: 0.0
+        y: 0.0
+        r: 5.0
+    - StayWithin:
+        x: 4.0
+        y: 0.0
+        r: 5.0
+    - MaxSpeed:
+        v: 3.5
+"#;
+
+    let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
+
+    assert_eq!(robot_moves.len(), 1);
+    assert_eq!(robot_moves[0].by, 10.0);
+    assert_eq!(robot_moves[0].constraints.len(), 3);
+}
+
+#[test]
+fn serialize_robot_moves() {
+    let robot_moves: Vec<Move> = vec![
+        Move {
+            by: 1.0,
+            constraints: vec![
+                Constraint::StayWithin {
+                    x: 0.0,
+                    y: 0.0,
+                    r: 5.0,
+                },
+                Constraint::MaxSpeed { v: 100.0 },
+            ],
+        },
+        Move {
+            by: 2.0,
+            constraints: vec![Constraint::MaxSpeed { v: 10.0 }],
+        },
+    ];
+    println!("Robot moves: {:?}", serde_yaml_bw::to_string(&robot_moves))
 }
