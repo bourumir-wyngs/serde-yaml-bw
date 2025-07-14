@@ -134,8 +134,9 @@ fn test_invalid_anchor_reference_message() {
 
 #[test]
 fn test_bytes() {
-    let expected = "serialization and deserialization of bytes in YAML is not implemented";
-    test_error::<&[u8]>("...", expected);
+    let yaml = "- 1\n- 2\n- 3\n";
+    let bytes: Vec<u8> = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(bytes, vec![1, 2, 3]);
 }
 
 #[test]
