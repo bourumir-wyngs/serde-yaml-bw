@@ -92,6 +92,14 @@ impl Tag {
         }
         Ok(Tag { string: tag })
     }
+
+    /// Determine whether this tag begins with the given prefix.
+    ///
+    /// The leading `!` on either the tag or the prefix is ignored when
+    /// determining whether the prefix matches.
+    pub fn starts_with(&self, prefix: &str) -> bool {
+        nobang(&self.string).starts_with(nobang(prefix))
+    }
 }
 
 impl Value {
