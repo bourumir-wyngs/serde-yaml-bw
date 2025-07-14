@@ -42,7 +42,7 @@
 //! Structs serialize in the obvious way:
 //!
 //! ```ignore
-//! # use serde_derive::{Serialize, Deserialize};
+//! # use serde::{Serialize, Deserialize};
 //! use serde::{Serialize, Deserialize};
 //!
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -66,7 +66,7 @@
 //! Enums serialize using a YAML map whose key is the variant name.
 //!
 //! ```ignore
-//! # use serde_derive::{Serialize, Deserialize};
+//! # use serde::{Serialize, Deserialize};
 //! use serde::{Serialize, Deserialize};
 //!
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]

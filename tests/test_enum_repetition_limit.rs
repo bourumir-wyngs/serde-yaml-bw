@@ -1,6 +1,6 @@
 use indoc::indoc;
 use serde::de::Deserialize;
-use serde_derive::Deserialize as Derive;
+use serde::Deserialize as Derive;
 use serde_yaml_bw::Deserializer;
 use std::collections::BTreeMap;
 use std::fmt::Debug;

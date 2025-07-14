@@ -1,6 +1,6 @@
 use serde_yaml_bw;
 use std::collections::HashMap;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 #[test]
 fn test_recursive_yaml_references_fail() {

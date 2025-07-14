@@ -1,6 +1,5 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_yaml_bw::{Deserializer, Value};
-use serde::Deserialize as _;
 
 #[test]
 fn null_key() {

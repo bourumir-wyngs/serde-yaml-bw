@@ -1,5 +1,5 @@
 use serde_yaml_bw::{from_str, from_str_value_preserve, Value};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[test]
 fn test_self_referential_merge() {

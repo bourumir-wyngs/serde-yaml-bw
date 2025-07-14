@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_yaml_bw::Deserializer;
 
 /// Test example 1 given in README

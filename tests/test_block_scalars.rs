@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 use indoc::indoc;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_yaml_bw::Value;
 
 #[derive(Debug, Deserialize, PartialEq)]

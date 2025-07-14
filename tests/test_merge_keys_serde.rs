@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 /// Configuration to parse into. Does not include "defaults"
 #[derive(Debug, Deserialize, PartialEq)]

@@ -114,7 +114,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
- "serde_derive",
  "serde_json",
  "unsafe-libyaml",
 ]

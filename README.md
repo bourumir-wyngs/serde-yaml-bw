@@ -30,7 +30,6 @@ handling:
 
 ```rust
 use serde::Deserialize;
-use serde_derive::Deserialize;
 use serde_yaml_bw::Deserializer;
 
 // Define the structure representing your YAML data.
@@ -64,7 +63,7 @@ fn main() {
 ```
 Here is example with merge keys (inherited properties):
 ```rust
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 /// Configuration to parse into. Does not include "defaults"
 #[derive(Debug, Deserialize, PartialEq)]
