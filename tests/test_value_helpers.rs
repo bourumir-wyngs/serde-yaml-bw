@@ -74,3 +74,11 @@ fn test_indexing_returns_null_when_absent() {
     assert_eq!(seq_val[0], Value::Bool(false, None));
     assert_eq!(seq_val[1], Value::Null(None));
 }
+
+#[test]
+fn test_sequence_default() {
+    let seq = Sequence::default();
+    assert_eq!(None, seq.anchor);
+    assert!(seq.elements.is_empty());
+    assert_eq!(seq, Sequence::new());
+}
