@@ -427,7 +427,8 @@ impl Hash for Number {
     }
 }
 
-pub(crate) fn unexpected(number: &Number) -> Unexpected {
+/// Convert a [`Number`] into its matching [`Unexpected`] variant.
+pub fn unexpected(number: &Number) -> Unexpected {
     match number.n {
         N::PosInt(u) => Unexpected::Unsigned(u),
         N::NegInt(i) => Unexpected::Signed(i),

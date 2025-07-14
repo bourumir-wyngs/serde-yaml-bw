@@ -188,6 +188,8 @@ mod path;
 mod ser;
 pub mod value;
 
+pub use crate::number::unexpected;
+
 // Prevent downstream code from implementing the Index trait.
 mod private {
     pub trait Sealed {}
