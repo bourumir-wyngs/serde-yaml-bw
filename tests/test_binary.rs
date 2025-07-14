@@ -8,14 +8,14 @@ struct Data {
 
 #[test]
 fn test_deserialize_binary_tag() {
-    let yaml_str = "data:\n- 104\n- 101\n- 108\n- 108\n- 111\n";
+    let yaml_str = "data: !!binary aGVsbG8=";
     let parsed: Data = yaml::from_str(yaml_str).unwrap();
     assert_eq!(parsed.data, b"hello");
 }
 
 #[test]
 fn test_deserialize_vec_u8_direct() {
-    let bytes: Vec<u8> = yaml::from_str("- 1\n- 2\n- 3\n").unwrap();
+    let bytes: Vec<u8> = yaml::from_str("!!binary AQID").unwrap();
     assert_eq!(bytes, vec![1, 2, 3]);
 }
 
