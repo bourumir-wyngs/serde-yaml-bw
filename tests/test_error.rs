@@ -228,6 +228,33 @@ fn test_variant_not_a_seq() {
 }
 
 #[test]
+fn test_enum_mapping_has_extra_keys() {
+    #[derive(Deserialize, Debug)]
+    enum Point {
+        Tuple(u8, u8, u8),
+        Struct { x: f64, y: f64 },
+    }
+    let yaml = indoc! {
+        "
+        Tuple:
+          - 0
+          - 0
+          - 0
+        Struct:
+          x: 1.0
+          y: 2.0
+        "
+    };
+    let result = Point::deserialize(Deserializer::from_str(yaml));
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("mapping with a single key for the enum variant"),
+        "unexpected message: {}",
+        msg
+    );
+}
+
+#[test]
 fn test_anchor_too_long() {
     use serde_yaml_bw::Value;
     const MAX: usize = 65_536;
