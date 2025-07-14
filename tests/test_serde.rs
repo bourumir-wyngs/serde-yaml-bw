@@ -125,7 +125,7 @@ fn test_float() {
     let float: f64 = serde_yaml_bw::from_str(indoc! {"
         .nan
     "})
-    .unwrap();
+        .unwrap();
     assert!(float.is_nan());
 }
 
@@ -152,7 +152,7 @@ fn test_float32() {
     let single_float: f32 = serde_yaml_bw::from_str(indoc! {"
         .nan
     "})
-    .unwrap();
+        .unwrap();
     assert!(single_float.is_nan());
 }
 
@@ -400,7 +400,6 @@ fn test_newtype_struct() {
 }
 
 
-
 #[test]
 fn test_value() {
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -493,4 +492,21 @@ fn test_serializer_into_vec() {
         "hi".serialize(&mut ser).unwrap();
     }
     assert_eq!(buffer, b"hi\n");
+}
+
+#[test]
+fn test_struct() {
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    struct Point {
+        x: f64,
+        y: f64,
+    }
+
+    let point = Point { x: 1.0, y: 2.0 };
+
+    let yaml = serde_yaml_bw::to_string(&point).unwrap();
+    assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
+
+    let deserialized_point: Point = serde_yaml_bw::from_str(&yaml).unwrap();
+    assert_eq!(point, deserialized_point);
 }
