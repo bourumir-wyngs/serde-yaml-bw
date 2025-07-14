@@ -5,6 +5,7 @@ mod debug;
 mod from;
 mod index;
 mod partial_eq;
+mod resolve_aliases;
 mod ser;
 pub(crate) mod tagged;
 
