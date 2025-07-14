@@ -2,7 +2,6 @@
 //!
 //! This module provides YAML serialization with the type `Serializer`.
 
-use serde::ser::SerializeSeq;
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml;
 use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence};
@@ -14,6 +13,9 @@ use std::io;
 use std::mem;
 use std::num;
 use std::str;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
+use crate::libyaml::tag::Tag;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -385,11 +387,13 @@ where
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<()> {
-        let mut seq = self.serialize_seq(Some(value.len()))?;
-        for byte in value {
-            seq.serialize_element(byte)?;
-        }
-        seq.end()
+        let encoded = BASE64_STANDARD.encode(value);
+        self.emit_scalar(       
+            Scalar {
+            tag: Some(Tag::BINARY.into()),
+            value: &encoded,
+            style: ScalarStyle::Plain,
+        })
     }
 
     fn serialize_unit(self) -> Result<()> {

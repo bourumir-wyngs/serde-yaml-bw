@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. Our fork also supports merge keys, which reduce redundancy and verbosity by enabling the reuse of common key-value pairs across multiple mappings. It also decodes `!!binary` scalars, converting base64-encoded text into `Vec<u8>`.
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. Our fork also supports merge keys, which reduce redundancy and verbosity by enabling the reuse of common key-value pairs across multiple mappings. 
 
 These extensions come at the cost of some API restrictions: write access to indices and mappings has been removed. Read access remains possible, with `Value::Null` returned on invalid access. Also, duplicate keys are not longer permitted in YAML, returning proper error message instead.
 
@@ -158,7 +158,8 @@ let yaml = r#"
 
 ### Binary scalars
 
-YAML values tagged with `!!binary` are automatically base64-decoded when deserializing into a `Vec<u8>`.
+YAML values tagged with `!!binary` are automatically base64-decoded when deserializing into a `Vec<u8>`. For also 
+writing this way, annotate the field with `#[serde(with = "serde_bytes")]` from [serde_bytes](https://docs.rs/serde_bytes/0.11.17/serde_bytes/) crate.
 
 ```rust
 use serde::Deserialize;

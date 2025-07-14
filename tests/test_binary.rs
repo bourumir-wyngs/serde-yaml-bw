@@ -5,6 +5,11 @@ use serde_yaml_bw as yaml;
 struct Data {
     data: Vec<u8>,
 }
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct DataBinary {
+    #[serde(with = "serde_bytes")]
+    data: Vec<u8>,
+}
 
 #[test]
 fn test_deserialize_binary_tag() {
@@ -32,5 +37,16 @@ fn test_serialize_vec_as_sequence() {
         data: b"hi".to_vec(),
     };
     let yaml_str = yaml::to_string(&data).unwrap();
+    println!("Array:: {}", yaml_str);
     assert_eq!(yaml_str, "data:\n- 104\n- 105\n");
+}
+
+#[test]
+fn test_serialize_vec_as_bytes() {
+    let data = DataBinary {
+        data: b"hello".to_vec(),
+    };
+    let yaml_str = yaml::to_string(&data).unwrap();
+    println!("ByteBuf:: {}", yaml_str);
+    assert_eq!(yaml_str, "data: !!binary aGVsbG8=\n");
 }
