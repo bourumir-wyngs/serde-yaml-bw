@@ -53,6 +53,8 @@ where
 }
 
 enum State {
+    /// Serializer is idle and no special handling is in progress. This
+    /// variant is returned by `Default`.
     NothingInParticular,
     CheckForTag,
     CheckForDuplicateTag,
@@ -62,6 +64,7 @@ enum State {
 
 impl Default for State {
     fn default() -> Self {
+        // New serializers start out with no special state.
         State::NothingInParticular
     }
 }
