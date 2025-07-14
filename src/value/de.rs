@@ -496,14 +496,14 @@ impl<'de> Deserializer<'de> for Value {
                 } else {
                     return Err(Error::invalid_type(
                         Value::Mapping(map).unexpected(),
-                        &"a Value::Tagged enum",
+                        &"a mapping with a single key for the enum variant",
                     ));
                 }
             }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),
-                    &"a Value::Tagged enum",
+                    &"a mapping with a single key for the enum variant",
                 ));
             }
         })
@@ -1059,14 +1059,14 @@ impl<'de> Deserializer<'de> for &'de Value {
                 } else {
                     return Err(Error::invalid_type(
                         Value::Mapping(map.clone()).unexpected(),
-                        &"a Value::Tagged enum",
+                        &"a mapping with a single key for the enum variant",
                     ));
                 }
             }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),
-                    &"a Value::Tagged enum",
+                    &"a mapping with a single key for the enum variant",
                 ));
             }
         })
