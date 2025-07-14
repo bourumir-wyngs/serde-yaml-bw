@@ -60,6 +60,12 @@ enum State {
     AlreadyTagged,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        State::NothingInParticular
+    }
+}
+
 impl<W> Serializer<W>
 where
     W: io::Write,
@@ -148,14 +154,12 @@ where
     }
 
     fn take_tag(&mut self) -> Option<String> {
-        let state = mem::replace(&mut self.state, State::NothingInParticular);
-        if let State::FoundTag(mut tag) = state {
+        if let State::FoundTag(mut tag) = mem::take(&mut self.state) {
             if !tag.starts_with('!') {
                 tag.insert(0, '!');
             }
             Some(tag)
         } else {
-            self.state = state;
             None
         }
     }
