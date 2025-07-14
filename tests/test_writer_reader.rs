@@ -47,3 +47,33 @@ fn test_large_reader_input() {
         panic!("Expected mapping");
     }
 }
+
+#[test]
+fn test_to_writer_simple() {
+    use serde_derive::{Deserialize, Serialize};
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let point = Point { x: 1, y: 2 };
+    let mut buf = Vec::new();
+    serde_yaml_bw::to_writer(&mut buf, &point).unwrap();
+    assert_eq!(buf, b"x: 1\ny: 2\n");
+}
+
+#[test]
+fn test_to_writer_multi_simple() {
+    use serde_derive::{Deserialize, Serialize};
+    #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let points = vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }];
+    let mut buf = Vec::new();
+    serde_yaml_bw::to_writer_multi(&mut buf, &points).unwrap();
+    assert_eq!(buf, b"x: 1\ny: 2\n---\nx: 3\ny: 4\n");
+}
