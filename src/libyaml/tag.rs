@@ -10,6 +10,7 @@ impl Tag {
     pub const BOOL: &'static str = "tag:yaml.org,2002:bool";
     pub const INT: &'static str = "tag:yaml.org,2002:int";
     pub const FLOAT: &'static str = "tag:yaml.org,2002:float";
+    pub const BINARY: &'static str = "tag:yaml.org,2002:binary";
 }
 
 impl Tag {
