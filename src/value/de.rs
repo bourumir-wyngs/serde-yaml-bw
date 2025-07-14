@@ -478,6 +478,28 @@ impl<'de> Deserializer<'de> for Value {
                 },
                 value: None,
             },
+            Value::Mapping(map) => {
+                if map.len() == 1 {
+                    let (key, value) = map.into_iter().next().unwrap();
+                    match key {
+                        Value::String(var, _) => {
+                            tag = var;
+                            EnumDeserializer { tag: &tag, value: Some(value) }
+                        }
+                        other => {
+                            return Err(Error::invalid_type(
+                                other.unexpected(),
+                                &"string",
+                            ));
+                        }
+                    }
+                } else {
+                    return Err(Error::invalid_type(
+                        Value::Mapping(map).unexpected(),
+                        &"a Value::Tagged enum",
+                    ));
+                }
+            }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),
@@ -1019,6 +1041,28 @@ impl<'de> Deserializer<'de> for &'de Value {
                 tag: variant,
                 value: None,
             },
+            Value::Mapping(map) => {
+                if map.len() == 1 {
+                    let (key, value) = map.iter().next().unwrap();
+                    match key {
+                        Value::String(var, _) => EnumRefDeserializer {
+                            tag: var,
+                            value: Some(value),
+                        },
+                        other => {
+                            return Err(Error::invalid_type(
+                                other.unexpected(),
+                                &"string",
+                            ));
+                        }
+                    }
+                } else {
+                    return Err(Error::invalid_type(
+                        Value::Mapping(map.clone()).unexpected(),
+                        &"a Value::Tagged enum",
+                    ));
+                }
+            }
             other => {
                 return Err(Error::invalid_type(
                     other.unexpected(),

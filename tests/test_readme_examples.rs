@@ -102,7 +102,6 @@ enum Constraint {
 }
 
 #[test]
-#[ignore]
 fn deserialize_robot_moves() {
     let yaml = r#"
 - by: 10.0
