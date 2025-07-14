@@ -1,10 +1,3 @@
-//! [![github]](https://github.com/dtolnay/serde-yaml)&ensp;[![crates-io]](https://crates.io/crates/serde-yaml)&ensp;[![docs-rs]](https://docs.rs/serde-yaml)
-//!
-//! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
-//! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
-//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
-//!
-//! <br>
 //!
 //! Rust library for using the [Serde] serialization framework with data in
 //! [YAML] file format.
@@ -98,8 +91,8 @@
 //!           - 0
 //!           - 0
 //!         - Struct:
-//!           x: 1.0
-//!           y: 2.0
+//!             x: 1.0
+//!             y: 2.0
 //!     ";
 //!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
 //!     assert_eq!(values[0], Enum::Tuple(0, 0, 0));

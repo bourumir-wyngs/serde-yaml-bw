@@ -125,7 +125,7 @@ fn test_float() {
     let float: f64 = serde_yaml_bw::from_str(indoc! {"
         .nan
     "})
-        .unwrap();
+    .unwrap();
     assert!(float.is_nan());
 }
 
@@ -152,7 +152,7 @@ fn test_float32() {
     let single_float: f32 = serde_yaml_bw::from_str(indoc! {"
         .nan
     "})
-        .unwrap();
+    .unwrap();
     assert!(single_float.is_nan());
 }
 
@@ -350,7 +350,6 @@ fn test_nested_struct() {
     test_serde(&thing, yaml);
 }
 
-
 #[test]
 fn test_option() {
     let thing = vec![Some(1), None, Some(3)];
@@ -383,7 +382,6 @@ fn test_unit_struct() {
     test_serde(&thing, yaml);
 }
 
-
 #[test]
 fn test_newtype_struct() {
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -398,7 +396,6 @@ fn test_newtype_struct() {
     "};
     test_serde(&thing, yaml);
 }
-
 
 #[test]
 fn test_value() {
@@ -509,4 +506,66 @@ fn test_struct() {
 
     let deserialized_point: Point = serde_yaml_bw::from_str(&yaml).unwrap();
     assert_eq!(point, deserialized_point);
+}
+
+#[test]
+fn test_btree_map() {
+    let mut map = BTreeMap::new();
+    map.insert("x".to_string(), 1.0);
+    map.insert("y".to_string(), 2.0);
+
+    let yaml = serde_yaml_bw::to_string(&map).unwrap();
+    assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
+
+    let deserialized_map: BTreeMap<String, f64> = serde_yaml_bw::from_str(&yaml).unwrap();
+    assert_eq!(map, deserialized_map);
+}
+
+#[test]
+fn test_enum() {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    enum Enum {
+        Unit,
+        Newtype(usize),
+        Tuple(usize, usize, usize),
+        Struct { x: f64, y: f64 },
+    }
+
+    let yaml = "
+             - Newtype: 1
+             - Tuple:
+               - 0
+               - 0
+               - 0
+             - Struct:
+                 x: 1.0
+                 y: 2.0
+         ";
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(values[0], Enum::Newtype(1));
+    assert_eq!(values[1], Enum::Tuple(0, 0, 0));
+    assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
+
+    // The last two in YAML's block style instead:
+    let yaml = "
+             - Tuple:
+               - 0
+               - 0
+               - 0
+             - Struct:
+                 x: 1.0
+                 y: 2.0
+         ";
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(values[0], Enum::Tuple(0, 0, 0));
+    assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
+
+    // Variants with no data are written as just the string name.
+    let yaml = "
+             - Unit
+         ";
+    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(values[0], Enum::Unit);
 }
