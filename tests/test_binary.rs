@@ -14,6 +14,13 @@ fn test_deserialize_binary_tag() {
 }
 
 #[test]
+fn test_deserialize_as_array() {
+    let yaml_str = "data: [104, 101, 108, 108, 111]";
+    let parsed: Data = yaml::from_str(yaml_str).unwrap();
+    assert_eq!(parsed.data, b"hello");
+}
+
+#[test]
 fn test_deserialize_vec_u8_direct() {
     let bytes: Vec<u8> = yaml::from_str("!!binary AQID").unwrap();
     assert_eq!(bytes, vec![1, 2, 3]);
