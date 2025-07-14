@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use serde_yaml_bw::Deserializer;
 
 /// Test example 1 given in README
@@ -66,4 +66,25 @@ retries: 4
         .collect::<Result<Vec<_>, _>>()?; // <- question operator
 
     Ok(configs) // Ok on successful parsing or would be error on failure
+}
+/// Test nested enum example given in README
+#[test]
+fn example_nested() {
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    enum Outer {
+        Inner(Inner),
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    enum Inner {
+        Newtype(u8),
+    }
+
+    let yaml = indoc::indoc! {r#"
+        Inner:
+          Newtype: 0
+    "#};
+
+    let value: Outer = Outer::deserialize(serde_yaml_bw::Deserializer::from_str(yaml)).unwrap();
+    assert_eq!(value, Outer::Inner(Inner::Newtype(0)));
 }

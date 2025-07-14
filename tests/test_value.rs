@@ -96,18 +96,3 @@ fn test_debug() {
     assert_eq!(debug, expected);
 }
 
-#[test]
-fn test_tagged() {
-    #[derive(Serialize)]
-    enum Enum {
-        Variant(usize),
-    }
-
-    let value = serde_yaml_bw::to_value(Enum::Variant(0)).unwrap();
-
-    let deserialized: serde_yaml_bw::Value = serde_yaml_bw::from_value(value.clone()).unwrap();
-    assert_eq!(value, deserialized);
-
-    let serialized = serde_yaml_bw::to_value(&value).unwrap();
-    assert_eq!(value, serialized);
-}

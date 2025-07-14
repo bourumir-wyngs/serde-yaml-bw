@@ -1902,26 +1902,62 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
             }
             Event::Scalar(scalar) => {
                 if let Some(tag) = parse_tag(scalar.value.tag.as_ref()) {
-                        return visitor.visit_enum(EnumAccess {
-                            de: self,
-                            name: Some(name),
-                            tag,
-                        });
-                    }
-                    visitor.visit_enum(UnitVariantAccess { de: self })
+                    return visitor.visit_enum(EnumAccess {
+                        de: self,
+                        name: Some(name),
+                        tag,
+                    });
                 }
-                Event::MappingStart(mapping) => {
-                    if let Some(tag) = parse_tag(mapping.tag.as_ref()) {
-                        return visitor.visit_enum(EnumAccess {
-                            de: self,
-                            name: Some(name),
-                            tag,
-                        });
-                    }
-                    let err =
-                        de::Error::invalid_type(Unexpected::Map, &"a YAML tag starting with '!'");
-                    Err(error::fix_mark(err, mark, self.path))
+                visitor.visit_enum(UnitVariantAccess { de: self })
+            }
+            Event::MappingStart(mapping) => {
+                if let Some(tag) = parse_tag(mapping.tag.as_ref()) {
+                    return visitor.visit_enum(EnumAccess {
+                        de: self,
+                        name: Some(name),
+                        tag,
+                    });
                 }
+                self.next_event_mark()?; // consume MappingStart
+                let (key_event, key_mark) = self.next_event_mark()?;
+                let tag = match key_event {
+                    Event::Scalar(scalar) => {
+                        match std::str::from_utf8(&scalar.value.value) {
+                            Ok(s) => s,
+                            Err(_) => {
+                                return Err(error::fix_mark(
+                                    de::Error::invalid_type(
+                                        Unexpected::Bytes(&scalar.value.value),
+                                        &"string",
+                                    ),
+                                    key_mark,
+                                    self.path,
+                                ))
+                            }
+                        }
+                    }
+                    _ => {
+                        struct ExpectedString;
+                        impl Expected for ExpectedString {
+                            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                                f.write_str("string")
+                            }
+                        }
+                        let err = invalid_type(key_event, &ExpectedString);
+                        return Err(error::fix_mark(err, key_mark, self.path));
+                    }
+                };
+                let result = visitor.visit_enum(EnumAccess {
+                    de: self,
+                    name: Some(name),
+                    tag,
+                });
+                let result = result.and_then(|v| {
+                    self.end_mapping(1)?;
+                    Ok(v)
+                });
+                return result;
+            }
                 Event::SequenceStart(sequence) => {
                     if let Some(tag) = parse_tag(sequence.tag.as_ref()) {
                         return visitor.visit_enum(EnumAccess {
