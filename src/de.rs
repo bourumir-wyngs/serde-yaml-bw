@@ -75,6 +75,12 @@ pub(crate) enum Progress<'de> {
     Fail(Arc<ErrorImpl>),
 }
 
+impl<'de> Default for Progress<'de> {
+    fn default() -> Self {
+        Progress::Str("")
+    }
+}
+
 impl<'de> Deserializer<'de> {
     /// Creates a YAML deserializer from a `&str`.
     pub fn from_str(s: &'de str) -> Self {
@@ -171,8 +177,7 @@ impl Iterator for Deserializer<'_> {
             _ => {}
         }
 
-        let dummy = Progress::Str("");
-        let input = mem::replace(&mut self.progress, dummy);
+        let input = mem::take(&mut self.progress);
         match Loader::new(input) {
             Ok(loader) => {
                 self.progress = Progress::Iterable(loader);
