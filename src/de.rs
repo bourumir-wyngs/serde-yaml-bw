@@ -1053,7 +1053,7 @@ fn parse_bool(scalar: &str) -> Option<bool> {
 fn parse_scalar_value(scalar: &ScalarEvent) -> Value {
     let anchor = scalar.anchor.clone();
     let Ok(repr) = std::str::from_utf8(&scalar.value.value) else {
-        return Value::String(String::from_utf8_lossy(&scalar.value.value).to_string(), anchor);
+        return Value::String(String::from_utf8_lossy(&scalar.value.value).into_owned(), anchor);
     };
     if scalar.value.style == ScalarStyle::Plain {
         if parse_null(&scalar.value.value).is_some() {
