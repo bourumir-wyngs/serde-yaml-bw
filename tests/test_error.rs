@@ -635,3 +635,11 @@ fn test_long_alias_chain_error() {
     );
 }
 
+#[test]
+fn test_error_location() {
+    let result = serde_yaml_bw::from_str::<Value>("@invalid_yaml");
+    let loc = result.unwrap_err().location().expect("location");
+    assert_eq!(1, loc.line());
+    assert_eq!(1, loc.column());
+}
+
