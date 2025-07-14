@@ -109,5 +109,11 @@ mod tests {
         let err = DuplicateKeyError::from_scalar(b"42");
         assert!(matches!(err.kind, DuplicateKeyKind::Number(n) if n == Number::from(42)));
     }
+
+    #[test]
+    fn test_display() {
+        let err = DuplicateKeyError::from_scalar(b"dup");
+        assert_eq!(format!("{}", err), "duplicate entry with key \"dup\"");
+    }
 }
 

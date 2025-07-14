@@ -1,5 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 use serde::Deserialize as _;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {
@@ -46,4 +47,20 @@ fn test_large_reader_input() {
     } else {
         panic!("Expected mapping");
     }
+}
+
+#[test]
+fn test_from_slice_map() {
+    let yaml = b"x: 1\ny: 2\n";
+    let m: HashMap<String, i32> = serde_yaml_bw::from_slice(yaml).unwrap();
+    assert_eq!(m.get("x"), Some(&1));
+}
+
+#[test]
+fn test_from_slice_multi_map() {
+    let yaml = b"---\nx: 1\n---\nx: 2\n";
+    let vals: Vec<HashMap<String, i32>> = serde_yaml_bw::from_slice_multi(yaml).unwrap();
+    assert_eq!(vals.len(), 2);
+    assert_eq!(vals[0].get("x"), Some(&1));
+    assert_eq!(vals[1].get("x"), Some(&2));
 }
