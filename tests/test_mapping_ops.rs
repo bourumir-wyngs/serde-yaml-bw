@@ -50,3 +50,10 @@ fn test_iterators() {
     let values: Vec<_> = map.values().map(|v| v.as_i64().unwrap()).collect();
     assert_eq!(values, [1, 2]);
 }
+
+#[test]
+fn test_default_map_empty() {
+    let map = Mapping::default();
+    assert!(map.is_empty());
+    assert_eq!(map.capacity(), 0);
+}
