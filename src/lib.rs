@@ -14,7 +14,7 @@
 //!
 //! # Examples
 //!
-//! ```ignore
+//! ```
 //! use std::collections::BTreeMap;
 //!
 //! fn main() -> Result<(), serde_yaml_bw::Error> {
@@ -32,7 +32,7 @@
 //!     assert_eq!(map, deserialized_map);
 //!     Ok(())
 //! }
-//! ```ignore
+//! ```
 //!
 //! ## Using Serde derive
 //!
@@ -41,8 +41,7 @@
 //!
 //! Structs serialize in the obvious way:
 //!
-//! ```ignore
-//! # use serde::{Serialize, Deserialize};
+//! ```
 //! use serde::{Serialize, Deserialize};
 //!
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -65,8 +64,7 @@
 //!
 //! Enums serialize using a YAML map whose key is the variant name.
 //!
-//! ```ignore
-//! # use serde::{Serialize, Deserialize};
+//! ```
 //! use serde::{Serialize, Deserialize};
 //!
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]
