@@ -1,3 +1,5 @@
+//! Types for working with YAML tags on [`Value`].
+
 use crate::value::de::{MapDeserializer, MapRefDeserializer, SeqDeserializer, SeqRefDeserializer};
 use crate::value::Value;
 use crate::Error;
@@ -421,62 +423,33 @@ impl<'de> DeserializeSeed<'de> for TagStringVisitor {
     }
 }
 
-pub(crate) enum MaybeTag<T> {
+/// Outcome of [`check_for_tag`] when examining a value's `Display` output.
+pub enum MaybeTag<T> {
+    /// The value began with a bang and is therefore a tag.
     Tag(String),
+    /// The value did not represent a tag. Contains the original string.
     NotTag(T),
+    /// Formatting the value returned an error.
     Error
 }
 
-pub(crate) fn check_for_tag<T>(value: &T) -> MaybeTag<String>
+/// Determine whether the `Display` of a value encodes a YAML tag.
+pub fn check_for_tag<T>(value: &T) -> MaybeTag<String>
 where
     T: ?Sized + Display,
 {
-    enum CheckForTag {
-        Empty,
-        Bang,
-        Tag(String),
-        NotTag(String),
+    let mut string = String::new();
+    if let Err(_) = fmt::write(&mut string, format_args!("{}", value)) {
+        return MaybeTag::Error;
     }
 
-    impl fmt::Write for CheckForTag {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            if s.is_empty() {
-                return Ok(());
-            }
-            match self {
-                CheckForTag::Empty => {
-                    if s == "!" {
-                        *self = CheckForTag::Bang;
-                    } else {
-                        *self = CheckForTag::NotTag(s.to_owned());
-                    }
-                }
-                CheckForTag::Bang => {
-                    *self = CheckForTag::Tag(s.to_owned());
-                }
-                CheckForTag::Tag(string) => {
-                    let mut string = mem::take(string);
-                    string.push_str(s);
-                    *self = CheckForTag::NotTag(string);
-                }
-                CheckForTag::NotTag(string) => {
-                    string.push_str(s);
-                }
-            }
-            Ok(())
+    if let Some(rest) = string.strip_prefix('!') {
+        if rest.is_empty() {
+            MaybeTag::NotTag(string)
+        } else {
+            MaybeTag::Tag(rest.to_owned())
         }
-    }
-
-    let mut check_for_tag = CheckForTag::Empty;
-    match fmt::write(&mut check_for_tag, format_args!("{}", value)) {
-        Ok(()) => {}
-        Err(_) => return MaybeTag::Error,
-    }
-    
-    match check_for_tag {
-        CheckForTag::Empty => MaybeTag::NotTag(String::new()),
-        CheckForTag::Bang => MaybeTag::NotTag("!".to_owned()),
-        CheckForTag::Tag(string) => MaybeTag::Tag(string),
-        CheckForTag::NotTag(string) => MaybeTag::NotTag(string),
+    } else {
+        MaybeTag::NotTag(string)
     }
 }
