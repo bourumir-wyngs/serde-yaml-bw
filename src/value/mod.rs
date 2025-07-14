@@ -326,11 +326,7 @@ impl Value {
     /// assert!(!v.is_null());
     /// ```
     pub fn is_null(&self) -> bool {
-        if let Value::Null(_) = self.untag_ref() {
-            true
-        } else {
-            false
-        }
+        matches!(self.untag_ref(), Value::Null(_))
     }
 
     /// If the `Value` is a Null, returns (). Returns None otherwise.
@@ -370,7 +366,7 @@ impl Value {
     /// assert!(!v.is_bool());
     /// ```
     pub fn is_bool(&self) -> bool {
-        self.as_bool().is_some()
+        matches!(self.untag_ref(), Value::Bool(_, _))
     }
 
     /// If the `Value` is a Boolean, returns the associated bool. Returns None
@@ -408,10 +404,7 @@ impl Value {
     /// assert!(!v.is_number());
     /// ```
     pub fn is_number(&self) -> bool {
-        match self.untag_ref() {
-            Value::Number(_, _) => true,
-            _ => false,
-        }
+        matches!(self.untag_ref(), Value::Number(_, _))
     }
 
     /// Returns true if the `Value` is an integer between `i64::MIN` and
@@ -432,7 +425,7 @@ impl Value {
     /// assert!(!v.is_i64());
     /// ```
     pub fn is_i64(&self) -> bool {
-        self.as_i64().is_some()
+        matches!(self.untag_ref(), Value::Number(n, _) if n.is_i64())
     }
 
     /// If the `Value` is an integer, represent it as i64 if possible. Returns
@@ -474,7 +467,7 @@ impl Value {
     /// assert!(!v.is_u64());
     /// ```
     pub fn is_u64(&self) -> bool {
-        self.as_u64().is_some()
+        matches!(self.untag_ref(), Value::Number(n, _) if n.is_u64())
     }
 
     /// If the `Value` is an integer, represent it as u64 if possible. Returns
@@ -518,10 +511,7 @@ impl Value {
     /// assert!(!v.is_f64());
     /// ```
     pub fn is_f64(&self) -> bool {
-        match self.untag_ref() {
-            Value::Number(n, _) => n.is_f64(),
-            _ => false,
-        }
+        matches!(self.untag_ref(), Value::Number(n, _) if n.is_f64())
     }
 
     /// If the `Value` is a number, represent it as f64 if possible. Returns
@@ -562,7 +552,7 @@ impl Value {
     /// assert!(!v.is_string());
     /// ```
     pub fn is_string(&self) -> bool {
-        self.as_str().is_some()
+        matches!(self.untag_ref(), Value::String(_, _))
     }
 
     /// If the `Value` is a String, returns the associated str. Returns None
@@ -600,7 +590,7 @@ impl Value {
     /// assert!(!v.is_sequence());
     /// ```
     pub fn is_sequence(&self) -> bool {
-        self.as_sequence().is_some()
+        matches!(self.untag_ref(), Value::Sequence(_))
     }
 
     /// If the `Value` is a sequence, return a reference to it if possible.
@@ -673,7 +663,7 @@ impl Value {
     /// assert!(!v.is_mapping());
     /// ```
     pub fn is_mapping(&self) -> bool {
-        self.as_mapping().is_some()
+        matches!(self.untag_ref(), Value::Mapping(_))
     }
 
     /// If the `Value` is a mapping, return a reference to it if possible.
