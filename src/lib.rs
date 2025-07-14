@@ -165,7 +165,7 @@
 
 pub use crate::de::{
     from_reader, from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi,
-    from_str_value_preserve, Deserializer,
+    from_str_value_preserve, digits_but_not_number, parse_f64, Deserializer,
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{

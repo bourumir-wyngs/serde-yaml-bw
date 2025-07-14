@@ -1221,7 +1221,11 @@ fn parse_negative_int<T>(
     from_str_radix(scalar, 10).ok()
 }
 
-pub(crate) fn parse_f64(scalar: &str) -> Option<f64> {
+/// Parse a scalar as a floating point value.
+///
+/// Returns `Some(f64)` if the string is a valid finite float or special value
+/// like `.inf`. Otherwise returns `None`.
+pub fn parse_f64(scalar: &str) -> Option<f64> {
     let unpositive = if let Some(unpositive) = scalar.strip_prefix('+') {
         if unpositive.starts_with(['+', '-']) {
             return None;
@@ -1247,7 +1251,10 @@ pub(crate) fn parse_f64(scalar: &str) -> Option<f64> {
     None
 }
 
-pub(crate) fn digits_but_not_number(scalar: &str) -> bool {
+/// Check if a digit string should be treated as a YAML string rather than a number.
+///
+/// Leading zeros like `"00"` mean the scalar is not parsed as a numeric value.
+pub fn digits_but_not_number(scalar: &str) -> bool {
     // Leading zero(s) followed by numeric characters is a string according to
     // the YAML 1.2 spec. https://yaml.org/spec/1.2/spec.html#id2761292
     let scalar = scalar.strip_prefix(['-', '+']).unwrap_or(scalar);
