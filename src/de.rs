@@ -1685,18 +1685,49 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        Err(error::new(ErrorImpl::BytesUnsupported))
+        self.deserialize_byte_buf(visitor)
     }
 
-    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        Err(error::new(ErrorImpl::BytesUnsupported))
+        let tagged_already = *self.enum_depth.borrow() > 0;
+        let (next, mark) = self.next_event_mark()?;
+        match next {
+            &Event::Alias(mut pos) => self.jump(&mut pos)?.deserialize_byte_buf(visitor),
+            Event::Scalar(scalar) => {
+                if !tagged_already
+                    && matches!(scalar.value.tag.as_ref(), Some(tag) if tag == Tag::BINARY)
+                {
+                    if let Ok(v) = str::from_utf8(&scalar.value.value) {
+                        match decode_base64(v) {
+                            Some(bytes) => visitor.visit_byte_buf(bytes),
+                            None => Err(de::Error::invalid_value(Unexpected::Str(v), &"base64")),
+                        }
+                    } else {
+                        Err(invalid_type(next, &visitor))
+                    }
+                } else if let Ok(v) = str::from_utf8(&scalar.value.value) {
+                    if let Some(borrowed) =
+                        parse_borrowed_str(v, scalar.value.repr, scalar.value.style)
+                    {
+                        visitor.visit_borrowed_str(borrowed)
+                    } else {
+                        visitor.visit_string(v.to_owned())
+                    }
+                } else {
+                    Err(invalid_type(next, &visitor))
+                }
+            }
+            Event::SequenceStart(_) => self.visit_sequence(visitor, mark),
+            other => Err(invalid_type(other, &visitor)),
+        }
+        .map_err(|err| error::fix_mark(err, mark, self.path))
     }
 
     /// Parses `null` as None and any other values as `Some(...)`.
