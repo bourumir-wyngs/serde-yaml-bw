@@ -13,7 +13,6 @@ use serde::ser::{Serialize, SerializeMap, Serializer};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug, Display};
 use std::hash::{Hash, Hasher};
-use std::mem;
 
 /// A representation of YAML's `!Tag` syntax, used for enums.
 ///

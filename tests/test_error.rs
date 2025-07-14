@@ -3,7 +3,7 @@
 use indoc::indoc;
 #[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 use serde_yaml_bw::{Deserializer, Value};
 #[cfg(not(miri))]

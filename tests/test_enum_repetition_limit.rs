@@ -22,6 +22,7 @@ where
 }
 
 #[derive(Derive, Debug)]
+#[allow(dead_code)]
 enum Node {
     Unit,
     List(Vec<Node>),

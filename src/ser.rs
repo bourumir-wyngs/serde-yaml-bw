@@ -2,6 +2,7 @@
 //!
 //! This module provides YAML serialization with the type `Serializer`.
 
+use serde::ser::SerializeSeq;
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml;
 use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence};

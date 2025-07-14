@@ -67,11 +67,13 @@ fn test_alias_in_tuple_variant() {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 enum Outer {
     Inner(InnerEnum),
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 enum InnerEnum {
     Item(Vec<u8>),
 }
@@ -92,6 +94,7 @@ fn test_nested_enum_alias_error() {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 struct StructWithOuter {
     outer: Outer,
     alias: u8,

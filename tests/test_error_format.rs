@@ -1,4 +1,4 @@
-use serde_yaml_bw::{from_str, Value, Error};
+use serde_yaml_bw::{from_str, Value};
 
 #[test]
 fn test_error_includes_location_in_formats() {
