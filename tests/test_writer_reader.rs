@@ -1,5 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 use serde::Deserialize as _;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {
@@ -46,4 +47,50 @@ fn test_large_reader_input() {
     } else {
         panic!("Expected mapping");
     }
+}
+
+#[test]
+fn test_from_slice_map() {
+    let yaml = b"x: 1\ny: 2\n";
+    let m: HashMap<String, i32> = serde_yaml_bw::from_slice(yaml).unwrap();
+    assert_eq!(m.get("x"), Some(&1));
+}
+
+#[test]
+fn test_from_slice_multi_map() {
+    let yaml = b"---\nx: 1\n---\nx: 2\n";
+    let vals: Vec<HashMap<String, i32>> = serde_yaml_bw::from_slice_multi(yaml).unwrap();
+    assert_eq!(vals.len(), 2);
+    assert_eq!(vals[0].get("x"), Some(&1));
+    assert_eq!(vals[1].get("x"), Some(&2));
+}
+
+#[test]
+fn test_to_writer_simple() {
+    use serde_derive::{Deserialize, Serialize};
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let point = Point { x: 1, y: 2 };
+    let mut buf = Vec::new();
+    serde_yaml_bw::to_writer(&mut buf, &point).unwrap();
+    assert_eq!(buf, b"x: 1\ny: 2\n");
+}
+
+#[test]
+fn test_to_writer_multi_simple() {
+    use serde_derive::{Deserialize, Serialize};
+    #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let points = vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }];
+    let mut buf = Vec::new();
+    serde_yaml_bw::to_writer_multi(&mut buf, &points).unwrap();
+    assert_eq!(buf, b"x: 1\ny: 2\n---\nx: 3\ny: 4\n");
 }
