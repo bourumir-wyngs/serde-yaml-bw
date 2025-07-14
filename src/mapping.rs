@@ -429,8 +429,8 @@ impl Hash for Mapping {
 
 impl PartialOrd for Mapping {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let mut self_entries = Vec::from_iter(self);
-        let mut other_entries = Vec::from_iter(other);
+        let mut self_entries = self.iter().collect::<Vec<_>>();
+        let mut other_entries = other.iter().collect::<Vec<_>>();
 
         // Sort in an arbitrary order that is consistent with Value's PartialOrd
         // impl.
