@@ -152,7 +152,7 @@ let yaml = r#"
       v: 3.5
       "#;
 
-  let robot_moves: Vec<Move> = serde_yaml::from_str(yaml).unwrap();
+  let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
 }
 ```
 
