@@ -730,13 +730,12 @@ impl Value {
     ///     args: start
     /// ";
     ///
-    /// let mut value: Value = serde_yaml_bw::from_str(config).unwrap();
-    /// value.apply_merge().unwrap();
+    /// let value: Value = serde_yaml_bw::from_str_value(config).unwrap();
     ///
     /// assert_eq!(value["tasks"]["start"]["command"], "webpack");
     /// assert_eq!(value["tasks"]["start"]["args"], "start");
     /// ```
-    pub fn apply_merge(&mut self) -> Result<(), Error> {
+    pub(crate) fn apply_merge(&mut self) -> Result<(), Error> {
         use std::collections::HashSet;
         let mut stack = Vec::new();
         let mut visited = HashSet::new();
@@ -815,4 +814,254 @@ impl IntoDeserializer<'_, Error> for Value {
     fn into_deserializer(self) -> Self::Deserializer {
         self
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::de::from_str_value_preserve;
+    use crate::from_str;
+    use indoc::indoc;
+    use crate::value::{Tag, TaggedValue};
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Node {
+        b: i32,
+        next: Option<Box<Node>>,
+    }
+
+    #[test]
+    fn test_apply_merge_example() {
+        let config = indoc! {r#"
+            tasks:
+              build: &webpack_shared
+                command: webpack
+                args: build
+                inputs:
+                  - 'src/**/*'
+              start:
+                <<: *webpack_shared
+                args: start
+        "#};
+
+        let mut value: Value = crate::from_str(config).unwrap();
+        value.apply_merge().unwrap();
+        value.resolve_aliases().unwrap();
+
+        assert_eq!(value["tasks"]["start"]["command"], "webpack");
+        assert_eq!(value["tasks"]["start"]["args"], "start");
+    }
+
+    #[test]
+    fn test_scalar_in_merge() {
+        let yaml = indoc!(r#"
+            <<: 1
+            a: 2
+        "#);
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        let err = value.apply_merge().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "expected a mapping or list of mappings for merging, but found scalar"
+        );
+    }
+
+    #[test]
+    fn test_tagged_in_merge() {
+        let yaml = indoc!(r#"
+            <<: {}
+            a: 2
+        "#);
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        if let Value::Mapping(ref mut map) = value {
+            let merge = map.get_mut("<<").unwrap();
+            let inner = std::mem::take(merge);
+            let tag = Tag::new("foo").unwrap();
+            *merge = Value::Tagged(Box::new(TaggedValue { tag, value: inner }));
+        } else {
+            panic!("expected mapping");
+        }
+        let err = value.apply_merge().unwrap_err();
+        assert_eq!(err.to_string(), "unexpected tagged value in merge");
+    }
+
+    #[test]
+    fn test_scalar_in_merge_element() {
+        let yaml = indoc!(r#"
+            <<: [1]
+            a: 2
+        "#);
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        let err = value.apply_merge().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "expected a mapping for merging, but found scalar"
+        );
+    }
+
+    #[test]
+    fn test_sequence_in_merge_element() {
+        let yaml = indoc!(r#"
+            <<:
+              - [1, 2]
+            a: 2
+        "#);
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        let err = value.apply_merge().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "expected a mapping for merging, but found sequence"
+        );
+    }
+
+    #[test]
+    fn test_merge_recursion() {
+        let yaml = indoc!(r#"
+            a: &a
+              b: 1
+        "#);
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        if let Value::Mapping(map) = &mut value {
+            if let Some(Value::Mapping(a_map)) = map.get_mut("a") {
+                let clone = a_map.clone();
+                a_map.insert("self".into(), Value::Mapping(clone));
+            }
+        }
+        let err = value.apply_merge().unwrap_err();
+        assert_eq!(err.to_string(), "encountered recursive merge alias");
+    }
+
+    #[test]
+    fn unresolved_alias_error() {
+        let yaml = "anchor: &id 1\nalias: *id";
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+
+        if let Some(Value::Number(_, anchor)) = value
+            .as_mapping_mut()
+            .unwrap()
+            .get_mut("anchor")
+        {
+            *anchor = None;
+        }
+
+        let err = value.resolve_aliases().unwrap_err();
+        assert_eq!(err.to_string(), "unresolved alias");
+    }
+
+    #[test]
+    fn cyclic_aliases_error() {
+        let yaml = "a: &a\n  ref: *a\n";
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+
+        let err = value.resolve_aliases().unwrap_err();
+        assert_eq!(err.to_string(), "encountered recursive merge alias");
+    }
+
+    #[test]
+    fn test_field_inheritance() {
+        let yaml_input = r#"
+defaults: &defaults
+  adapter: postgres
+  host: localhost
+
+development:
+  <<: *defaults
+  database: dev_db
+
+production:
+  <<: *defaults
+  database: prod_db
+"#;
+
+        let parsed: Value = from_str_value_preserve(yaml_input).unwrap();
+
+        let serialized = crate::to_string(&parsed).unwrap();
+
+        if serialized.matches("adapter: postgres").count() != 1 {
+            panic!("Anchors and aliases were not correctly preserved; duplication detected. Serialized output {serialized}");
+        }
+    }
+
+    fn assert_same_entries(a: &Value, b: &Value) {
+        let a = a.as_mapping().expect("a: expected a mapping");
+        let b = b.as_mapping().expect("b: expected a mapping");
+
+        assert_eq!(a.len(), b.len());
+        for a_key in a.keys() {
+            assert!(b.contains_key(a_key));
+            let a_value = a
+                .get(a_key)
+                .unwrap_or_else(|| panic!("key not present in a: {a_key:?}"))
+                .as_str();
+            let b_value = b
+                .get(a_key)
+                .unwrap_or_else(|| panic!("key not present in b: {a_key:?}"))
+                .as_str();
+
+            assert_eq!(
+                a_value, b_value,
+                "key {:?} has different values: a {:?}, b {:?}",
+                a_key.as_str(), a_value, b_value
+            );
+        }
+    }
+
+    #[test]
+    fn test_merge_key_example() {
+        let yaml = r#"
+- &CENTER { x: 1, y: 2 }
+- &LEFT { x: 0, y: 2 }
+- &BIG { r: 10 }
+- &SMALL { r: 1 }
+
+- x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- <<: *CENTER
+  r: 10
+  label: center/big
+
+- <<: [ *CENTER, *BIG ]
+  label: center/big
+
+# And here we have it all:
+- <<: [ *BIG, *LEFT, { x: 1, y: 2 } ]
+  label: center/big
+"#;
+
+        let value: Value = crate::from_str(yaml).unwrap();
+
+        let seq = value.as_sequence().expect("root should be a sequence");
+        assert_eq!(seq.len(), 8);
+
+        let base = &seq[4];
+        assert_same_entries(base, &seq[5]);
+        assert_same_entries(base, &seq[6]);
+        assert_same_entries(base, &seq[7]);
+    }
+
+    #[test]
+    fn test_self_referential_merge() {
+        let yaml = "a: &a\n  b: 1\n  <<: *a";
+        let mut value: Value = from_str_value_preserve(yaml).unwrap();
+        assert!(value.apply_merge().is_err());
+    }
+
+    #[test]
+    fn test_self_referential_after_reallocation() {
+        let yaml = "a: &a\n  b: 1\n  <<: *a";
+        let value: Value = from_str_value_preserve(yaml).unwrap();
+        let mut vec = Vec::new();
+        vec.push(Value::Null(None));
+        vec.push(value);
+        for _ in 0..100 {
+            vec.push(Value::Null(None));
+        }
+        let mut moved = vec.remove(1);
+        assert!(moved.apply_merge().is_err());
+    }
+
 }

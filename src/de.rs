@@ -2138,7 +2138,7 @@ where
 
 /// Deserialize a YAML `Value` while preserving anchors and aliases.
 #[allow(clippy::redundant_closure_for_method_calls)]
-pub fn from_str_value_preserve(s: &str) -> Result<Value> {
+pub(crate) fn from_str_value_preserve(s: &str) -> Result<Value> {
     Deserializer::from_str(s).de(|state| state.parse_value())
 }
 

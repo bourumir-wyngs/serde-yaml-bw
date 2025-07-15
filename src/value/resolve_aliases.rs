@@ -7,14 +7,13 @@ impl Value {
     /// values referenced by their anchors.
     ///
     /// ```
-    /// use serde_yaml_bw::{Value, from_str_value_preserve};
+    /// use serde_yaml_bw::{Value, from_str_value};
     ///
     /// let yaml = "a: &anchor 1\nb: *anchor";
-    /// let mut value: Value = from_str_value_preserve(yaml).unwrap();
-    /// value.resolve_aliases().unwrap();
+    /// let value: Value = from_str_value(yaml).unwrap();
     /// assert_eq!(value["b"], Value::Number(1.into(), None));
     /// ```
-    pub fn resolve_aliases(&mut self) -> Result<(), Error> {
+    pub(crate) fn resolve_aliases(&mut self) -> Result<(), Error> {
         fn collect_anchors(value: &Value, anchors: &mut HashMap<String, Value>) {
             match value {
                 Value::Null(anchor)
