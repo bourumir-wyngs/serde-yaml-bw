@@ -5,7 +5,9 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. Our fork also supports merge keys, which reduce redundancy and verbosity by enabling the reuse of common key-value pairs across multiple mappings. 
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. 
+
+Our fork also supports merge keys, which reduce redundancy and verbosity by allowing the reuse of common key-value pairs across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
 These extensions come at the cost of some API restrictions: write access to indices and mappings has been removed. Read access remains possible, with `Value::Null` returned on invalid access. Also, duplicate keys are not longer permitted in YAML, returning proper error message instead.
 
@@ -14,13 +16,6 @@ We do not encourage using this crate beyond serialization with serde. If your us
 Since the API has changed to a more restrictive version, the major version number has been incremented.
 
 If a panic does occur under some short and clear input, please report it as a bug.
-
-### Thread Safety
-
-Internally the library uses a `CStr` wrapper for libyaml strings. This type is
-`Send` and `Sync` only when referencing data that lives for the `'static`
-lifetime, so short-lived pointers returned by the parser must not be shared
-across threads.
 
 
 ## Usage Example
@@ -120,15 +115,17 @@ It is possible to construct infinite recursion with merge keys in YAML (Recursio
 
 ### Nested enums
 
-Externally tagged enums nest naturally in YAML using maps keyed by the variant. This allow to use polymorphic structures easily:
+Externally tagged enums naturally nest in YAML as maps keyed by the variant name. They enable the use of strict types (Rust enums with associated data) instead of falling back to generic maps.
 
 ```rust
 #[derive(Deserialize)]
 struct Move {
-    by: f32,
-    constraints: Vec<Constraint>,
+    by: f32, // Distance for a robot to move
+    constraints: Vec<Constraint>, // Restrict how it is allowed to move
 }
 
+/// Restrict space, speed, force, whatever - with associated data.
+/// Multiple constraints can be taken into consideration
 #[derive(Deserialize)]
 enum Constraint {
     StayWithin { x: f32, y: f32, r: f32 },
