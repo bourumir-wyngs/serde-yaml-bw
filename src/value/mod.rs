@@ -736,6 +736,18 @@ impl Value {
     /// assert_eq!(value["tasks"]["start"]["command"], "webpack");
     /// assert_eq!(value["tasks"]["start"]["args"], "start");
     /// ```
+    ///
+    /// When loading YAML using [`from_str_value_preserve`] which keeps aliases
+    /// intact, call [`resolve_aliases`](Self::resolve_aliases) before this
+    /// method:
+    ///
+    /// ```
+    /// # use serde_yaml_bw::{Value, from_str_value_preserve};
+    /// # let yaml = "a: &id 1\nb: *id\n";
+    /// # let mut value: Value = from_str_value_preserve(yaml).unwrap();
+    /// value.resolve_aliases().unwrap();
+    /// value.apply_merge().unwrap();
+    /// ```
     pub fn apply_merge(&mut self) -> Result<(), Error> {
         use std::collections::HashSet;
         let mut stack = Vec::new();

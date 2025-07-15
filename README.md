@@ -117,6 +117,18 @@ production:
     assert_eq!(parsed, expected);
 }
 ```
+When using `from_str_value_preserve` to obtain a raw `Value`, anchors and aliases
+are preserved. `apply_merge` expects these aliases to be resolved already, so
+invoke `resolve_aliases` before merging:
+
+```rust
+use serde_yaml_bw::{Value, from_str_value_preserve};
+
+let mut value: Value = from_str_value_preserve(yaml_input).unwrap();
+value.resolve_aliases().unwrap();
+value.apply_merge().unwrap();
+```
+
 It is possible to construct infinite recursion with merge keys in YAML (RecursionLimitExceeded error would be returned)
 
 ### Nested enums
