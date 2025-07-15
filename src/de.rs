@@ -2141,3 +2141,12 @@ where
 pub fn from_str_value_preserve(s: &str) -> Result<Value> {
     Deserializer::from_str(s).de(|state| state.parse_value())
 }
+
+/// Deserialize a YAML `Value`, applying merges and resolving aliases.
+#[allow(clippy::redundant_closure_for_method_calls)]
+pub fn from_str_value(s: &str) -> Result<Value> {
+    let mut value = from_str_value_preserve(s)?;
+    value.resolve_aliases()?;
+    value.apply_merge()?;
+    Ok(value)
+}
