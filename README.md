@@ -79,8 +79,7 @@ struct Connection {
     database: String,
 }
 
-#[test]
-fn test_anchor_alias_deserialization() {
+fn main() {
     let yaml_input = r#"
 # Here we define "default configuration"    
 defaults: &defaults
