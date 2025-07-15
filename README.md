@@ -137,15 +137,15 @@ let yaml = r#"
 - by: 10.0
   constraints:
     - StayWithin:
-      x: 0.0
-      y: 0.0
-      r: 5.0
+        x: 0.0
+        y: 0.0
+        r: 5.0
     - StayWithin:
-      x: 4.0
-      y: 0.0
-      r: 5.0
+        x: 4.0
+        y: 0.0
+        r: 5.0
     - MaxSpeed:
-      v: 3.5
+        v: 3.5
       "#;
 
   let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
