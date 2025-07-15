@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. 
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors, and similar vulnerabilities.
 
 Our fork also supports merge keys, which reduce redundancy and verbosity by allowing the reuse of common key-value pairs across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
@@ -111,7 +111,6 @@ production:
     assert_eq!(parsed, expected);
 }
 ```
-It is possible to construct infinite recursion with merge keys in YAML (RecursionLimitExceeded error would be returned)
 
 ### Nested enums
 
