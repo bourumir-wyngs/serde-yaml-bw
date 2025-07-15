@@ -820,7 +820,6 @@ impl IntoDeserializer<'_, Error> for Value {
 mod tests {
     use super::*;
     use crate::de::from_str_value_preserve;
-    use crate::from_str;
     use indoc::indoc;
     use crate::value::{Tag, TaggedValue};
     use serde::{Deserialize, Serialize};
