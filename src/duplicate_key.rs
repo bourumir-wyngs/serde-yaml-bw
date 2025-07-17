@@ -52,11 +52,7 @@ fn is_null(s: &[u8]) -> bool {
 }
 
 fn parse_bool(s: &str) -> Option<bool> {
-    match s {
-        "true" | "True" | "TRUE" => Some(true),
-        "false" | "False" | "FALSE" => Some(false),
-        _ => None,
-    }
+    crate::de::parse_bool_casefold(s)
 }
 
 impl Display for DuplicateKeyError {
@@ -75,7 +71,8 @@ impl Display for DuplicateKeyError {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_bool, is_null, DuplicateKeyError, DuplicateKeyKind};
+    use super::{is_null, DuplicateKeyError, DuplicateKeyKind};
+    use crate::parse_bool_casefold;
     use crate::number::Number;
 
     #[test]
@@ -89,13 +86,13 @@ mod tests {
 
     #[test]
     fn test_parse_bool_variants() {
-        assert_eq!(parse_bool("true"), Some(true));
-        assert_eq!(parse_bool("True"), Some(true));
-        assert_eq!(parse_bool("TRUE"), Some(true));
-        assert_eq!(parse_bool("false"), Some(false));
-        assert_eq!(parse_bool("False"), Some(false));
-        assert_eq!(parse_bool("FALSE"), Some(false));
-        assert_eq!(parse_bool("other"), None);
+        assert_eq!(parse_bool_casefold("true"), Some(true));
+        assert_eq!(parse_bool_casefold("True"), Some(true));
+        assert_eq!(parse_bool_casefold("TRUE"), Some(true));
+        assert_eq!(parse_bool_casefold("false"), Some(false));
+        assert_eq!(parse_bool_casefold("False"), Some(false));
+        assert_eq!(parse_bool_casefold("FALSE"), Some(false));
+        assert_eq!(parse_bool_casefold("other"), None);
     }
 
     #[test]

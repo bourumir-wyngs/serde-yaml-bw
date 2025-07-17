@@ -1055,11 +1055,7 @@ fn parse_null(scalar: &[u8]) -> Option<()> {
 }
 
 fn parse_bool(scalar: &str) -> Option<bool> {
-    match scalar {
-        "true" | "True" | "TRUE" => Some(true),
-        "false" | "False" | "FALSE" => Some(false),
-        _ => None,
-    }
+    parse_bool_casefold(scalar)
 }
 
 fn parse_scalar_value(scalar: &ScalarEvent) -> Value {
@@ -1261,6 +1257,17 @@ pub fn parse_f64(scalar: &str) -> Option<f64> {
         }
     }
     None
+}
+
+/// Parse a scalar as a boolean using ASCII case-insensitive matching.
+pub fn parse_bool_casefold(s: &str) -> Option<bool> {
+    if s.eq_ignore_ascii_case("true") {
+        Some(true)
+    } else if s.eq_ignore_ascii_case("false") {
+        Some(false)
+    } else {
+        None
+    }
 }
 
 /// Check if a digit string should be treated as a YAML string rather than a number.
