@@ -1,10 +1,10 @@
 [package]
 name = "serde_yaml_bw"
-version = "2.1.0"
+version = "2.1.1"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
-description = "YAML data format for Serde"
+description = "YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML)."
 documentation = "https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/"
 edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
