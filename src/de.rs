@@ -26,6 +26,9 @@ use base64::prelude::BASE64_STANDARD;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// Default recursion limit for deserialization.
+const DEFAULT_RECURSION_LIMIT: u8 = 128;
+
 /// A structure that deserializes YAML into Rust values.
 ///
 /// # Examples
@@ -125,7 +128,7 @@ impl<'de> Deserializer<'de> {
                     pos: &mut pos,
                     jumpcount: &mut jumpcount,
                     path: Path::Root,
-                    remaining_depth: 128,
+                    remaining_depth: DEFAULT_RECURSION_LIMIT,
                     enum_depth: Rc::clone(&enum_depth),
                 })?;
                 if let Some(parse_error) = document.error {
@@ -145,7 +148,7 @@ impl<'de> Deserializer<'de> {
             pos: &mut pos,
             jumpcount: &mut jumpcount,
             path: Path::Root,
-            remaining_depth: 128,
+            remaining_depth: DEFAULT_RECURSION_LIMIT,
             enum_depth: Rc::clone(&enum_depth),
         })?;
         if let Some(parse_error) = document.error {
