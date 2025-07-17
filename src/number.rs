@@ -8,6 +8,9 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 /// Represents a YAML number, whether integer or floating point.
+///
+/// Integers and floats compare by their numeric value. NaN is considered
+/// greater than all other numbers.
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct Number {
     n: N,
@@ -245,7 +248,7 @@ impl N {
             (N::NegInt(_), N::PosInt(_)) => Ordering::Less,
             (N::PosInt(_), N::NegInt(_)) => Ordering::Greater,
             (N::Float(a), N::Float(b)) => a.partial_cmp(&b).unwrap_or_else(|| {
-                // arbitrarily sort the NaN last
+                // sort NaN last
                 if !a.is_nan() {
                     Ordering::Less
                 } else if !b.is_nan() {
@@ -254,15 +257,45 @@ impl N {
                     Ordering::Equal
                 }
             }),
-            // arbitrarily sort integers below floats
-            // FIXME: maybe something more sensible?
-            (_, N::Float(_)) => Ordering::Less,
-            (N::Float(_), _) => Ordering::Greater,
+            (N::PosInt(i), N::Float(f)) => cmp_int_float(i as i128, f),
+            (N::NegInt(i), N::Float(f)) => cmp_int_float(i as i128, f),
+            (N::Float(f), N::PosInt(i)) => cmp_int_float(i as i128, f).reverse(),
+            (N::Float(f), N::NegInt(i)) => cmp_int_float(i as i128, f).reverse(),
         }
     }
 }
 
+fn cmp_int_float(int: i128, float: f64) -> Ordering {
+    if float.is_nan() {
+        return Ordering::Less;
+    }
+    if float.is_infinite() {
+        return if float.is_sign_negative() {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        };
+    }
+
+    let fi = int as f64;
+    match fi.partial_cmp(&float).unwrap() {
+        Ordering::Equal => {
+            if float.fract() == 0.0 {
+                let float_int = float as i128;
+                int.cmp(&float_int)
+            } else {
+                Ordering::Equal
+            }
+        }
+        ord => ord,
+    }
+}
+
 impl Number {
+    /// Compare two numbers using the total ordering defined for [`Number`].
+    ///
+    /// Integers and floats are compared by numeric value, with NaN considered
+    /// greater than any non-NaN value.
     pub(crate) fn total_cmp(&self, other: &Self) -> Ordering {
         self.n.total_cmp(&other.n)
     }
