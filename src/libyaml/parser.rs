@@ -8,7 +8,7 @@ use std::fmt::{self, Debug};
 use std::mem::MaybeUninit;
 use std::ptr::{addr_of_mut, NonNull};
 use std::slice;
-use std::io::Read;
+use std::io::{self, Read};
 use unsafe_libyaml as sys;
 
 pub(crate) struct Parser<'input> {
@@ -19,6 +19,7 @@ struct ParserPinned<'input> {
     sys: sys::yaml_parser_t,
     input: Option<Cow<'input, [u8]>>,
     reader: Option<Box<dyn Read + 'input>>,
+    read_error: Option<io::Error>,
 }
 
 #[derive(Debug)]
@@ -81,6 +82,7 @@ impl<'input> Parser<'input> {
             sys::yaml_parser_set_input_string(parser, input.as_ptr(), input.len() as u64);
             addr_of_mut!((*owned.ptr).input).write(Some(input));
             addr_of_mut!((*owned.ptr).reader).write(None);
+            addr_of_mut!((*owned.ptr).read_error).write(None);
             Owned::assume_init(owned)
         };
         Ok(Parser { pin })
@@ -97,14 +99,16 @@ impl<'input> Parser<'input> {
             size_read: *mut u64,
         ) -> i32 {
             unsafe {
-                let reader = &mut *(data as *mut Option<Box<dyn Read>>);
+                let pinned = &mut *(data as *mut ParserPinned);
+                let reader = pinned.reader.as_mut().unwrap();
                 let slice = std::slice::from_raw_parts_mut(buffer, size as usize);
-                match reader.as_mut().unwrap().read(slice) {
+                match reader.read(slice) {
                     Ok(len) => {
                         *size_read = len as u64;
                         1
                     }
-                    Err(_) => {
+                    Err(err) => {
+                        pinned.read_error = Some(err);
                         *size_read = 0;
                         0
                     }
@@ -120,7 +124,8 @@ impl<'input> Parser<'input> {
             }
             sys::yaml_parser_set_encoding(parser, sys::YAML_UTF8_ENCODING);
             addr_of_mut!((*owned.ptr).reader).write(Some(Box::new(reader)));
-            let data = addr_of_mut!((*owned.ptr).reader) as *mut Option<Box<dyn Read>>;
+            addr_of_mut!((*owned.ptr).read_error).write(None);
+            let data = owned.ptr;
             sys::yaml_parser_set_input(parser, read_handler as sys::yaml_read_handler_t, data.cast());
             addr_of_mut!((*owned.ptr).input).write(None);
             Owned::assume_init(owned)
@@ -131,6 +136,9 @@ impl<'input> Parser<'input> {
     pub fn next(&mut self) -> Result<(Event<'input>, Mark)> {
         let mut event = MaybeUninit::<sys::yaml_event_t>::uninit();
         unsafe {
+            if let Some(err) = (*self.pin.ptr).read_error.take() {
+                return Err(error::new(ErrorImpl::Io(err)));
+            }
             let parser = addr_of_mut!((*self.pin.ptr).sys);
             if (&*parser).error != sys::YAML_NO_ERROR {
                 return Err(Error::from(LibyamlError::parse_error(parser)));
@@ -138,6 +146,9 @@ impl<'input> Parser<'input> {
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
                 sys::yaml_event_delete(event);
+                if let Some(err) = (*self.pin.ptr).read_error.take() {
+                    return Err(error::new(ErrorImpl::Io(err)));
+                }
                 return Err(Error::from(LibyamlError::parse_error(parser)));
             }
             let ret = convert_event(&*event, &(*self.pin.ptr).input)
@@ -266,6 +277,7 @@ impl Drop for ParserPinned<'_> {
 mod tests {
     use super::*;
     use std::borrow::Cow;
+    use std::io::{self, Read};
 
     #[test]
     fn repeated_parse_errors_do_not_leak() {
@@ -279,5 +291,20 @@ mod tests {
                 }
             }
         }
+    }
+
+    struct FailingReader;
+
+    impl Read for FailingReader {
+        fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+            Err(io::Error::new(io::ErrorKind::Other, "fail"))
+        }
+    }
+
+    #[test]
+    fn read_error_is_propagated() {
+        let mut parser = Parser::from_reader(FailingReader).unwrap();
+        let err = parser.next().unwrap_err();
+        assert_eq!(err.to_string(), "fail");
     }
 }
