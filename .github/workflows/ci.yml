@@ -13,13 +13,8 @@ env:
   RUSTFLAGS: -Dwarnings
 
 jobs:
-  pre_ci:
-    uses: dtolnay/.github/.github/workflows/pre_ci.yml@master
-
   test:
     name: Rust ${{matrix.rust}}
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,7 +23,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{matrix.rust}}
       - name: Enable type layout randomization
@@ -39,16 +34,17 @@ jobs:
 
   doc:
     name: Documentation
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       RUSTDOCFLAGS: -Dwarnings
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: dtolnay/install@cargo-docs-rs
+      - uses: rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+      - name: Install docs-rs tool
+        run: cargo install --locked cargo-docs-rs
       - run: cargo docs-rs
 
   clippy:
@@ -58,18 +54,22 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@clippy
+      - uses: rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
       - run: cargo clippy --tests -- -Dclippy::all -Dclippy::pedantic
 
   miri:
     name: Miri
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@miri
+      - uses: rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          components: miri
       - run: cargo miri setup
       - run: cargo miri test
         env:
@@ -77,13 +77,13 @@ jobs:
 
   audit:
     name: Cargo Audit
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
       - name: Install cargo-audit
         run: cargo install --locked cargo-audit
       - name: Run cargo audit
@@ -91,13 +91,11 @@ jobs:
 
   fuzz:
     name: Fuzzing
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly
           components: llvm-tools-preview
