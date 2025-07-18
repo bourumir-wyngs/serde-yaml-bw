@@ -9,13 +9,20 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-
 [dependencies.serde_yaml_bw]
 path = ".."
 
 [[bin]]
 name = "from_slice"
 path = "fuzz_targets/from_slice.rs"
+test = false
+doc = false
+bench = false
+
+
+[[bin]]
+name = "from_reader"
+path = "fuzz_targets/from_reader.rs"
 test = false
 doc = false
 bench = false

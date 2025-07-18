@@ -1,5 +1,7 @@
 #![no_main]
 
+mod from_reader;
+
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
