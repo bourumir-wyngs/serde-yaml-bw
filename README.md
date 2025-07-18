@@ -153,8 +153,7 @@ let yaml = r#"
 
 ### Binary scalars
 
-YAML values tagged with `!!binary` are automatically base64-decoded when deserializing into a `Vec<u8>`. For also 
-writing this way, annotate the field with `#[serde(with = "serde_bytes")]` from [serde_bytes](https://docs.rs/serde_bytes/0.11.17/serde_bytes/) crate.
+YAML values tagged with `!!binary` are automatically base64-decoded when deserializing into `Vec<u8>`. To serialize in this form, annotate the field with `#[serde(with = "serde_bytes")]` from the [serde_bytes](https://docs.rs/serde_bytes/0.11.17/serde_bytes/) crate.
 
 ```rust
 use serde::Deserialize;
