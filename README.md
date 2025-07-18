@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 
-This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors, duplicate keys and similar vulnerabilities.
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors and duplicate keys. [Fuzz](https://github.com/rust-fuzz/cargo-fuzz) and [audit](https://github.com/RustSec/cargo-audit) run periodically.
 
 Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
@@ -168,14 +168,3 @@ fn parse_blob() {
     assert_eq!(blob.data, b"hello");
 }
 ```
-
-## Fuzzing
-
-This repository contains a fuzzing target powered by [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz).
-Execute it locally with:
-
-```bash
-cargo fuzz run fuzz_from_slice
-```
-
-The fuzzer repeatedly feeds random YAML data to the parser and reports any crashes.
