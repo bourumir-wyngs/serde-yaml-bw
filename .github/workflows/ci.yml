@@ -88,3 +88,20 @@ jobs:
         run: cargo install --locked cargo-audit
       - name: Run cargo audit
         run: cargo audit
+
+  fuzz:
+    name: Fuzzing
+    needs: pre_ci
+    if: needs.pre_ci.outputs.continue
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: llvm-tools-preview
+      - name: Install cargo-fuzz
+        run: cargo install --locked cargo-fuzz
+      - name: Run fuzz target
+        run: cargo fuzz run fuzz_from_slice -- -max_total_time=60
