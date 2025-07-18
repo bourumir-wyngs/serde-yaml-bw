@@ -1,22 +1,21 @@
 [package]
-name = "serde_yaml-fuzz-bw"
+name = "serde_yaml_bw-fuzz"
 version = "0.0.0"
-#authors = ["David Tolnay <dtolnay@gmail.com>"]
-authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
-edition = "2021"
 publish = false
+edition = "2024"
 
 [package.metadata]
 cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-serde_yaml_bw = { path = ".." }
+
+[dependencies.serde_yaml_bw]
+path = ".."
 
 [[bin]]
-name = "fuzz_from_slice"
-path = "fuzz_targets/fuzz_from_slice.rs"
+name = "from_slice"
+path = "fuzz_targets/from_slice.rs"
 test = false
 doc = false
-
-[workspace]
+bench = false
