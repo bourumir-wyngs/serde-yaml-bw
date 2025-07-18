@@ -100,6 +100,36 @@ fn test_borrowed() {
 }
 
 #[test]
+fn test_borrowed_struct() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct User<'a> {
+        name: &'a str,
+        email: &'a str,
+    }
+
+    let yaml = indoc! {"
+        name: Alice
+        email: alice@example.com
+    "};
+
+    let user: User<'_> = User::deserialize(Deserializer::from_str(yaml)).unwrap();
+    assert_eq!(
+        user,
+        User {
+            name: "Alice",
+            email: "alice@example.com",
+        }
+    );
+
+    let yaml_ptr = yaml.as_ptr() as usize;
+    let yaml_end = yaml_ptr + yaml.len();
+    let name_ptr = user.name.as_ptr() as usize;
+    let email_ptr = user.email.as_ptr() as usize;
+    assert!(name_ptr >= yaml_ptr && name_ptr < yaml_end);
+    assert!(email_ptr >= yaml_ptr && email_ptr < yaml_end);
+}
+
+#[test]
 fn test_alias() {
     let yaml = indoc! {"
         first:
