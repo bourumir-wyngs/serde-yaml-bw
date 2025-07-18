@@ -168,3 +168,14 @@ fn parse_blob() {
     assert_eq!(blob.data, b"hello");
 }
 ```
+
+## Fuzzing
+
+This repository contains a fuzzing target powered by [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz).
+Execute it locally with:
+
+```bash
+cargo fuzz run fuzz_from_slice
+```
+
+The fuzzer repeatedly feeds random YAML data to the parser and reports any crashes.
