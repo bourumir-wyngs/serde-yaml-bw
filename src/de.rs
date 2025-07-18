@@ -719,7 +719,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
 
     pub(crate) fn parse_value(&mut self) -> Result<Value> {
         use Event::{Alias, MappingEnd, MappingStart, Scalar, SequenceEnd, SequenceStart, Void};
-        let (event, _mark) = self.next_event_mark()?;
+        let (event, mark) = self.next_event_mark()?;
         match event {
             &Alias(id) => {
                 let alias_index = match self.document.aliases.get(id) {
@@ -751,10 +751,14 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 while !matches!(self.peek_event()?, MappingEnd) {
                     let key = self.parse_value()?;
                     if mapping.contains_key(&key) {
-                        return Err(error::new(ErrorImpl::Message(
-                            DuplicateKeyError::from_value(&key).to_string(),
-                            None,
-                        )));
+                        return Err(error::fix_mark(
+                            error::new(ErrorImpl::Message(
+                                DuplicateKeyError::from_value(&key).to_string(),
+                                None,
+                            )),
+                            mark,
+                            self.path,
+                        ));
                     }
                     let value = self.parse_value()?;
                     mapping.insert(key, value);
@@ -763,8 +767,16 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 mapping.anchor = anchor;
                 Ok(Value::Mapping(mapping))
             }
-            SequenceEnd => Err(error::new(ErrorImpl::UnexpectedEndOfSequence)),
-            MappingEnd => Err(error::new(ErrorImpl::UnexpectedEndOfMapping)),
+            SequenceEnd => Err(error::fix_mark(
+                error::new(ErrorImpl::UnexpectedEndOfSequence),
+                mark,
+                self.path,
+            )),
+            MappingEnd => Err(error::fix_mark(
+                error::new(ErrorImpl::UnexpectedEndOfMapping),
+                mark,
+                self.path,
+            )),
             Void => Ok(Value::Null(None)),
         }
     }
