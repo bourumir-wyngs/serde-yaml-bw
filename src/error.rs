@@ -41,6 +41,7 @@ pub(crate) enum ErrorImpl {
 
     Shared(Arc<ErrorImpl>),
     SerializedValueBeforeSerializeKey,
+    /// Indicates that an invalid YAML tag was encountered during serialization.
     TagError,
 }
 

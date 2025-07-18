@@ -26,6 +26,12 @@
 //!     Ok(())
 //! }
 //! ```
+
+//! ## Errors
+//!
+//! Attempting to serialize a value with an invalid YAML tag will
+//! result in an [`Error`] whose cause is internally represented by the private
+//! `TagError` variant.
 //!
 //! ## Using Serde derive
 //!
