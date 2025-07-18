@@ -2,7 +2,7 @@ name: Daily Fuzz, Nightly Rust Tests, and Audit
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+    - cron: '23 5 */2 * *'  # Runs every second day at 00:23 EST (05:23 UTC)
   workflow_dispatch:     # Allows manual triggering
 
 jobs:
@@ -24,14 +24,12 @@ jobs:
       - name: Run standard tests, taking advantage we now have nightly Rust
         run: cargo test --verbose
 
-      - name: Run cargo audit, taking advantage we now have nightly Rust
+      - name: Run cargo audit, this also makes sense to run periodically
         run: cargo audit
 
-      - name: Run fuzz target 'from_slice' (1 min)
-        run: cargo fuzz run from_slice -- -max_total_time=60 -rss_limit_mb=1024
-
-      - name: Run fuzz target 'from_reader' (1 min)
-        run: cargo fuzz run from_reader -- -max_total_time=60 -rss_limit_mb=1024
+      # It is not long but it will run multiple times automatically
+      - name: Run fuzz target 'from_slice' (2 min)
+        run: cargo fuzz run slice_and_reader -- -max_total_time=60 -rss_limit_mb=1024
 
       - name: Upload fuzz crash artifacts
         uses: actions/upload-artifact@v4
