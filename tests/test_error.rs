@@ -711,3 +711,20 @@ fn test_error_filters_control_chars() {
     );
 }
 
+#[test]
+fn test_from_str_value_duplicate_location() {
+    let yaml = "---\na: 1\na: 2\n";
+    let err = serde_yaml_bw::from_str_value(yaml).unwrap_err();
+    let loc = err.location().expect("location");
+    assert_eq!(2, loc.line());
+    assert_eq!(1, loc.column());
+}
+
+#[test]
+fn test_from_str_value_unexpected_end_location() {
+    let err = serde_yaml_bw::from_str_value("]").unwrap_err();
+    let loc = err.location().expect("location");
+    assert_eq!(1, loc.line());
+    assert_eq!(1, loc.column());
+}
+
