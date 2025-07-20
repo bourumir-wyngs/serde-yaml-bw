@@ -9,6 +9,7 @@ enum Example {
 }
 
 #[test]
+// This test requires serde_repr crate that is in development dependencies.
 fn test_serde_repr_enum() {
     let value = Example::B;
     let yaml_str = "2\n";
