@@ -26,7 +26,8 @@ indoc = "2.0"
 serde_json = "1.0"
 serde_bytes = "0.11"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_repr = "0.1.20" 
+serde_repr = "0.1.20"
+chrono = "0.4.41"
 
 [lib]
 doc-scrape-examples = false

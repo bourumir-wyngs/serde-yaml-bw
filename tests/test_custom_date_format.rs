@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc, TimeZone};
 use serde::{Serialize, Deserialize};
 
+// This test requires chrono that is in development dependencies.
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct StructWithDate {
     #[serde(with = "some_date_format")] // "some_date_format" defined below
@@ -41,7 +43,7 @@ fn test_custom_date_serialization() {
 
     // Serialize struct to JSON
     let serialized = serde_yaml_bw::to_string(&original).expect("Serialization failed");
-    assert_eq!(serialized, r#""timestamp: 2025-07-25 11:32:42\ntester: Bourumir\n"#);
+    assert_eq!(serialized, "timestamp: 2025-07-25 11:32:42\ntester: Bourumir\n");
 
     // Deserialize back from JSON
     let deserialized: StructWithDate = serde_yaml_bw::from_str(&serialized).expect("Deserialization failed");
