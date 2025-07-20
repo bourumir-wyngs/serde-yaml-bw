@@ -4,8 +4,10 @@
 [![crates.io](https://img.shields.io/crates/l/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![crates.io](https://img.shields.io/crates/d/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
+[![Fuzz & Audit](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml/badge.svg)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml)
 
-This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors and duplicate keys. [Fuzz](https://github.com/rust-fuzz/cargo-fuzz) and [audit](https://github.com/RustSec/cargo-audit) run periodically.
+
+This package is a fork of **serde-yaml**, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors and duplicate keys. 
 
 Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
@@ -168,3 +170,6 @@ fn parse_blob() {
     assert_eq!(blob.data, b"hello");
 }
 ```
+
+### Rc, Arc, Box and Cow
+To serialize references ([`Rc`](https://doc.rust-lang.org/std/rc/struct.Rc.html), [`Arc`](https://doc.rust-lang.org/std/sync/struct.Arc.html)), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). [`Box`](https://doc.rust-lang.org/std/boxed/struct.Box.html) and [`Cow`](https://doc.rust-lang.org/std/borrow/enum.Cow.html) are supported [out of the box](https://serde.rs/impls.html).

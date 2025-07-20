@@ -1,4 +1,4 @@
-name: Fuzz, Nightly Rust Tests, and Audit
+name: Fuzz & Audit
 
 on:
   schedule:
