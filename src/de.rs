@@ -21,6 +21,7 @@ use std::mem;
 use std::num::ParseIntError;
 use std::str;
 use std::sync::Arc;
+use std::marker::PhantomData;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 
@@ -158,6 +159,17 @@ impl<'de> Deserializer<'de> {
             Ok(t)
         } else {
             Err(error::new(ErrorImpl::MoreThanOneDocument))
+        }
+    }
+
+    /// Turn this YAML deserializer into an iterator over values of type `T`.
+    pub fn into_iter<T>(self) -> StreamDeserializer<'de, T>
+    where
+        T: DeserializeOwned,
+    {
+        StreamDeserializer {
+            de: self,
+            output: PhantomData,
         }
     }
 }
@@ -2171,4 +2183,28 @@ pub fn from_str_value(s: &str) -> Result<Value> {
     value.resolve_aliases()?;
     value.apply_merge()?;
     Ok(value)
+}
+
+/// Iterator that deserializes a stream into multiple YAML values.
+///
+/// A stream deserializer can be created from any YAML `Deserializer`
+/// using the `Deserializer::into_iter` method.
+pub struct StreamDeserializer<'de, T> {
+    de: Deserializer<'de>,
+    output: PhantomData<T>,
+}
+
+impl<'de, T> Iterator for StreamDeserializer<'de, T>
+where
+    T: DeserializeOwned,
+{
+    type Item = Result<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let doc = self.de.next()?;
+        Some(Value::deserialize(doc).and_then(|mut value| {
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        }))
+    }
 }
