@@ -30,6 +30,28 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 /// Default recursion limit for deserialization.
 const DEFAULT_RECURSION_LIMIT: u8 = 128;
 
+/// Configuration options for YAML deserialization.
+#[derive(Clone)]
+pub struct DeserializerOptions {
+    /// Maximum depth allowed during deserialization before reporting
+    /// [`RecursionLimitExceeded`]. A value of 0 disables the check.
+    pub recursion_limit: u8,
+    /// Maximum number of alias expansions allowed before reporting
+    /// [`RepetitionLimitExceeded`]. A value of 0 preserves the default limit
+    /// based on the input size.
+    pub alias_limit: usize,
+}
+
+impl Default for DeserializerOptions {
+    fn default() -> Self {
+        Self {
+            recursion_limit: DEFAULT_RECURSION_LIMIT,
+            alias_limit: 0,
+        }
+    }
+}
+
+
 /// A structure that deserializes YAML into Rust values.
 ///
 /// # Examples
@@ -70,6 +92,7 @@ const DEFAULT_RECURSION_LIMIT: u8 = 128;
 /// ```
 pub struct Deserializer<'de> {
     progress: Progress<'de>,
+    options: DeserializerOptions,
 }
 
 pub(crate) enum Progress<'de> {
@@ -90,14 +113,24 @@ impl<'de> Default for Progress<'de> {
 impl<'de> Deserializer<'de> {
     /// Creates a YAML deserializer from a `&str`.
     pub fn from_str(s: &'de str) -> Self {
+        Self::from_str_with_options(s, &DeserializerOptions::default())
+    }
+
+    /// Creates a YAML deserializer from a `&str` with custom options.
+    pub fn from_str_with_options(s: &'de str, options: &DeserializerOptions) -> Self {
         let progress = Progress::Str(s);
-        Deserializer { progress }
+        Deserializer { progress, options: options.clone() }
     }
 
     /// Creates a YAML deserializer from a `&[u8]`.
     pub fn from_slice(v: &'de [u8]) -> Self {
+        Self::from_slice_with_options(v, &DeserializerOptions::default())
+    }
+
+    /// Creates a YAML deserializer from a `&[u8]` with custom options.
+    pub fn from_slice_with_options(v: &'de [u8], options: &DeserializerOptions) -> Self {
         let progress = Progress::Slice(v);
-        Deserializer { progress }
+        Deserializer { progress, options: options.clone() }
     }
 
     /// Creates a YAML deserializer from an `io::Read`.
@@ -109,8 +142,16 @@ impl<'de> Deserializer<'de> {
     where
         R: io::Read + 'de,
     {
+        Self::from_reader_with_options(rdr, &DeserializerOptions::default())
+    }
+
+    /// Creates a YAML deserializer from an `io::Read` with custom options.
+    pub fn from_reader_with_options<R>(rdr: R, options: &DeserializerOptions) -> Self
+    where
+        R: io::Read + 'de,
+    {
         let progress = Progress::Read(Box::new(rdr));
-        Deserializer { progress }
+        Deserializer { progress, options: options.clone() }
     }
 
     fn de<T>(
@@ -124,13 +165,23 @@ impl<'de> Deserializer<'de> {
         match self.progress {
             Progress::Iterable(_) => return Err(error::new(ErrorImpl::MoreThanOneDocument)),
             Progress::Document(document) => {
+                let alias_limit = if self.options.alias_limit == 0 {
+                    document
+                        .events
+                        .len()
+                        .checked_mul(100)
+                        .ok_or_else(|| error::new(ErrorImpl::RepetitionLimitExceeded))?
+                } else {
+                    self.options.alias_limit
+                };
                 let t = f(&mut DeserializerFromEvents {
                     document: &document,
                     pos: &mut pos,
                     jumpcount: &mut jumpcount,
                     path: Path::Root,
-                    remaining_depth: DEFAULT_RECURSION_LIMIT,
+                    remaining_depth: self.options.recursion_limit,
                     enum_depth: Rc::clone(&enum_depth),
+                    alias_limit,
                 })?;
                 if let Some(parse_error) = document.error {
                     return Err(error::shared(parse_error));
@@ -144,13 +195,23 @@ impl<'de> Deserializer<'de> {
         let Some(document) = loader.next_document() else {
             return Err(error::new(ErrorImpl::EndOfStream));
         };
+        let alias_limit = if self.options.alias_limit == 0 {
+            document
+                .events
+                .len()
+                .checked_mul(100)
+                .ok_or_else(|| error::new(ErrorImpl::RepetitionLimitExceeded))?
+        } else {
+            self.options.alias_limit
+        };
         let t = f(&mut DeserializerFromEvents {
             document: &document,
             pos: &mut pos,
             jumpcount: &mut jumpcount,
             path: Path::Root,
-            remaining_depth: DEFAULT_RECURSION_LIMIT,
+            remaining_depth: self.options.recursion_limit,
             enum_depth: Rc::clone(&enum_depth),
+            alias_limit,
         })?;
         if let Some(parse_error) = document.error {
             return Err(error::shared(parse_error));
@@ -183,12 +244,14 @@ impl Iterator for Deserializer<'_> {
                 let document = loader.next_document()?;
                 return Some(Deserializer {
                     progress: Progress::Document(document),
+                    options: self.options.clone(),
                 });
             }
             Progress::Document(_) => return None,
             Progress::Fail(err) => {
                 return Some(Deserializer {
                     progress: Progress::Fail(Arc::clone(err)),
+                    options: self.options.clone(),
                 });
             }
             _ => {}
@@ -205,6 +268,7 @@ impl Iterator for Deserializer<'_> {
                 self.progress = Progress::Fail(Arc::clone(&fail));
                 Some(Deserializer {
                     progress: Progress::Fail(fail),
+                    options: self.options.clone(),
                 })
             }
         }
@@ -483,6 +547,7 @@ struct DeserializerFromEvents<'de, 'document> {
     path: Path<'document>,
     remaining_depth: u8,
     enum_depth: Rc<RefCell<usize>>,
+    alias_limit: usize,
 }
 
 impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
@@ -525,13 +590,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         pos: &'anchor mut usize,
     ) -> Result<DeserializerFromEvents<'de, 'anchor>> {
         *self.jumpcount += 1;
-        let limit = self
-            .document
-            .events
-            .len()
-            .checked_mul(100)
-            .ok_or_else(|| error::new(ErrorImpl::RepetitionLimitExceeded))?;
-        if *self.jumpcount > limit {
+        if *self.jumpcount > self.alias_limit {
             return Err(error::new(ErrorImpl::RepetitionLimitExceeded));
         }
         match self.document.aliases.get(*pos) {
@@ -544,6 +603,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     path: Path::Alias { parent: &self.path },
                     remaining_depth: self.remaining_depth,
                     enum_depth: Rc::clone(&self.enum_depth),
+                    alias_limit: self.alias_limit,
                 })
             }
             None => {
@@ -823,6 +883,7 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
                     },
                     remaining_depth: self.de.remaining_depth,
                     enum_depth: Rc::clone(&self.de.enum_depth),
+                    alias_limit: self.de.alias_limit,
                 };
                 self.len += 1;
                 seed.deserialize(&mut element_de).map(Some)
@@ -887,6 +948,7 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
             },
             remaining_depth: self.de.remaining_depth,
             enum_depth: Rc::clone(&self.de.enum_depth),
+            alias_limit: self.de.alias_limit,
         };
         seed.deserialize(&mut value_de)
     }
@@ -915,6 +977,7 @@ impl<'de, 'variant> de::EnumAccess<'de> for EnumAccess<'de, '_, 'variant> {
             path: self.de.path,
             remaining_depth: self.de.remaining_depth,
             enum_depth: Rc::clone(&self.de.enum_depth),
+            alias_limit: self.de.alias_limit,
         };
         Ok((variant, visitor))
     }
@@ -1482,7 +1545,6 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
         }
             .map_err(|err| error::fix_mark(err, mark, self.path))
     }
-
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where

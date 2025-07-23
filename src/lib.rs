@@ -163,11 +163,11 @@
 pub use crate::de::{
     from_reader, from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi,
     from_str_value, digits_but_not_number, parse_bool_casefold, parse_f64,
-    Deserializer, StreamDeserializer,
+    Deserializer, StreamDeserializer, DeserializerOptions
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{
-    to_string, to_string_multi, to_writer, to_writer_multi, Serializer,
+    to_string, to_string_multi, to_writer, to_writer_multi, Serializer, SerializerBuilder,
 };
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};

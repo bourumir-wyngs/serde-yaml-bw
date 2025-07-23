@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn emit_error_after_drop() {
         let err = {
-            let mut emitter = Emitter::new(Vec::<u8>::new()).unwrap();
+            let mut emitter = Emitter::new(Vec::<u8>::new(), -1, 2).unwrap();
             emitter.emit(Event::MappingEnd).unwrap_err()
         };
         if let EmitterError::Libyaml(inner) = err {
