@@ -19,6 +19,58 @@ use crate::libyaml::tag::Tag;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// Builder to configure [`Serializer`].
+#[derive(Debug, Clone)]
+pub struct SerializerBuilder {
+    width: i32,
+    indent: i32,
+    scalar_style: ScalarStyle,
+}
+
+impl Default for SerializerBuilder {
+    fn default() -> Self {
+        Self { width: -1, indent: 2, scalar_style: ScalarStyle::Plain }
+    }
+}
+
+impl SerializerBuilder {
+    /// Create a builder with default settings.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set preferred line width; `-1` means unlimited.
+    pub fn width(mut self, width: i32) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Set indentation increment.
+    pub fn indent(mut self, indent: i32) -> Self {
+        self.indent = indent;
+        self
+    }
+
+    /// Set default scalar style used for simple scalars.
+    pub fn scalar_style(mut self, style: ScalarStyle) -> Self {
+        self.scalar_style = style;
+        self
+    }
+
+    /// Build a [`Serializer`] writing to the given writer.
+    pub fn build<W: io::Write>(self, writer: W) -> Result<Serializer<W>> {
+        let mut emitter = Emitter::new(writer, self.width, self.indent)?;
+        emitter.emit(Event::StreamStart)?;
+        Ok(Serializer {
+            depth: 0,
+            state: State::default(),
+            tag_stack: Vec::new(),
+            emitter,
+            default_scalar_style: self.scalar_style,
+        })
+    }
+}
+
 /// A structure for serializing Rust values into YAML.
 ///
 /// # Example
@@ -53,6 +105,7 @@ where
     /// Stack of YAML tags currently in scope.
     tag_stack: Vec<String>,
     emitter: Emitter<W>,
+    default_scalar_style: ScalarStyle,
 }
 
 enum State {
@@ -78,14 +131,7 @@ where
 {
     /// Creates a new YAML serializer.
     pub fn new(writer: W) -> Result<Self> {
-        let mut emitter = Emitter::new(writer)?;
-        emitter.emit(Event::StreamStart)?;
-        Ok(Serializer {
-            depth: 0,
-            state: State::default(),
-            tag_stack: Vec::new(),
-            emitter,
-        })
+        SerializerBuilder::new().build(writer)
     }
 
     /// Calls [`.flush()`](io::Write::flush) on the underlying `io::Write`
@@ -200,7 +246,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: if v { "true" } else { "false" },
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -208,7 +254,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -216,7 +262,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -224,7 +270,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -232,7 +278,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -240,7 +286,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -248,7 +294,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -256,7 +302,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -264,7 +310,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -272,7 +318,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -280,7 +326,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: itoa::Buffer::new().format(v),
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -294,7 +340,7 @@ where
                 num::FpCategory::Nan => ".nan",
                 _ => buffer.format_finite(v),
             },
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -308,7 +354,7 @@ where
                 num::FpCategory::Nan => ".nan",
                 _ => buffer.format_finite(v),
             },
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -392,7 +438,7 @@ where
             Scalar {
             tag: Some(Tag::BINARY.into()),
             value: &encoded,
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 
@@ -400,7 +446,7 @@ where
         self.emit_scalar(Scalar {
             tag: None,
             value: "null",
-            style: ScalarStyle::Plain,
+            style: self.default_scalar_style,
         })
     }
 

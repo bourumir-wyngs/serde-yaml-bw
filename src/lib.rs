@@ -167,7 +167,7 @@ pub use crate::de::{
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{
-    to_string, to_string_multi, to_writer, to_writer_multi, Serializer,
+    to_string, to_string_multi, to_writer, to_writer_multi, Serializer, SerializerBuilder,
 };
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};

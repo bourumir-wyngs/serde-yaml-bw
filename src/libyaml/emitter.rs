@@ -49,7 +49,7 @@ pub(crate) struct Scalar<'a> {
     pub style: ScalarStyle,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum ScalarStyle {
     Any,
     Plain,
@@ -71,7 +71,7 @@ impl<W> Emitter<W>
 where
     W: io::Write,
 {
-    pub fn new(write: W) -> Result<Emitter<W>, Error> {
+    pub fn new(write: W, width: i32, indent: i32) -> Result<Emitter<W>, Error> {
         let owned = Owned::<EmitterPinned<W>>::new_uninit();
         let pin = unsafe {
             let emitter = addr_of_mut!((*owned.ptr).sys);
@@ -79,7 +79,8 @@ where
                 return Err(Error::Libyaml(libyaml::error::Error::emit_error(emitter)));
             }
             sys::yaml_emitter_set_unicode(emitter, true);
-            sys::yaml_emitter_set_width(emitter, -1);
+            sys::yaml_emitter_set_width(emitter, width);
+            sys::yaml_emitter_set_indent(emitter, indent);
             addr_of_mut!((*owned.ptr).write).write(Some(write));
             addr_of_mut!((*owned.ptr).write_error).write(None);
             sys::yaml_emitter_set_output(emitter, write_handler::<W>, owned.ptr.cast());
