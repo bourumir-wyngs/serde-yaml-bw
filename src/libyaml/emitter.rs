@@ -50,7 +50,7 @@ pub(crate) struct Scalar<'a> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum ScalarStyle {
+pub enum ScalarStyle {
     Any,
     Plain,
     SingleQuoted,
