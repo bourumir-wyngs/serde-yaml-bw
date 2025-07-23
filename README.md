@@ -171,5 +171,32 @@ fn parse_blob() {
 }
 ```
 
+### Macros
+
+Use the `yaml!` macro to embed YAML directly in your code. It parses the string
+at runtime and yields a `serde_yaml_bw::Value`. The `yaml_template!` macro works
+the same way but takes a format string with arguments for building YAML
+dynamically.
+
+```rust
+use serde::Deserialize;
+use serde_yaml_bw::{yaml, yaml_template};
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Config {
+    name: String,
+    count: u32,
+}
+
+let value = yaml!("name: John\ncount: 1");
+let cfg: Config = serde_yaml_bw::from_value(value).unwrap();
+assert_eq!(cfg, Config { name: "John".to_owned(), count: 1 });
+
+let user = "Jane";
+let value = yaml_template!("name: {user}\ncount: {n}", n = 2, user = user);
+let cfg: Config = serde_yaml_bw::from_value(value).unwrap();
+assert_eq!(cfg, Config { name: "Jane".to_owned(), count: 2 });
+```
+
 ### Rc, Arc, Box and Cow
 To serialize references ([`Rc`](https://doc.rust-lang.org/std/rc/struct.Rc.html), [`Arc`](https://doc.rust-lang.org/std/sync/struct.Arc.html)), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). [`Box`](https://doc.rust-lang.org/std/boxed/struct.Box.html) and [`Cow`](https://doc.rust-lang.org/std/borrow/enum.Cow.html) are supported [out of the box](https://serde.rs/data-model.html).

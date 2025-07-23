@@ -185,6 +185,7 @@ mod number;
 mod path;
 mod ser;
 pub mod value;
+mod macros;
 
 pub use crate::number::unexpected;
 
