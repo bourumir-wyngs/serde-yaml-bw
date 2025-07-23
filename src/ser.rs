@@ -20,9 +20,6 @@ use crate::libyaml::tag::Tag;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// Builder to configure [`Serializer`].
-///
-/// # Example
-///
 /// ```
 /// use serde::Serialize;
 /// use serde_yaml_bw::SerializerBuilder;
