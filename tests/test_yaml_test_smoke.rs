@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use anyhow::Context;
 
 /// Reads a YAML file and processes special unicode indicators into real characters.
 /// These conversions are specified in YAML test suite documentation.
@@ -61,9 +62,14 @@ fn collect_yaml_files(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<(
     Ok(())
 }
 
+const KNOWINGLY_INVALID: &[&str] = &[
+    "Q5MG.yaml" // uses a tab character instead of spaces for indentation, 
+    // violating YAML 1.2 rules that explicitly forbid tabs in 
+    // indentation (YAML 1.2 spec, section 6.3).
+];
 
 // Smoke test only so far: we do not check if it is parsing correctly yet but
-// absolutely should not crash.
+// absolutely should not crash. Knowingly invalid entries must be reported as such.
 #[test]
 fn yaml_test_suite_smoke() -> anyhow::Result<()> {
     let base = Path::new("tests/yaml-test-suite/src");
@@ -84,7 +90,17 @@ fn yaml_test_suite_smoke() -> anyhow::Result<()> {
 
     for file in files {
         let yaml = read_yaml(&file)?;
-        let _ = serde_yaml_bw::from_str::<serde_yaml_bw::Value>(&yaml);
+        let result = serde_yaml_bw::from_str::<serde_yaml_bw::Value>(&yaml);
+        let file_name = file
+            .file_name()
+            .and_then(|os_str| os_str.to_str())
+            .context("Invalid filename")?;
+
+        if KNOWINGLY_INVALID.contains(&file_name) {
+            assert!(result.is_err(), "Expected error but got Ok for file '{}':\n{}", file.display(), yaml);
+        } else {
+            assert!(result.is_ok(), "Unexpected error parsing file '{}':\n{}\n{:?}", file.display(), yaml, result);
+        }
     }
 
     Ok(())
