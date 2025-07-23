@@ -313,7 +313,17 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_repr",
+ "serde_yaml_bw_macros",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "serde_yaml_bw_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

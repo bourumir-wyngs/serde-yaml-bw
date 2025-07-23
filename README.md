@@ -196,6 +196,21 @@ fn read_records() -> std::io::Result<()> {
 }
 ```
 
+### `yaml!` macro
+
+The `yaml!` procedural macro builds a [`Value`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/value/enum.Value.html)
+from a string literal at runtime. Invalid YAML causes a panic at the call site.
+
+```rust
+use serde_yaml_bw::{yaml, Value};
+
+let value: Value = yaml!("foo: 42");
+assert_eq!(value["foo"], Value::from(42));
+
+// This panics at runtime
+// let _ = yaml!("{invalid yaml}");
+```
+
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
 can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using
 [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is

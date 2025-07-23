@@ -175,6 +175,9 @@ pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 #[doc(inline)]
 pub use crate::mapping::Mapping;
 
+#[doc(inline)]
+pub use serde_yaml_bw_macros::yaml;
+
 mod de;
 mod error;
 mod libyaml;
