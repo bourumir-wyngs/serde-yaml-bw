@@ -172,4 +172,12 @@ fn parse_blob() {
 ```
 
 ### Rc, Arc, Box and Cow
-To serialize references ([`Rc`](https://doc.rust-lang.org/std/rc/struct.Rc.html), [`Arc`](https://doc.rust-lang.org/std/sync/struct.Arc.html)), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). [`Box`](https://doc.rust-lang.org/std/boxed/struct.Box.html) and [`Cow`](https://doc.rust-lang.org/std/borrow/enum.Cow.html) are supported [out of the box](https://serde.rs/data-model.html).
+To serialize references (`Rc`, `Arc`), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). `Box` and `Cow` are supported [out of the box](https://serde.rs/data-model.html).
+
+### Advanced IO
+This library does not read the whole content of the Reader before even trying to parse. Hence it is possible to implement
+the streaming using the new StreamDeserializer class. 
+
+DeserializerOptions and SerializerBuilder now provides control over provided over intput (like recursion limits) and output (like indentation and line breaks).
+
+
