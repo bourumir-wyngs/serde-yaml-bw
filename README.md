@@ -174,7 +174,7 @@ fn parse_blob() {
 ### Rc, Arc, Box and Cow
 To serialize references (`Rc`, `Arc`), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). `Box` and `Cow` are supported [out of the box](https://serde.rs/data-model.html).
 
-### Advanced IO
+### Streaming
 This library does not read the whole content of the Reader before even trying to parse. Hence it is possible to implement
 streaming using the new [`StreamDeserializer`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.StreamDeserializer.html).
 
@@ -195,32 +195,8 @@ fn read_records() -> std::io::Result<()> {
 ```
 
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
-can be adjusted to control recursion or alias expansion limits.
-
-```rust
-use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
-
-let mut opts = DeserializerOptions::default();
-opts.recursion_limit = 64;
-let v: Value = Value::deserialize(Deserializer::from_str_with_options(input, &opts))?;
-```
-
-The formatting of emitted YAML can be configured using
+can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using
 [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html).
 
-```rust
-use serde::Serialize;
-
-#[derive(Serialize)]
-struct Data { value: u32 }
-
-let mut buf = Vec::new();
-let mut ser = serde_yaml_bw::SerializerBuilder::new()
-    .indent(4)
-    .build(&mut buf)?;
-Data { value: 1 }.serialize(&mut ser)?;
-drop(ser);
-assert_eq!(std::str::from_utf8(&buf)?, "value:\n    1\n");
-```
 
 
