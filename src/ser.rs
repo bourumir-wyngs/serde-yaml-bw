@@ -20,10 +20,38 @@ use crate::libyaml::tag::Tag;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// Builder to configure [`Serializer`].
+///
+/// # Example
+///
+/// ```
+/// use serde::Serialize;
+/// use serde_yaml_bw::SerializerBuilder;
+///
+/// #[derive(Serialize)]
+/// struct Inner { value: u32 }
+/// #[derive(Serialize)]
+/// struct Outer { inner: Inner }
+///
+/// fn main() -> Result<(), serde_yaml_bw::Error> {
+///     let mut buf = Vec::new();
+///     let mut ser = SerializerBuilder::new()
+///         .indent(4)
+///         .width(80)
+///         .build(&mut buf)?;
+///     let data = Outer { inner: Inner { value: 1 } };
+///     data.serialize(&mut ser)?;
+///     drop(ser);
+///     assert_eq!(buf, b"inner:\n    value: 1\n");
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct SerializerBuilder {
+    /// Preferred line width. A value of `-1` disables line wrapping.
     width: i32,
+    /// Number of spaces to indent nested structures.
     indent: i32,
+    /// Scalar style to use for simple scalars when none is specified.
     scalar_style: ScalarStyle,
 }
 
