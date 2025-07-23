@@ -173,3 +173,19 @@ fn parse_blob() {
 
 ### Rc, Arc, Box and Cow
 To serialize references ([`Rc`](https://doc.rust-lang.org/std/rc/struct.Rc.html), [`Arc`](https://doc.rust-lang.org/std/sync/struct.Arc.html)), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). [`Box`](https://doc.rust-lang.org/std/boxed/struct.Box.html) and [`Cow`](https://doc.rust-lang.org/std/borrow/enum.Cow.html) are supported [out of the box](https://serde.rs/data-model.html).
+
+### YAML macros
+
+`serde_yaml_bw` includes a `yaml!` macro for embedding YAML data directly into
+Rust code at compile time. The macro works like `serde_json::json!` and returns
+a `serde_yaml_bw::Value`.
+
+```rust
+use serde_yaml_bw::yaml;
+
+let value = yaml!({
+    "a": 1,
+    "b": [true, false],
+});
+assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "a: 1\nb:\n- true\n- false\n");
+```

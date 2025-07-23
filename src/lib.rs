@@ -186,6 +186,15 @@ mod path;
 mod ser;
 pub mod value;
 
+#[macro_use]
+mod macros;
+
+#[doc(hidden)]
+pub mod __private {
+    #[doc(hidden)]
+    pub use std::vec;
+}
+
 pub use crate::number::unexpected;
 
 // Prevent downstream code from implementing the Index trait.
