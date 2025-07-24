@@ -3,9 +3,9 @@
 ## Development Workflow
 
 1. Always allow your environment setup script to run till the end. It installs dependencies you may not be able later to fetch.
-2. It is absolutely forbidden to touch Cargo.toml and Cargo.lock. Ask the human to do this for you.
+2. It is absolutely forbidden to touch Cargo.toml and Cargo.lock. If you need to make changes there, output instead of lines you would like to add or remove, explain why, and the human will do this for you if it makes sense.
 3. Follow Rust format conventions but do not format any code you do not change.
-3. Ensure the code builds and tests pass using `cargo check` and `cargo test`. Always run the complete test suite before commiting, not just specifically for the features you worked on.
+4. Ensure the code builds and tests pass using `cargo check` and `cargo test`. Always run the complete test suite before commiting, not just specifically for the features you worked on.
 5. It is totally unacceptable to commit code that does not compile.
 6. It is totally unacceptable to commit code that breaks irrelevant tests, but new tests on incomplete features you are working on may fail. 
 7. When you write test for serialization, set field values and verify YAML output.
