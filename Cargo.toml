@@ -19,7 +19,6 @@ ryu = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 unsafe-libyaml = "0.2.11"
 base64 = ">=0.21, <=0.22"
-regex = "1.11.1"
 
 [dev-dependencies]
 anyhow = "1.0" # All range tested
