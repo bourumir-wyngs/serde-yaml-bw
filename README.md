@@ -197,9 +197,7 @@ fn read_records() -> std::io::Result<()> {
 ```
 
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
-can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using
-[`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is
-useful for a human-intended output.
+can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is useful for a human-intended output.
 
 
 
