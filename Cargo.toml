@@ -1,5 +1,3 @@
-[workspace]
-members = ["serde_yaml_bw_macros"]
 
 [package]
 name = "serde_yaml_bw"

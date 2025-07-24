@@ -207,6 +207,12 @@ useful for a human-intended output.
 ### `yaml!` macro
 
 The `yaml!` macro parses its string literal argument at compile time. If the YAML is invalid the build fails.
+Add the `serde_yaml_bw_macros` crate alongside `serde_yaml_bw`:
+
+```toml
+serde_yaml_bw = "2.1"
+serde_yaml_bw_macros = "0.1"
+```
 
 ```rust
 use serde_yaml_bw_macros::yaml;
