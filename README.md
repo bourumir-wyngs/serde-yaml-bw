@@ -203,3 +203,15 @@ useful for a human-intended output.
 
 
 
+
+### `yaml!` macro
+
+The `yaml!` macro parses its string literal argument at compile time. If the YAML is invalid the build fails.
+
+```rust
+use serde_yaml_bw_macros::yaml;
+
+let value = yaml!("key: 1");
+assert_eq!(value["key"].as_i64().unwrap(), 1);
+```
+

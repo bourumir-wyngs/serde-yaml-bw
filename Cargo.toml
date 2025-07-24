@@ -1,3 +1,6 @@
+[workspace]
+members = ["serde_yaml_bw_macros"]
+
 [package]
 name = "serde_yaml_bw"
 version = "2.1.1"
