@@ -151,7 +151,46 @@ let yaml = r#"
         v: 3.5
       "#;
 
-  let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
+let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
+}
+```
+
+### Composite keys
+
+Complex YAML keys are fully supported. Here each `Point` serves as a key mapping
+into another `Point`.
+
+```rust
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+struct Point { x: i32, y: i32 }
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct Transform {
+    map: HashMap<Point, Point>,
+}
+
+fn main() {
+    let yaml = r#"\
+map:
+  ? x: 1
+    y: 2
+  : x: 3
+    y: 4
+  ? x: 5
+    y: 6
+  : x: 7
+    y: 8
+"#;
+
+    // Deserialize YAML into the Transform struct.
+    let transform: Transform = serde_yaml_bw::from_str(yaml).unwrap();
+
+    // Serializing will produce the same mapping (order may vary).
+    let serialized = serde_yaml_bw::to_string(&transform).unwrap();
+    println!("{}", serialized);
 }
 ```
 
