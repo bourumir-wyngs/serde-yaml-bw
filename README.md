@@ -157,8 +157,7 @@ let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
 
 ### Composite keys
 
-Complex YAML keys are fully supported. Here each `Point` serves as a key mapping
-into another `Point`.
+YAML complex keys are useful for coordinate transformations, multi-field identifiers, test cases with compound conditions and the like. While Rust struct field names must be strings, Rust maps can also use complex keys — so such YAML structures can be parsed directly into maps.
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -169,28 +168,17 @@ struct Point { x: i32, y: i32 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Transform {
+    // Transform between two coordinate systems
     map: HashMap<Point, Point>,
 }
 
 fn main() {
-    let yaml = r#"\
-map:
-  ? x: 1
-    y: 2
-  : x: 3
-    y: 4
-  ? x: 5
-    y: 6
-  : x: 7
-    y: 8
+    let yaml = r#"
+  map:
+      {x: 1, y: 2}: {x: 3, y: 4}
+      {x: 5, y: 6}: {x: 7, y: 8}
 "#;
-
-    // Deserialize YAML into the Transform struct.
     let transform: Transform = serde_yaml_bw::from_str(yaml).unwrap();
-
-    // Serializing will produce the same mapping (order may vary).
-    let serialized = serde_yaml_bw::to_string(&transform).unwrap();
-    println!("{}", serialized);
 }
 ```
 

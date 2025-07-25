@@ -15,19 +15,11 @@ struct Transform {
 
 #[test]
 fn test_deserialize_transform() {
-    let yaml = indoc! {
-        "
+    let yaml = indoc! {r#"
         map:
-          ? x: 1
-            y: 2
-          : x: 3
-            y: 4
-          ? x: 5
-            y: 6
-          : x: 7
-            y: 8
-        "
-    };
+          {x: 1, y: 2}: {x: 3, y: 4}
+          {x: 5, y: 6}: {x: 7, y: 8}
+    "#};
 
     let mut map = HashMap::new();
     map.insert(Point { x: 1, y: 2 }, Point { x: 3, y: 4 });
@@ -71,4 +63,20 @@ fn test_serialize_transform() {
         "
     };
     assert!(yaml == expected_a || yaml == expected_b);
+}
+
+#[test]
+fn readme_main() {
+    let yaml = r#"
+  map:
+      {x: 1, y: 2}: {x: 3, y: 4}
+      {x: 5, y: 6}: {x: 7, y: 8}
+"#;
+
+    // Deserialize YAML into the Transform struct.
+    let transform: Transform = serde_yaml_bw::from_str(yaml).unwrap();
+
+    // Serializing will produce the same mapping (order may vary).
+    let serialized = serde_yaml_bw::to_string(&transform).unwrap();
+    println!("{}", serialized);
 }
