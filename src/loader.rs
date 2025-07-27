@@ -108,9 +108,11 @@ impl<'input> Loader<'input> {
                         document.aliases.push(document.events.len());
                         name
                     });
+                    let raw = String::from_utf8_lossy(&scalar.value).into_owned();
                     Event::Scalar(ScalarEvent {
                         anchor: anchor_name,
                         value: scalar,
+                        raw,
                     })
                 }
                 YamlEvent::SequenceStart(mut sequence_start) => {
@@ -168,5 +170,4 @@ mod tests {
         }
         assert!(found, "anchored scalar not found");
     }
-
 }

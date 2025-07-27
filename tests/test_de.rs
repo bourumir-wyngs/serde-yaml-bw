@@ -319,6 +319,36 @@ fn test_number_as_string() {
 }
 
 #[test]
+fn test_number_as_string_small() {
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct Num {
+        value: String,
+    }
+    let yaml = indoc! {
+        "value: 123"
+    };
+    let expected = Num {
+        value: "123".to_owned(),
+    };
+    test_de_no_value(yaml, &expected);
+}
+
+#[test]
+fn test_bool_as_string() {
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct Bool {
+        value: String,
+    }
+    let yaml = indoc! {
+        "value: true"
+    };
+    let expected = Bool {
+        value: "true".to_owned(),
+    };
+    test_de_no_value(yaml, &expected);
+}
+
+#[test]
 fn test_empty_string() {
     #[derive(Deserialize, PartialEq, Debug)]
     struct Struct {
@@ -342,12 +372,18 @@ fn test_i128_big() {
     let yaml = indoc! {"
         -9223372036854775809
     "};
-    assert_eq!(expected, i128::deserialize(Deserializer::from_str(yaml)).unwrap());
+    assert_eq!(
+        expected,
+        i128::deserialize(Deserializer::from_str(yaml)).unwrap()
+    );
 
     let octal = indoc! {"
         -0o1000000000000000000001
     "};
-    assert_eq!(expected, i128::deserialize(Deserializer::from_str(octal)).unwrap());
+    assert_eq!(
+        expected,
+        i128::deserialize(Deserializer::from_str(octal)).unwrap()
+    );
 }
 
 #[test]
@@ -356,12 +392,18 @@ fn test_u128_big() {
     let yaml = indoc! {"
         18446744073709551616
     "};
-    assert_eq!(expected, u128::deserialize(Deserializer::from_str(yaml)).unwrap());
+    assert_eq!(
+        expected,
+        u128::deserialize(Deserializer::from_str(yaml)).unwrap()
+    );
 
     let octal = indoc! {"
         0o2000000000000000000000
     "};
-    assert_eq!(expected, u128::deserialize(Deserializer::from_str(octal)).unwrap());
+    assert_eq!(
+        expected,
+        u128::deserialize(Deserializer::from_str(octal)).unwrap()
+    );
 }
 
 #[test]
@@ -459,7 +501,10 @@ fn test_bomb() {
         expected: "string".to_owned(),
     };
 
-    assert_eq!(expected, Data::deserialize(Deserializer::from_str(yaml)).unwrap());
+    assert_eq!(
+        expected,
+        Data::deserialize(Deserializer::from_str(yaml)).unwrap()
+    );
 }
 
 #[test]
@@ -498,8 +543,8 @@ fn test_numbers() {
 
     // NOT numbers.
     let cases = [
-        "0127", "+0127", "-0127", "++.inf", "+-.inf", "++1", "+-1", "-+1", "--1", "+--1", "0x+1", "0x-1",
-        "-0x+1", "-0x-1", "++0x1", "+-0x1", "-+0x1", "--0x1",
+        "0127", "+0127", "-0127", "++.inf", "+-.inf", "++1", "+-1", "-+1", "--1", "+--1", "0x+1",
+        "0x-1", "-0x+1", "-0x-1", "++0x1", "+-0x1", "-+0x1", "--0x1",
     ];
     for yaml in &cases {
         let value = serde_yaml_bw::from_str::<Value>(yaml).unwrap();
@@ -513,12 +558,16 @@ fn test_numbers() {
 #[test]
 fn test_nan() {
     // There is no negative NaN in YAML.
-    assert!(serde_yaml_bw::from_str::<f32>(".nan")
-        .unwrap()
-        .is_sign_positive());
-    assert!(serde_yaml_bw::from_str::<f64>(".nan")
-        .unwrap()
-        .is_sign_positive());
+    assert!(
+        serde_yaml_bw::from_str::<f32>(".nan")
+            .unwrap()
+            .is_sign_positive()
+    );
+    assert!(
+        serde_yaml_bw::from_str::<f64>(".nan")
+            .unwrap()
+            .is_sign_positive()
+    );
 }
 
 #[test]
@@ -781,10 +830,17 @@ fn test_enum_untagged() {
     #[derive(Deserialize, PartialEq, Debug)]
     #[serde(untagged)]
     pub enum UntaggedEnum {
-        A { r#match: bool },
-        AB { r#match: String },
-        B { #[serde(rename = "if")] r#match: bool },
-        C(String)
+        A {
+            r#match: bool,
+        },
+        AB {
+            r#match: String,
+        },
+        B {
+            #[serde(rename = "if")]
+            r#match: bool,
+        },
+        C(String),
     }
 
     // A
@@ -795,7 +851,9 @@ fn test_enum_untagged() {
     }
     // AB
     {
-        let expected = UntaggedEnum::AB { r#match: "T".to_owned() };
+        let expected = UntaggedEnum::AB {
+            r#match: "T".to_owned(),
+        };
         let deserialized: UntaggedEnum = serde_yaml_bw::from_str("match: T").unwrap();
         assert_eq!(expected, deserialized);
     }
