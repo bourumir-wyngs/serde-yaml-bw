@@ -1,9 +1,7 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
 
-use std::collections::BTreeMap;
 use indoc::indoc;
 use serde::Deserialize;
-use serde_yaml_bw::Value;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Scalars {
@@ -55,7 +53,6 @@ fn test_block_scalars() {
     assert_eq!(expected, result);
 }
 
-
 #[test]
 fn test_block_scalars_2() {
     let yaml = indoc! {
@@ -81,11 +78,20 @@ fn test_block_scalars_2() {
           bar
         "
     };
-    let data: BTreeMap<String, Value> = serde_yaml_bw::from_str(yaml).unwrap();
-    assert_eq!(data.get("literal_clip").unwrap(), "foo\nbar\n");
-    assert_eq!(data.get("literal_strip").unwrap(), "foo\nbar");
-    assert_eq!(data.get("literal_keep").unwrap(), "foo\nbar\n\n");
-    assert_eq!(data.get("folded_clip").unwrap(), "foo bar\n");
-    assert_eq!(data.get("folded_strip").unwrap(), "foo bar");
-    assert_eq!(data.get("folded_keep").unwrap(), "foo bar\n");
+    #[derive(Debug, Deserialize)]
+    struct Scalars2 {
+        literal_clip: String,
+        literal_strip: String,
+        literal_keep: String,
+        folded_clip: String,
+        folded_strip: String,
+        folded_keep: String,
+    }
+    let data: Scalars2 = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(data.literal_clip, "foo\nbar\n");
+    assert_eq!(data.literal_strip, "foo\nbar");
+    assert_eq!(data.literal_keep, "foo\nbar\n\n");
+    assert_eq!(data.folded_clip, "foo bar\n");
+    assert_eq!(data.folded_strip, "foo bar");
+    assert_eq!(data.folded_keep, "foo bar\n");
 }

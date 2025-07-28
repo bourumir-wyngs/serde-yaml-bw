@@ -38,14 +38,11 @@ fn test_large_reader_input() {
         i += 1;
     }
 
+    #[derive(Debug, Deserialize)]
+    struct Dynamic(#[allow(dead_code)] HashMap<String, String>);
     let reader = std::io::Cursor::new(yaml.as_bytes());
-    let value: serde_yaml_bw::Value = serde_yaml_bw::from_reader(reader).unwrap();
-
-    if let serde_yaml_bw::Value::Mapping(map) = value {
-        assert!(map.len() > 0);
-    } else {
-        panic!("Expected mapping");
-    }
+    let value: Dynamic = serde_yaml_bw::from_reader(reader).unwrap();
+    assert!(!value.0.is_empty());
 }
 
 #[test]
