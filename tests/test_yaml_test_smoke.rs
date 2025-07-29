@@ -1,6 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use anyhow::Context;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct Dummy;
 
 /// Reads a YAML file and processes special unicode indicators into real characters.
 /// These conversions are specified in YAML test suite documentation.
@@ -90,7 +94,7 @@ fn yaml_test_suite_smoke() -> anyhow::Result<()> {
 
     for file in files {
         let yaml = read_yaml(&file)?;
-        let result = serde_yaml_bw::from_str::<serde_yaml_bw::Value>(&yaml);
+        let result = serde_yaml_bw::from_str::<Dummy>(&yaml);
         let file_name = file
             .file_name()
             .and_then(|os_str| os_str.to_str())

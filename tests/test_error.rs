@@ -5,8 +5,7 @@ use indoc::indoc;
 use serde::de::{SeqAccess, Visitor};
 use serde::{Deserialize};
 
-use serde_yaml_bw::Deserializer;
-use serde_yaml_bw::Value;
+use serde_yaml_bw::{Deserializer, Value};
 
 #[derive(Debug, Deserialize)]
 struct Dummy;
@@ -37,7 +36,8 @@ where
 fn test_scan_error() {
     let yaml = ">\n@";
     let expected = "found character that cannot start any token at line 2 column 1, while scanning for the next token";
-    test_error::<Value>(yaml, expected);
+    let result = serde_yaml_bw::from_str::<serde::de::IgnoredAny>(yaml);
+    assert_eq!(expected, result.unwrap_err().to_string());
 }
 
 #[test]
