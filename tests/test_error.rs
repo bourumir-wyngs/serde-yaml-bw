@@ -5,7 +5,11 @@ use indoc::indoc;
 use serde::de::{SeqAccess, Visitor};
 use serde::{Deserialize};
 
-use serde_yaml_bw::{Deserializer, Value};
+use serde_yaml_bw::Deserializer;
+use serde_yaml_bw::Value;
+
+#[derive(Debug, Deserialize)]
+struct Dummy;
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -122,7 +126,7 @@ fn test_ignored_unknown_anchor() {
 #[test]
 fn test_invalid_anchor_reference_message() {
     let yaml = "*invalid_anchor";
-    let result: Result<Value, _> = serde_yaml_bw::from_str(yaml);
+    let result: Result<Dummy, _> = serde_yaml_bw::from_str(yaml);
     match result {
         Ok(_) => panic!("Expected error for invalid anchor"),
         Err(e) => {
@@ -282,12 +286,11 @@ fn test_enum_mapping_has_no_keys() {
 
 #[test]
 fn test_anchor_too_long() {
-    use serde_yaml_bw::Value;
     const MAX: usize = 65_536;
     let long = "a".repeat(MAX + 1);
     let yaml = format!("&{long} 1\n");
     let expected = "unexpected tag error";
-    test_error::<Value>(&yaml, expected);
+    test_error::<Dummy>(&yaml, expected);
 }
 
 #[test]
@@ -647,7 +650,7 @@ b: *missing_anchor
 fn test_extreme_nesting_error_message() {
     // Construct YAML with extremely deep nesting to exceed the recursion limit.
     let yaml = "[".repeat(20_000) + &"]".repeat(20_000);
-    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let result: Result<Dummy, _> = serde_yaml_bw::from_str(&yaml);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.starts_with("recursion limit exceeded"),
@@ -679,7 +682,7 @@ fn test_long_alias_chain_error() {
     }
     yaml.push_str(&format!("final: *a{}", 149));
 
-    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let result: Result<Dummy, _> = serde_yaml_bw::from_str(&yaml);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("recursion limit exceeded"),
@@ -690,7 +693,7 @@ fn test_long_alias_chain_error() {
 
 #[test]
 fn test_error_location() {
-    let result = serde_yaml_bw::from_str::<Value>("@invalid_yaml");
+    let result = serde_yaml_bw::from_str::<Dummy>("@invalid_yaml");
     let loc = result.unwrap_err().location().expect("location");
     assert_eq!(1, loc.line());
     assert_eq!(1, loc.column());
@@ -699,7 +702,7 @@ fn test_error_location() {
 #[test]
 fn test_error_filters_control_chars() {
     let yaml = "\x1b";
-    let err = serde_yaml_bw::from_str::<Value>(yaml).unwrap_err();
+    let err = serde_yaml_bw::from_str::<Dummy>(yaml).unwrap_err();
     let msg = err.to_string();
     let has_ctrl = msg
         .bytes()

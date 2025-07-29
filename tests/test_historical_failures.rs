@@ -2,10 +2,13 @@ use serde_yaml_bw;
 use std::collections::HashMap;
 use serde::Deserialize;
 
+#[derive(Debug, Deserialize)]
+struct Dummy;
+
 #[test]
 fn test_recursive_yaml_references_fail() {
     let yaml = "a: &anchor\n  b: *anchor";
-    let res: Result<serde_yaml_bw::Value, _> = serde_yaml_bw::from_str(yaml);
+    let res: Result<Dummy, _> = serde_yaml_bw::from_str(yaml);
     assert!(res.is_err(), "Recursive references should fail");
 }
 
@@ -62,7 +65,7 @@ fn test_large_integer_overflow_fail() {
 #[test]
 fn test_circular_references_fail() {
     let yaml = "a: &anchor\n  b: &anchor2\n    c: *anchor";
-    let res: Result<serde_yaml_bw::Value, _> = serde_yaml_bw::from_str(yaml);
+    let res: Result<Dummy, _> = serde_yaml_bw::from_str(yaml);
     assert!(res.is_err(), "Circular references should fail");
 }
 
