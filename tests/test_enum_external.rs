@@ -4,6 +4,7 @@ use indoc::indoc;
 use serde::{Deserialize, Serialize};
 use serde_yaml_bw;
 use std::fmt::Debug;
+use serde_yaml_bw::from_str;
 
 fn test_serde<T>(thing: &T, yaml: &str)
 where
@@ -59,4 +60,47 @@ fn test_nested_enum() {
           Newtype: 0
     "#};
     test_serde(&thing, yaml);
+}
+
+
+#[test]
+fn parse_mixed_item_list_yaml() {
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    enum Publication {
+        Book {
+            title: String,
+            publisher: String,
+            published_at: String,
+        },
+        Movie {
+            title: String,
+            director: String,
+        },
+    }
+
+    let yaml = r#"
+    - Book:
+          title: Life
+          publisher: someone
+          published_at: 2023-02-24T09:31:00Z+09:00
+    - Movie:
+          title: Life
+          director: someone else
+"#;
+
+    let parsed: Vec<Publication> = from_str(yaml).expect("Failed to parse items YAML");
+
+    let expected = vec![
+        Publication::Book {
+            title: "Life".into(),
+            publisher: "someone".into(),
+            published_at: "2023-02-24T09:31:00Z+09:00".into(),
+        },
+        Publication::Movie {
+            title: "Life".into(),
+            director: "someone else".into(),
+        },
+    ];
+
+    assert_eq!(parsed, expected);
 }
