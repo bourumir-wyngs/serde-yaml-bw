@@ -697,6 +697,27 @@ fn test_error_location() {
 }
 
 #[test]
+fn test_error_location_expanded() {
+    let yaml_input = r#"
+key: valid
+nested:
+  - item1
+  - item2
+  - @invalid_yaml
+valid_after_error: true
+"#;
+
+    let result = serde_yaml_bw::from_str::<Value>(yaml_input);
+    let err = result.unwrap_err();
+    let loc = err.location().expect("location should be provided");
+
+    // Verify that the error is correctly reported at line 6, column 5 (start of "@invalid_yaml")
+    assert_eq!(6, loc.line());
+    assert_eq!(5, loc.column());
+}
+
+
+#[test]
 fn test_error_filters_control_chars() {
     let yaml = "\x1b";
     let err = serde_yaml_bw::from_str::<Value>(yaml).unwrap_err();
