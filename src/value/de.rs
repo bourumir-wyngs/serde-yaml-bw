@@ -1,6 +1,8 @@
 use crate::value::tagged::{self, TagStringVisitor};
 use crate::value::TaggedValue;
 use crate::{number, Error, Mapping, Sequence, Value};
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use serde::de::value::{BorrowedStrDeserializer, StrDeserializer};
 use serde::de::{
     self, Deserialize, DeserializeSeed, Deserializer, EnumAccess, Error as _, Expected, MapAccess,
@@ -10,8 +12,6 @@ use serde::forward_to_deserialize_any;
 use std::fmt;
 use std::slice;
 use std::vec;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 
 impl<'de> Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -506,17 +506,23 @@ impl<'de> Deserializer<'de> for Value {
             },
             Value::Mapping(map) => {
                 if map.len() == 1 {
-                    let (key, value) = map.into_iter().next().unwrap();
+                    let mut iter = map.into_iter();
+                    let (key, value) = match iter.next() {
+                        Some(pair) => pair,
+                        None => {
+                            return Err(Error::invalid_length(0, &"map containing 1 entry"));
+                        }
+                    };
                     match key {
                         Value::String(var, _) => {
                             tag = var;
-                            EnumDeserializer { tag: &tag, value: Some(value) }
+                            EnumDeserializer {
+                                tag: &tag,
+                                value: Some(value),
+                            }
                         }
                         other => {
-                            return Err(Error::invalid_type(
-                                other.unexpected(),
-                                &"string",
-                            ));
+                            return Err(Error::invalid_type(other.unexpected(), &"string"));
                         }
                     }
                 } else {
@@ -735,7 +741,7 @@ impl<'de> MapAccess<'de> for MapDeserializer {
     {
         match self.value.take() {
             Some(value) => seed.deserialize(value),
-            None => Err(de::Error::custom("visit_value called before visit_key"))
+            None => Err(de::Error::custom("visit_value called before visit_key")),
         }
     }
 
@@ -1069,17 +1075,20 @@ impl<'de> Deserializer<'de> for &'de Value {
             },
             Value::Mapping(map) => {
                 if map.len() == 1 {
-                    let (key, value) = map.iter().next().unwrap();
+                    let mut iter = map.iter();
+                    let (key, value) = match iter.next() {
+                        Some(pair) => pair,
+                        None => {
+                            return Err(Error::invalid_length(0, &"map containing 1 entry"));
+                        }
+                    };
                     match key {
                         Value::String(var, _) => EnumRefDeserializer {
                             tag: var,
                             value: Some(value),
                         },
                         other => {
-                            return Err(Error::invalid_type(
-                                other.unexpected(),
-                                &"string",
-                            ));
+                            return Err(Error::invalid_type(other.unexpected(), &"string"));
                         }
                     }
                 } else {
@@ -1294,7 +1303,7 @@ impl<'de> MapAccess<'de> for MapRefDeserializer<'de> {
     {
         match self.value.take() {
             Some(value) => seed.deserialize(value),
-            None => Err(de::Error::custom("visit_value called before visit_key"))
+            None => Err(de::Error::custom("visit_value called before visit_key")),
         }
     }
 
