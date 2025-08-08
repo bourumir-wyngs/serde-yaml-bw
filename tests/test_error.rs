@@ -3,7 +3,7 @@
 use indoc::indoc;
 #[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
-use serde::{Deserialize};
+use serde::Deserialize;
 
 use serde_yaml_bw::{Deserializer, Value};
 #[cfg(not(miri))]
@@ -202,14 +202,22 @@ fn test_deserialize_nested_enum() {
     };
     let result = Outer::deserialize(Deserializer::from_str(yaml));
     let msg = result.unwrap_err().to_string();
-    assert!(msg.contains("unknown variant"), "unexpected message: {}", msg);
+    assert!(
+        msg.contains("unknown variant"),
+        "unexpected message: {}",
+        msg
+    );
 
     let yaml = indoc! {
         "---\n!Variant []\n"
     };
     let result = Outer::deserialize(Deserializer::from_str(yaml));
     let msg = result.unwrap_err().to_string();
-    assert!(msg.contains("unknown variant"), "unexpected message: {}", msg);
+    assert!(
+        msg.contains("unknown variant"),
+        "unexpected message: {}",
+        msg
+    );
 }
 
 #[test]
@@ -272,6 +280,40 @@ fn test_enum_mapping_has_no_keys() {
         "
     };
     let result: Result<Point, _> = serde_yaml_bw::from_str(yaml);
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
+        "unexpected message: {}",
+        msg
+    );
+}
+
+#[test]
+fn test_enum_mapping_has_no_keys_from_value() {
+    #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
+    enum Point {
+        Struct { x: f64, y: f64 },
+    }
+    // This YAML has identation misplaced to Struct becomes an empty map
+    let yaml = indoc! {
+        "
+        Struct:
+        x: 1.0
+        y: 2.0
+        "
+    };
+    let value: serde_yaml_bw::Value = serde_yaml_bw::from_str(yaml).unwrap();
+
+    let result: Result<Point, _> = serde_yaml_bw::from_value(value.clone());
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
+        "unexpected message: {}",
+        msg
+    );
+
+    let result = Point::deserialize(&value);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
@@ -547,7 +589,9 @@ fn test_duplicate_keys_hashmap() {
 fn test_duplicate_keys_struct() {
     #[derive(Deserialize, Debug)]
     #[allow(dead_code)]
-    struct S { a: i32 }
+    struct S {
+        a: i32,
+    }
     let yaml = indoc! {"\
         ---
         a: 1
@@ -576,9 +620,11 @@ fn test_duplicate_key_error_message() {
 
     let yaml_dups = "data:\n  key: 1\n  key: 2";
     match serde_yaml_bw::from_str::<Data>(yaml_dups) {
-        Ok(data) => panic!("Takes duplicate keys and returns {data:?}"), 
-        Err(err) => assert_eq!(format!("{}", err), 
-                               r#"data: duplicate entry with key "key" at line 2 column 3"#)
+        Ok(data) => panic!("Takes duplicate keys and returns {data:?}"),
+        Err(err) => assert_eq!(
+            format!("{}", err),
+            r#"data: duplicate entry with key "key" at line 2 column 3"#
+        ),
     }
 }
 
@@ -602,10 +648,7 @@ fn test_unexpected_end_of_sequence() {
         Err(e) => {
             let msg = e.to_string();
             println!("Error: {}", msg);
-            assert_eq!(
-                msg,
-                "invalid length 3, expected a tuple of size 4"
-            );
+            assert_eq!(msg, "invalid length 3, expected a tuple of size 4");
         }
     }
 }
@@ -636,7 +679,8 @@ b: *missing_anchor
             println!("Captured Error: {}", msg);
             assert!(
                 msg.contains("unknown anchor"),
-                "Unexpected error message: '{}'", msg
+                "Unexpected error message: '{}'",
+                msg
             );
         }
     }
@@ -668,14 +712,7 @@ fn test_long_alias_chain_error() {
     for i in 1..150 {
         let curr_anchor = format!("a{}", i);
         let prev_anchor = format!("a{}", i - 1);
-        writeln!(
-            &mut yaml,
-            "k{}: &{} [*{}]",
-            i,
-            curr_anchor,
-            prev_anchor
-        )
-        .unwrap();
+        writeln!(&mut yaml, "k{}: &{} [*{}]", i, curr_anchor, prev_anchor).unwrap();
     }
     yaml.push_str(&format!("final: *a{}", 149));
 
@@ -716,7 +753,6 @@ valid_after_error: true
     assert_eq!(5, loc.column());
 }
 
-
 #[test]
 fn test_error_filters_control_chars() {
     let yaml = "\x1b";
@@ -748,4 +784,3 @@ fn test_from_str_value_unexpected_end_location() {
     assert_eq!(1, loc.line());
     assert_eq!(1, loc.column());
 }
-
