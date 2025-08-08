@@ -126,8 +126,7 @@ fn test_invalid_anchor_reference_message() {
     match result {
         Ok(_) => panic!("Expected error for invalid anchor"),
         Err(e) => {
-            let msg = e.to_string();
-            assert!(msg.contains("invalid_anchor"), "Unexpected error: {}", msg);
+            assert_eq!("unknown anchor [invalid_anchor]", e.to_string());
         }
     }
 }
