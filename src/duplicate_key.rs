@@ -3,7 +3,7 @@ use crate::value::Value;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum DuplicateKeyKind {
     Null,
     Bool(bool),
@@ -12,6 +12,7 @@ pub(crate) enum DuplicateKeyKind {
     Other,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct DuplicateKeyError {
     pub(crate) kind: DuplicateKeyKind,
 }
