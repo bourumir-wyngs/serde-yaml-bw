@@ -40,6 +40,10 @@ impl<'a> CStr<'a> {
         unsafe { Self::from_ptr(ptr) }
     }
 
+    /// # Safety
+    ///
+    /// `ptr` must be a non-null, valid pointer to a null-terminated sequence of
+    /// bytes that live for the lifetime `'a`.
     pub unsafe fn from_ptr(ptr: NonNull<i8>) -> Self {
         CStr {
             ptr: ptr.cast(),

@@ -92,6 +92,11 @@ impl<'input> Parser<'input> {
     where
         R: Read + 'input,
     {
+        /// # Safety
+        ///
+        /// `data` must be a pointer to `ParserPinned`. `buffer` must be valid for
+        /// writes of `size` bytes and `size_read` must be a valid pointer to store
+        /// the number of bytes read.
         unsafe fn read_handler(
             data: *mut std::os::raw::c_void,
             buffer: *mut u8,
@@ -162,6 +167,11 @@ impl<'input> Parser<'input> {
     }
 }
 
+/// # Safety
+///
+/// `sys` must point to a valid libyaml event and any pointers contained within
+/// it must remain valid for the duration of this call. `input` must reference
+/// the original byte slice from which the event was produced.
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
     input: &Option<Cow<'input, [u8]>>,
@@ -215,6 +225,10 @@ unsafe fn convert_event<'input>(
     }
 }
 
+/// # Safety
+///
+/// If `anchor` is non-null, it must point to a null-terminated UTF-8 string
+/// that remains valid for the duration of the call.
 unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Anchor>, CStrError> {
     let ptr = match NonNull::new(anchor as *mut i8) {
         Some(p) => p,
@@ -224,6 +238,10 @@ unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Ancho
     Ok(Some(Anchor(Box::from(cstr.to_bytes()?))))
 }
 
+/// # Safety
+///
+/// If `tag` is non-null, it must point to a null-terminated UTF-8 string that
+/// remains valid for the duration of the call.
 unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, CStrError> {
     let ptr = match NonNull::new(tag as *mut i8) {
         Some(p) => p,

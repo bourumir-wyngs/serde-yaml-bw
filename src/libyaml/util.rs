@@ -17,6 +17,11 @@ impl<T> Owned<T> {
         }
     }
 
+    /// # Safety
+    ///
+    /// The `definitely_init` pointer must reference a value that has been fully
+    /// initialized. Passing a pointer to uninitialized data results in
+    /// undefined behavior.
     pub unsafe fn assume_init(definitely_init: Owned<MaybeUninit<T>, T>) -> Owned<T> {
         let ptr = definitely_init.ptr;
         mem::forget(definitely_init);

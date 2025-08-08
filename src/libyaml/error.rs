@@ -14,6 +14,9 @@ pub(crate) struct Error {
     context_mark: Mark,
 }
 
+/// # Safety
+///
+/// `problem` must point to a valid null-terminated string provided by libyaml.
 unsafe fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
     const EMPTY_Z: [u8; 1] = [0];
     Box::from(unsafe { CStr::from_ptr(problem) }
@@ -21,6 +24,10 @@ unsafe fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
 }
 
 impl Error {
+    /// # Safety
+    ///
+    /// `parser` must be a valid, initialized pointer to a libyaml parser
+    /// structure.
     pub unsafe fn parse_error(parser: *const sys::yaml_parser_t) -> Self {
         Error {
             kind: unsafe { (&*parser).error },
@@ -42,6 +49,10 @@ impl Error {
         }
     }
 
+    /// # Safety
+    ///
+    /// `emitter` must be a valid, initialized pointer to a libyaml emitter
+    /// structure.
     pub unsafe fn emit_error(emitter: *const sys::yaml_emitter_t) -> Self {
         Error {
             kind: unsafe { (&*emitter).error },

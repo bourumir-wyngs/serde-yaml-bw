@@ -212,6 +212,10 @@ where
     }
 }
 
+/// # Safety
+///
+/// `data` must be a pointer to `EmitterPinned<W>` previously registered with
+/// libyaml. `buffer` must be valid for reads of `size` bytes.
 unsafe fn write_handler<W>(data: *mut c_void, buffer: *mut u8, size: u64) -> i32
 where
     W: io::Write,
