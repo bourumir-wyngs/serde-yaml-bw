@@ -169,4 +169,38 @@ mod tests {
         assert!(found, "anchored scalar not found");
     }
 
+    #[test]
+    fn anchored_sequence_event_keeps_anchor() {
+        let yaml = "a: &id [1, 2]\nb: *id\n";
+        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let document = loader.next_document().unwrap();
+        let mut found = false;
+        for (event, _) in &document.events {
+            if let Event::SequenceStart(sequence) = event {
+                if let Some(name) = &sequence.anchor {
+                    assert_eq!(name, "id");
+                    found = true;
+                }
+            }
+        }
+        assert!(found, "anchored sequence not found");
+    }
+
+    #[test]
+    fn anchored_mapping_event_keeps_anchor() {
+        let yaml = "a: &id {b: 1}\nc: *id\n";
+        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let document = loader.next_document().unwrap();
+        let mut found = false;
+        for (event, _) in &document.events {
+            if let Event::MappingStart(mapping) = event {
+                if let Some(name) = &mapping.anchor {
+                    assert_eq!(name, "id");
+                    found = true;
+                }
+            }
+        }
+        assert!(found, "anchored mapping not found");
+    }
+
 }
