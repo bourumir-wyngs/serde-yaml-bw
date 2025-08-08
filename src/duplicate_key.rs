@@ -41,7 +41,9 @@ impl DuplicateKeyError {
             if let Ok(n) = Num::from_str(s) {
                 return DuplicateKeyError { kind: Number(n) };
             }
-            return DuplicateKeyError { kind: String(s.to_string()) };
+            return DuplicateKeyError {
+                kind: String(s.to_string()),
+            };
         }
         DuplicateKeyError { kind: Other }
     }
@@ -72,8 +74,8 @@ impl Display for DuplicateKeyError {
 #[cfg(test)]
 mod tests {
     use super::{is_null, DuplicateKeyError, DuplicateKeyKind};
-    use crate::parse_bool_casefold;
     use crate::number::Number;
+    use crate::parse_bool_casefold;
 
     #[test]
     fn test_is_null_variants() {
@@ -98,10 +100,10 @@ mod tests {
     #[test]
     fn test_from_scalar_parsing() {
         let err = DuplicateKeyError::from_scalar(b"null");
-        matches!(err.kind, DuplicateKeyKind::Null);
+        assert!(matches!(err.kind, DuplicateKeyKind::Null));
 
         let err = DuplicateKeyError::from_scalar(b"true");
-        matches!(err.kind, DuplicateKeyKind::Bool(true));
+        assert!(matches!(err.kind, DuplicateKeyKind::Bool(true)));
 
         let err = DuplicateKeyError::from_scalar(b"42");
         assert!(matches!(err.kind, DuplicateKeyKind::Number(n) if n == Number::from(42)));
@@ -113,4 +115,3 @@ mod tests {
         assert_eq!(format!("{}", err), "duplicate entry with key \"dup\"");
     }
 }
-
