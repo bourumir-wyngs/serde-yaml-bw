@@ -1,4 +1,4 @@
-use crate::libyaml::cstr::{self, CStr, CStrError};
+use crate::libyaml::cstr::{self, CStr};
 use crate::libyaml::error::{Error as LibyamlError, Mark};
 use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::tag::Tag;
@@ -100,7 +100,17 @@ impl<'input> Parser<'input> {
         ) -> i32 {
             unsafe {
                 let pinned = &mut *(data as *mut ParserPinned);
-                let reader = pinned.reader.as_mut().unwrap();
+                let reader = match pinned.reader.as_mut() {
+                    Some(reader) => reader,
+                    None => {
+                        pinned.read_error = Some(io::Error::new(
+                            io::ErrorKind::Other,
+                            "reader is not set",
+                        ));
+                        *size_read = 0;
+                        return 0;
+                    }
+                };
                 let slice = std::slice::from_raw_parts_mut(buffer, size as usize);
                 match reader.read(slice) {
                     Ok(len) => {
@@ -127,6 +137,9 @@ impl<'input> Parser<'input> {
             addr_of_mut!((*owned.ptr).read_error).write(None);
             let data = owned.ptr;
             sys::yaml_parser_set_input(parser, read_handler as sys::yaml_read_handler_t, data.cast());
+            if let Some(err) = (*data).read_error.take() {
+                return Err(error::new(ErrorImpl::Io(err)));
+            }
             addr_of_mut!((*owned.ptr).input).write(None);
             Owned::assume_init(owned)
         };
@@ -151,8 +164,7 @@ impl<'input> Parser<'input> {
                 }
                 return Err(Error::from(LibyamlError::parse_error(parser)));
             }
-            let ret = convert_event(&*event, &(*self.pin.ptr).input)
-                .map_err(|_| error::new(ErrorImpl::TagError))?;
+            let ret = convert_event(&*event, &(*self.pin.ptr).input).map_err(error::new)?;
             let mark = Mark {
                 sys: (*event).start_mark,
             };
@@ -165,19 +177,21 @@ impl<'input> Parser<'input> {
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
     input: &Option<Cow<'input, [u8]>>,
-) -> std::result::Result<Event<'input>, CStrError> {
+) -> std::result::Result<Event<'input>, ErrorImpl> {
     match sys.type_ {
         sys::YAML_STREAM_START_EVENT => Ok(Event::StreamStart),
         sys::YAML_STREAM_END_EVENT => Ok(Event::StreamEnd),
         sys::YAML_DOCUMENT_START_EVENT => Ok(Event::DocumentStart),
         sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd),
-        sys::YAML_ALIAS_EVENT => {
-            // If we are unable to obtain anchor, if is still alias event.
-            Ok(Event::Alias(
-                unsafe { optional_anchor(sys.data.alias.anchor) }?
-                    .unwrap_or_else(|| Anchor("invalid_anchor".as_bytes().into())),
-            ))
-        }
+        sys::YAML_ALIAS_EVENT => match unsafe { optional_anchor(sys.data.alias.anchor)? } {
+            Some(anchor) => Ok(Event::Alias(anchor)),
+            None => Err(ErrorImpl::UnknownAnchor(
+                Mark {
+                    sys: sys.start_mark,
+                },
+                Anchor(Box::from(&b""[..])),
+            )),
+        },
         sys::YAML_SCALAR_EVENT => Ok(Event::Scalar(Scalar {
             anchor: unsafe { optional_anchor(sys.data.scalar.anchor) }?,
             tag: unsafe { optional_tag(sys.data.scalar.tag) }?,
@@ -215,22 +229,28 @@ unsafe fn convert_event<'input>(
     }
 }
 
-unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Anchor>, CStrError> {
+unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Anchor>, ErrorImpl> {
     let ptr = match NonNull::new(anchor as *mut i8) {
         Some(p) => p,
         None => return Ok(None),
     };
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Ok(Some(Anchor(Box::from(cstr.to_bytes()?))))
+    cstr
+        .to_bytes()
+        .map(|bytes| Some(Anchor(Box::from(bytes))))
+        .map_err(|_| ErrorImpl::TagError)
 }
 
-unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, CStrError> {
+unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, ErrorImpl> {
     let ptr = match NonNull::new(tag as *mut i8) {
         Some(p) => p,
         None => return Ok(None),
     };
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    Ok(Some(Tag(Box::from(cstr.to_bytes()?))))
+    cstr
+        .to_bytes()
+        .map(|bytes| Some(Tag(Box::from(bytes))))
+        .map_err(|_| ErrorImpl::TagError)
 }
 
 impl Debug for Scalar<'_> {

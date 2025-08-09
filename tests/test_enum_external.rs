@@ -4,6 +4,7 @@ use indoc::indoc;
 use serde::{Deserialize, Serialize};
 use serde_yaml_bw;
 use std::fmt::Debug;
+use serde_yaml_bw::from_str;
 
 fn test_serde<T>(thing: &T, yaml: &str)
 where
@@ -59,4 +60,118 @@ fn test_nested_enum() {
           Newtype: 0
     "#};
     test_serde(&thing, yaml);
+}
+
+
+#[test]
+fn parse_mixed_item_list_yaml() {
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    enum Debut {
+        Shown {
+            cinema: String,
+        },
+        Bookstore {
+            address: String,
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    enum Publication {
+        Book {
+            title: String,
+            publisher: String,
+            published_at: String,
+            debut: Debut
+        },
+        Movie {
+            title: String,
+            director: String,
+            debut: Debut
+        },
+    }
+
+    let yaml = r#"
+    - Book:
+          title: Life
+          publisher: someone
+          published_at: 2023-02-24T09:31:00Z+09:00
+          debut:
+            Bookstore:
+                address: Good Books
+    - Movie:
+          title: Life
+          director: someone else
+          debut:
+            Shown:
+                cinema: Europa Center Movie
+    - Movie:
+          title: Afterlife
+          director: someone else
+          debut:
+            Bookstore:
+                address: My DVD shop
+"#;
+
+    let parsed: Vec<Publication> = from_str(yaml).expect("Failed to parse items YAML");
+
+    let expected = vec![
+        Publication::Book {
+            title: "Life".into(),
+            publisher: "someone".into(),
+            published_at: "2023-02-24T09:31:00Z+09:00".into(),
+            debut: Debut::Bookstore {
+                address: "Good Books".into(),
+            },
+        },
+        Publication::Movie {
+            title: "Life".into(),
+            director: "someone else".into(),
+            debut: Debut::Shown {
+                cinema: "Europa Center Movie".into(),
+            },
+        },
+        Publication::Movie {
+            title: "Afterlife".into(),
+            director: "someone else".into(),
+            debut: Debut::Bookstore {
+                address: "My DVD shop".into(),
+            },
+        },
+    ];
+
+    assert_eq!(parsed, expected);
+}
+
+#[test]
+fn test_nested_enum_yaml_bw() {
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct Foo {
+        common: String,
+        bar: Bar,
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename_all = "snake_case")]
+    enum Bar {
+        BarA { a: String },
+        BarB { b: String },
+    }
+
+    let input = r#"
+          common: Hello
+          bar:
+            bar_a:
+                a: World
+    "#;
+
+    let foo: Foo = from_str(input).expect("Failed");
+
+    assert_eq!(
+        foo,
+        Foo {
+            common: "Hello".into(),
+            bar: Bar::BarA { a: "World".into() },
+        }
+    );
 }

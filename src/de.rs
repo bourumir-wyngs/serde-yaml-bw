@@ -31,7 +31,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 const DEFAULT_RECURSION_LIMIT: u8 = 128;
 
 /// Configuration options for YAML deserialization.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DeserializerOptions {
     /// Maximum depth allowed during deserialization before reporting
     /// [`RecursionLimitExceeded`]. A value of 0 disables the check.

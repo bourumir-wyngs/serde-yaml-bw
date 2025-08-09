@@ -144,5 +144,6 @@ fn serialize_robot_moves() {
             constraints: vec![Constraint::MaxSpeed { v: 10.0 }],
         },
     ];
-    println!("Robot moves: {:?}", serde_yaml_bw::to_string(&robot_moves))
+    let yaml = "- by: 1.0\n  constraints:\n  - StayWithin:\n      x: 0.0\n      y: 0.0\n      r: 5.0\n  - MaxSpeed:\n      v: 100.0\n- by: 2.0\n  constraints:\n  - MaxSpeed:\n      v: 10.0\n";
+    assert_eq!(serde_yaml_bw::to_string(&robot_moves).unwrap(), yaml);
 }
