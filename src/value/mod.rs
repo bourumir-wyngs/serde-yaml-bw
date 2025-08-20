@@ -12,9 +12,9 @@ pub mod tagged;
 use crate::error::{self, Error, ErrorImpl};
 use serde::de::{Deserialize, DeserializeOwned, IntoDeserializer};
 use serde::Serialize;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::hash::{Hash, Hasher};
 use std::mem;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub use self::index::Index;
 pub use self::ser::Serializer;
@@ -135,7 +135,10 @@ impl<'de> serde::Deserialize<'de> for Sequence {
         D: serde::Deserializer<'de>,
     {
         let elements = Vec::<Value>::deserialize(deserializer)?;
-        Ok(Sequence { anchor: None, elements })
+        Ok(Sequence {
+            anchor: None,
+            elements,
+        })
     }
 }
 
@@ -820,8 +823,8 @@ impl IntoDeserializer<'_, Error> for Value {
 mod tests {
     use super::*;
     use crate::de::from_str_value_preserve;
-    use indoc::indoc;
     use crate::value::{Tag, TaggedValue};
+    use indoc::indoc;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -854,10 +857,12 @@ mod tests {
 
     #[test]
     fn test_scalar_in_merge() {
-        let yaml = indoc!(r#"
+        let yaml = indoc!(
+            r#"
             <<: 1
             a: 2
-        "#);
+        "#
+        );
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
         let err = value.apply_merge().unwrap_err();
         assert_eq!(
@@ -868,10 +873,12 @@ mod tests {
 
     #[test]
     fn test_tagged_in_merge() {
-        let yaml = indoc!(r#"
+        let yaml = indoc!(
+            r#"
             <<: {}
             a: 2
-        "#);
+        "#
+        );
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
         if let Value::Mapping(ref mut map) = value {
             let merge = map.get_mut("<<").unwrap();
@@ -887,10 +894,12 @@ mod tests {
 
     #[test]
     fn test_scalar_in_merge_element() {
-        let yaml = indoc!(r#"
+        let yaml = indoc!(
+            r#"
             <<: [1]
             a: 2
-        "#);
+        "#
+        );
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
         let err = value.apply_merge().unwrap_err();
         assert_eq!(
@@ -901,11 +910,13 @@ mod tests {
 
     #[test]
     fn test_sequence_in_merge_element() {
-        let yaml = indoc!(r#"
+        let yaml = indoc!(
+            r#"
             <<:
               - [1, 2]
             a: 2
-        "#);
+        "#
+        );
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
         let err = value.apply_merge().unwrap_err();
         assert_eq!(
@@ -916,14 +927,17 @@ mod tests {
 
     #[test]
     fn test_merge_recursion() {
-        let yaml = indoc!(r#"
+        let yaml = indoc!(
+            r#"
             a: &a
               b: 1
-        "#);
+        "#
+        );
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
         if let Value::Mapping(map) = &mut value {
             if let Some(Value::Mapping(a_map)) = map.get_mut("a") {
-                let clone = a_map.clone();
+                let mut clone = a_map.clone();
+                clone.id = a_map.id;
                 a_map.insert("self".into(), Value::Mapping(clone));
             }
         }
@@ -936,11 +950,7 @@ mod tests {
         let yaml = "anchor: &id 1\nalias: *id";
         let mut value: Value = from_str_value_preserve(yaml).unwrap();
 
-        if let Some(Value::Number(_, anchor)) = value
-            .as_mapping_mut()
-            .unwrap()
-            .get_mut("anchor")
-        {
+        if let Some(Value::Number(_, anchor)) = value.as_mapping_mut().unwrap().get_mut("anchor") {
             *anchor = None;
         }
 
@@ -999,9 +1009,12 @@ production:
                 .as_str();
 
             assert_eq!(
-                a_value, b_value,
+                a_value,
+                b_value,
                 "key {:?} has different values: a {:?}, b {:?}",
-                a_key.as_str(), a_value, b_value
+                a_key.as_str(),
+                a_value,
+                b_value
             );
         }
     }
@@ -1062,5 +1075,4 @@ production:
         let mut moved = vec.remove(1);
         assert!(moved.apply_merge().is_err());
     }
-
 }

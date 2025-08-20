@@ -32,7 +32,6 @@ unsafe impl Send for CStr<'static> {}
 unsafe impl Sync for CStr<'static> {}
 
 impl<'a> CStr<'a> {
-    
     #[cfg(test)]
     pub fn from_bytes_with_nul(bytes: &'static [u8]) -> Self {
         assert_eq!(bytes.last(), Some(&b'\0'));
@@ -40,6 +39,11 @@ impl<'a> CStr<'a> {
         unsafe { Self::from_ptr(ptr) }
     }
 
+    /// # Safety
+    ///
+    /// - `ptr` must be non-null.
+    /// - `ptr` must point to a valid NUL-terminated byte sequence.
+    /// - The pointed-to data must remain valid for the returned `CStr`'s lifetime.
     pub unsafe fn from_ptr(ptr: NonNull<i8>) -> Self {
         CStr {
             ptr: ptr.cast(),
@@ -72,8 +76,8 @@ impl<'a> CStr<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread;
     use std::ptr::NonNull;
+    use std::thread;
 
     #[test]
     fn send_sync_static() {
@@ -129,7 +133,10 @@ fn display_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Resul
                 let valid_up_to = utf8_error.valid_up_to();
 
                 // The substring `[..valid_up_to]` is guaranteed valid UTF-8.
-                formatter.write_str(str::from_utf8(&bytes[..valid_up_to]).unwrap())?;
+                match str::from_utf8(&bytes[..valid_up_to]) {
+                    Ok(valid) => formatter.write_str(valid)?,
+                    Err(_) => return Err(fmt::Error),
+                }
                 formatter.write_char(char::REPLACEMENT_CHARACTER)?;
 
                 if let Some(error_len) = utf8_error.error_len() {
@@ -145,7 +152,7 @@ fn display_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Resul
 
 pub(crate) fn debug_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Result {
     const EMPTY: &str = "";
-    
+
     formatter.write_char('"')?;
 
     while !bytes.is_empty() {
@@ -158,7 +165,6 @@ pub(crate) fn debug_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> f
                 str::from_utf8(&bytes[..valid_up_to]).unwrap_or(EMPTY)
             }
         };
-
 
         let mut written = 0;
         for (i, ch) in valid.char_indices() {

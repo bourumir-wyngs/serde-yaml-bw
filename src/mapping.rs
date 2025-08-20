@@ -1,17 +1,16 @@
 //! A YAML mapping and its iterator types.
 
+use crate::duplicate_key::DuplicateKeyError;
 use crate::{private, Value};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
-use crate::duplicate_key::DuplicateKeyError;
 use std::hash::{Hash, Hasher};
 use std::mem;
 
 /// A YAML mapping in which the keys and values are both `serde_yaml_bw::Value`.
-#[derive(Clone)]
 pub struct Mapping {
     /// Optional anchor associated with this mapping.
     pub anchor: Option<String>,
@@ -25,6 +24,16 @@ impl Default for Mapping {
         Mapping {
             anchor: None,
             map: IndexMap::new(),
+            id: crate::value::next_id(),
+        }
+    }
+}
+
+impl Clone for Mapping {
+    fn clone(&self) -> Self {
+        Mapping {
+            anchor: self.anchor.clone(),
+            map: self.map.clone(),
             id: crate::value::next_id(),
         }
     }
@@ -485,11 +494,13 @@ impl PartialOrd for Mapping {
 
             loop {
                 let x = match this.next() {
-                    None => return if other.next().is_none() {
-                        Ordering::Equal
-                    } else {
-                        Ordering::Less
-                    },
+                    None => {
+                        return if other.next().is_none() {
+                            Ordering::Equal
+                        } else {
+                            Ordering::Less
+                        }
+                    }
                     Some(val) => val,
                 };
 
@@ -837,7 +848,9 @@ impl<'de> Deserialize<'de> for Mapping {
                 while let Some(key) = data.next_key()? {
                     match mapping.entry(key) {
                         Entry::Occupied(entry) => {
-                            return Err(serde::de::Error::custom(DuplicateKeyError::from_value(entry.key())));
+                            return Err(serde::de::Error::custom(DuplicateKeyError::from_value(
+                                entry.key(),
+                            )));
                         }
                         Entry::Vacant(entry) => {
                             let value = data.next_value()?;
@@ -853,4 +866,3 @@ impl<'de> Deserialize<'de> for Mapping {
         deserializer.deserialize_map(Visitor)
     }
 }
-

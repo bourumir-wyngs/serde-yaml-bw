@@ -16,6 +16,40 @@ fn test_is_i64_and_as_i64() {
 }
 
 #[test]
+fn test_is_u64_and_as_u64() {
+    let pos = Number::from(5u64);
+    assert!(pos.is_u64());
+    assert_eq!(pos.as_u64(), Some(5));
+
+    let neg = Number::from(-5i64);
+    assert!(!neg.is_u64());
+    assert_eq!(neg.as_u64(), None);
+}
+
+#[test]
+fn test_is_f64_and_as_f64() {
+    let float = Number::from(3.14);
+    assert!(float.is_f64());
+    assert_eq!(float.as_f64(), Some(3.14));
+
+    let int = Number::from(10);
+    assert!(!int.is_f64());
+    assert_eq!(int.as_f64(), Some(10.0));
+}
+
+#[test]
+fn test_is_nan() {
+    let nan = Number::from(f64::NAN);
+    assert!(nan.is_nan());
+
+    let float = Number::from(3.14);
+    assert!(!float.is_nan());
+
+    let int = Number::from(5);
+    assert!(!int.is_nan());
+}
+
+#[test]
 fn test_is_infinite_and_finite() {
     let inf = Number::from(f64::INFINITY);
     assert!(inf.is_infinite());
