@@ -133,7 +133,10 @@ fn display_lossy(mut bytes: &[u8], formatter: &mut fmt::Formatter) -> fmt::Resul
                 let valid_up_to = utf8_error.valid_up_to();
 
                 // The substring `[..valid_up_to]` is guaranteed valid UTF-8.
-                formatter.write_str(str::from_utf8(&bytes[..valid_up_to]).unwrap())?;
+                match str::from_utf8(&bytes[..valid_up_to]) {
+                    Ok(valid) => formatter.write_str(valid)?,
+                    Err(_) => return Err(fmt::Error),
+                }
                 formatter.write_char(char::REPLACEMENT_CHARACTER)?;
 
                 if let Some(error_len) = utf8_error.error_len() {
