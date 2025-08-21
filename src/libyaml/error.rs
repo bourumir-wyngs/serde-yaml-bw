@@ -14,49 +14,69 @@ pub(crate) struct Error {
     context_mark: Mark,
 }
 
+// SAFETY: `problem` must point to a valid NUL-terminated C string provided by
+// libyaml. The caller ensures the pointer is non-null and the data remains
+// alive for the duration of the call.
 unsafe fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
     const EMPTY_Z: [u8; 1] = [0];
+    // SAFETY: `problem` satisfies the invariants described above, so creating a
+    // `CStr` and reading its bytes is sound.
     Box::from(unsafe { CStr::from_ptr(problem) }
         .to_bytes().unwrap_or(&EMPTY_Z))
 }
 
 impl Error {
+    // SAFETY: `parser` must be a valid pointer to an initialized libyaml parser
+    // struct. The data it references must remain alive while we read from it.
     pub unsafe fn parse_error(parser: *const sys::yaml_parser_t) -> Self {
-        Error {
-            kind: unsafe { (&*parser).error },
-            problem: match NonNull::new(unsafe { (&*parser).problem.cast_mut() }) {
-                Some(problem) => unsafe { define_string(problem) },
-                None => Box::from(&b"libyaml parser failed but there is no error"[..]),
-            },
-            problem_offset: unsafe { (&*parser).problem_offset },
-            problem_mark: Mark {
-                sys: unsafe { (&*parser).problem_mark },
-            },
-            context: match NonNull::new(unsafe { (&*parser).context.cast_mut() }) {
-                Some(context) => unsafe { Some(define_string(context)) },
-                None => None,
-            },
-            context_mark: Mark {
-                sys: unsafe { (&*parser).context_mark },
-            },
+        // SAFETY: All reads from `parser` are valid because the caller ensures it
+        // points to a properly initialized `yaml_parser_t`.
+        unsafe {
+            Error {
+                kind: (&*parser).error,
+                problem: match NonNull::new((&*parser).problem.cast_mut()) {
+                    Some(problem) => define_string(problem),
+                    None => Box::from(&b"libyaml parser failed but there is no error"[..]),
+                },
+                problem_offset: (&*parser).problem_offset,
+                problem_mark: Mark {
+                    sys: (&*parser).problem_mark,
+                },
+                context: match NonNull::new((&*parser).context.cast_mut()) {
+                    Some(context) => Some(define_string(context)),
+                    None => None,
+                },
+                context_mark: Mark {
+                    sys: (&*parser).context_mark,
+                },
+            }
         }
     }
 
+    // SAFETY: `emitter` must be a valid pointer to an initialized libyaml
+    // emitter. The referenced data must outlive this function.
     pub unsafe fn emit_error(emitter: *const sys::yaml_emitter_t) -> Self {
-        Error {
-            kind: unsafe { (&*emitter).error },
-            problem: match NonNull::new(unsafe { (&*emitter).problem.cast_mut() }) {
-                Some(problem) => unsafe { define_string(problem) },
-                None => Box::from(&b"libyaml emitter failed but there is no error"[..]),
-            },
-            problem_offset: 0,
-            problem_mark: Mark {
-                sys: unsafe { MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init() },
-            },
-            context: None,
-            context_mark: Mark {
-                sys: unsafe { MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init() },
-            },
+        // SAFETY: All reads from `emitter` are valid because the caller ensures it
+        // points to a properly initialized `yaml_emitter_t`.
+        unsafe {
+            Error {
+                kind: (&*emitter).error,
+                problem: match NonNull::new((&*emitter).problem.cast_mut()) {
+                    Some(problem) => define_string(problem),
+                    None => Box::from(&b"libyaml emitter failed but there is no error"[..]),
+                },
+                problem_offset: 0,
+                problem_mark: Mark {
+                    // SAFETY: `yaml_mark_t` is plain data and zero-initialized marks
+                    // represent "no location" in libyaml.
+                    sys: MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init(),
+                },
+                context: None,
+                context_mark: Mark {
+                    // SAFETY: as above, a zeroed mark is a valid default value.
+                    sys: MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init(),
+                },
+            }
         }
     }
 
