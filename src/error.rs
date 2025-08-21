@@ -245,8 +245,9 @@ impl ErrorImpl {
             ),
             ErrorImpl::RecursionLimitExceeded(_mark) => f.write_str("recursion limit exceeded"),
             ErrorImpl::RepetitionLimitExceeded => f.write_str("repetition limit exceeded"),
-            ErrorImpl::UnknownAnchor(_mark, alias) => f.write_str(
-                &format!("unknown anchor [{}]", &sanitize(alias))),
+            ErrorImpl::UnknownAnchor(_mark, alias) => {
+                write!(f, "unknown anchor [{}]", sanitize(alias))
+            }
             ErrorImpl::ScalarInMerge => {
                 f.write_str("expected a mapping or list of mappings for merging, but found scalar")
             }
