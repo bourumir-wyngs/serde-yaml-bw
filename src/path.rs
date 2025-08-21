@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
 /// Path to the current value in the input, like `dependencies.serde.typo1`.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Path<'a> {
     Root,
     Seq { parent: &'a Path<'a>, index: usize },
@@ -42,10 +42,16 @@ mod tests {
         let root = Path::Root;
         assert_eq!(format!("{}", root), ".");
 
-        let seq = Path::Seq { parent: &root, index: 1 };
+        let seq = Path::Seq {
+            parent: &root,
+            index: 1,
+        };
         assert_eq!(format!("{}", seq), ".[1]");
 
-        let map = Path::Map { parent: &seq, key: "name" };
+        let map = Path::Map {
+            parent: &seq,
+            key: "name",
+        };
         assert_eq!(format!("{}", map), ".[1].name");
 
         let alias = Path::Alias { parent: &map };
@@ -53,5 +59,17 @@ mod tests {
 
         let unknown = Path::Unknown { parent: &map };
         assert_eq!(format!("{}", unknown), ".[1].name.?");
+    }
+
+    #[test]
+    fn test_debug_variants() {
+        let root = Path::Root;
+        assert_eq!(format!("{:?}", root), "Root");
+
+        let seq = Path::Seq {
+            parent: &root,
+            index: 1,
+        };
+        assert_eq!(format!("{:?}", seq), "Seq { parent: Root, index: 1 }");
     }
 }
