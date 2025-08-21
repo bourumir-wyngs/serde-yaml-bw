@@ -85,7 +85,7 @@
 //!             x: 1.0
 //!             y: 2.0
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Newtype(1));
 //!     assert_eq!(values[1], Enum::Tuple(0, 0, 0));
 //!     assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
@@ -100,7 +100,7 @@
 //!             x: 1.0
 //!             y: 2.0
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
 //!     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 //!
@@ -108,7 +108,7 @@
 //!     let yaml = "
 //!         - Unit
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Unit);
 //!
 //!     Ok(())
