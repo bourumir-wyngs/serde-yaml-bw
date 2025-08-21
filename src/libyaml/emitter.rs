@@ -73,6 +73,8 @@ where
 {
     pub fn new(write: W, width: i32, indent: i32) -> Result<Emitter<W>, Error> {
         let owned = Owned::<EmitterPinned<W>>::new_uninit();
+        // SAFETY: `owned.ptr` points to uninitialized memory for a libyaml
+        // emitter. We initialize it using the libyaml API before any use.
         let pin = unsafe {
             let emitter = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_emitter_initialize(emitter).fail {
@@ -92,6 +94,8 @@ where
     pub fn emit(&mut self, event: Event) -> Result<(), Error> {
         let mut sys_event = MaybeUninit::<sys::yaml_event_t>::uninit();
         let sys_event = sys_event.as_mut_ptr();
+        // SAFETY: `self.pin` holds a valid libyaml emitter and `sys_event` points
+        // to uninitialized memory which we hand to libyaml to populate.
         unsafe {
             let emitter = addr_of_mut!((*self.pin.ptr).sys);
             let initialize_status = match event {
@@ -181,6 +185,8 @@ where
     }
 
     pub fn flush(&mut self) -> Result<(), Error> {
+        // SAFETY: `self.pin` contains a valid emitter and libyaml requires
+        // flushing through its C API.
         unsafe {
             let emitter = addr_of_mut!((*self.pin.ptr).sys);
             if sys::yaml_emitter_flush(emitter).fail {
@@ -191,6 +197,8 @@ where
     }
 
     pub fn into_inner(self) -> Result<W, Error> {
+        // SAFETY: `self.pin.ptr` uniquely owns the writer; taking it out and
+        // returning it is safe and leaves the emitter in a dropped state.
         unsafe {
             match (*self.pin.ptr).write.take() {
                 Some(writer) => Ok(writer),
@@ -203,23 +211,31 @@ where
     }
 
     fn error(&mut self) -> Error {
+        // SAFETY: `self.pin.ptr` is valid while `self` is alive. We only read the
+        // emitter fields to construct an error value.
         let emitter = unsafe { &mut *self.pin.ptr };
         if let Some(write_error) = emitter.write_error.take() {
             Error::Io(write_error)
         } else {
+            // SAFETY: The emitter pointer is valid and libyaml expects a pointer to
+            // an initialized emitter when extracting error information.
             Error::Libyaml(unsafe { libyaml::error::Error::emit_error(&raw const emitter.sys) })
         }
     }
 }
 
+// SAFETY: Called by libyaml with the pointer previously provided in
+// `yaml_emitter_set_output`. Pointers and sizes are guaranteed valid by libyaml.
 unsafe fn write_handler<W>(data: *mut c_void, buffer: *mut u8, size: u64) -> i32
 where
     W: io::Write,
 {
     let data = data.cast::<EmitterPinned<W>>();
+    // SAFETY: `data` points to our `EmitterPinned` provided in `new`.
     let ptr = unsafe { &mut *data };
     match ptr.write.as_mut() {
         Some(writer) => match io::Write::write_all(writer, unsafe {
+            // SAFETY: `buffer` is valid for `size` bytes as promised by libyaml.
             slice::from_raw_parts(buffer, size as usize)
         }) {
             Ok(()) => 1,
@@ -240,6 +256,8 @@ where
     W: io::Write,
 {
     fn drop(&mut self) {
+        // SAFETY: The emitter was initialized by libyaml and must be cleaned up
+        // with `yaml_emitter_delete`.
         unsafe { sys::yaml_emitter_delete(&raw mut self.sys) }
     }
 }
