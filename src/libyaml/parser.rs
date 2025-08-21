@@ -73,6 +73,9 @@ pub(crate) enum ScalarStyle {
 impl<'input> Parser<'input> {
     pub fn new(input: Cow<'input, [u8]>) -> Result<Parser<'input>> {
         let owned = Owned::<ParserPinned>::new_uninit();
+        // SAFETY: `owned.ptr` points to uninitialized memory allocated for a
+        // `yaml_parser_t`. The libyaml initialization functions expect a valid
+        // pointer and we immediately initialize all fields before using them.
         let pin = unsafe {
             let parser = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_parser_initialize(parser).fail {
@@ -92,12 +95,17 @@ impl<'input> Parser<'input> {
     where
         R: Read + 'input,
     {
+        // SAFETY: Called by libyaml with pointers originating from our
+        // `ParserPinned` state. All pointers are valid for the provided size and
+        // live at least for the duration of the call.
         unsafe fn read_handler(
             data: *mut std::os::raw::c_void,
             buffer: *mut u8,
             size: u64,
             size_read: *mut u64,
         ) -> i32 {
+            // SAFETY: `data` was set to point to a `ParserPinned` in `from_reader`.
+            // `buffer` refers to a writable output buffer of length `size`.
             unsafe {
                 let pinned = &mut *(data as *mut ParserPinned);
                 let reader = match pinned.reader.as_mut() {
@@ -127,6 +135,9 @@ impl<'input> Parser<'input> {
         }
 
         let owned = Owned::<ParserPinned>::new_uninit();
+        // SAFETY: as in `new`, we allocate space for a parser and fully
+        // initialize it before use. The read handler and reader pointers remain
+        // valid for the lifetime of the parser.
         let pin = unsafe {
             let parser = addr_of_mut!((*owned.ptr).sys);
             if sys::yaml_parser_initialize(parser).fail {
@@ -148,6 +159,9 @@ impl<'input> Parser<'input> {
 
     pub fn next(&mut self) -> Result<(Event<'input>, Mark)> {
         let mut event = MaybeUninit::<sys::yaml_event_t>::uninit();
+        // SAFETY: libyaml uses the provided parser pointer and event structure to
+        // produce the next event. `self.pin` contains a valid parser and the
+        // event is properly initialized before being passed to libyaml.
         unsafe {
             if let Some(err) = (*self.pin.ptr).read_error.take() {
                 return Err(error::new(ErrorImpl::Io(err)));
@@ -174,6 +188,9 @@ impl<'input> Parser<'input> {
     }
 }
 
+// SAFETY: The caller guarantees that `sys` points to a valid libyaml event of
+// the corresponding type and that any string pointers inside remain alive for
+// the duration of the conversion.
 unsafe fn convert_event<'input>(
     sys: &sys::yaml_event_t,
     input: &Option<Cow<'input, [u8]>>,
@@ -183,7 +200,11 @@ unsafe fn convert_event<'input>(
         sys::YAML_STREAM_END_EVENT => Ok(Event::StreamEnd),
         sys::YAML_DOCUMENT_START_EVENT => Ok(Event::DocumentStart),
         sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd),
-        sys::YAML_ALIAS_EVENT => match unsafe { optional_anchor(sys.data.alias.anchor)? } {
+        sys::YAML_ALIAS_EVENT => match unsafe {
+            // SAFETY: The event is an alias; the union field `alias` is valid and
+            // the pointer comes from libyaml.
+            optional_anchor(sys.data.alias.anchor)?
+        } {
             Some(anchor) => Ok(Event::Alias(anchor)),
             None => Err(ErrorImpl::UnknownAnchor(
                 Mark {
@@ -193,9 +214,12 @@ unsafe fn convert_event<'input>(
             )),
         },
         sys::YAML_SCALAR_EVENT => Ok(Event::Scalar(Scalar {
+            // SAFETY: The event is known to be a scalar, so the union fields for
+            // `scalar` are valid and the pointers are trusted from libyaml.
             anchor: unsafe { optional_anchor(sys.data.scalar.anchor) }?,
             tag: unsafe { optional_tag(sys.data.scalar.tag) }?,
             value: Box::from(unsafe {
+                // SAFETY: `value` points to `length` bytes of scalar data.
                 slice::from_raw_parts(sys.data.scalar.value, sys.data.scalar.length as usize)
             }),
             style: match unsafe { sys.data.scalar.style } {
@@ -214,11 +238,15 @@ unsafe fn convert_event<'input>(
             },
         })),
         sys::YAML_SEQUENCE_START_EVENT => Ok(Event::SequenceStart(SequenceStart {
+            // SAFETY: Union fields for `sequence_start` are valid in this match
+            // arm and pointers come from libyaml.
             anchor: unsafe { optional_anchor(sys.data.sequence_start.anchor) }?,
             tag: unsafe { optional_tag(sys.data.sequence_start.tag) }?,
         })),
         sys::YAML_SEQUENCE_END_EVENT => Ok(Event::SequenceEnd),
         sys::YAML_MAPPING_START_EVENT => Ok(Event::MappingStart(MappingStart {
+            // SAFETY: Union fields for `mapping_start` are valid for this event
+            // type and pointers originate from libyaml.
             anchor: unsafe { optional_anchor(sys.data.mapping_start.anchor) }?,
             tag: unsafe { optional_tag(sys.data.mapping_start.tag) }?,
         })),
@@ -229,11 +257,15 @@ unsafe fn convert_event<'input>(
     }
 }
 
+// SAFETY: `anchor` must be a valid pointer to a NUL-terminated string or null
+// if no anchor is present.
 unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Anchor>, ErrorImpl> {
     let ptr = match NonNull::new(anchor as *mut i8) {
         Some(p) => p,
         None => return Ok(None),
     };
+    // SAFETY: `ptr` is non-null and points to a valid NUL-terminated string from
+    // libyaml.
     let cstr = unsafe { CStr::from_ptr(ptr) };
     cstr
         .to_bytes()
@@ -241,11 +273,14 @@ unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Ancho
         .map_err(|_| ErrorImpl::TagError)
 }
 
+// SAFETY: `tag` must be a valid pointer to a NUL-terminated string or null if
+// no tag is provided.
 unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, ErrorImpl> {
     let ptr = match NonNull::new(tag as *mut i8) {
         Some(p) => p,
         None => return Ok(None),
     };
+    // SAFETY: `ptr` is non-null and points to a valid NUL-terminated string.
     let cstr = unsafe { CStr::from_ptr(ptr) };
     cstr
         .to_bytes()
@@ -289,6 +324,8 @@ impl Debug for Anchor {
 
 impl Drop for ParserPinned<'_> {
     fn drop(&mut self) {
+        // SAFETY: `self.sys` was initialized by libyaml and must be freed using
+        // `yaml_parser_delete` to avoid leaking resources.
         unsafe { sys::yaml_parser_delete(&raw mut self.sys) }
     }
 }

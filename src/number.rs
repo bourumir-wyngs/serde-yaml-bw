@@ -444,15 +444,20 @@ impl From<f64> for Number {
     }
 }
 
-// This is fine, because we don't _really_ implement hash for floats
-// all other hash functions should work as expected
+// All other hash functions should work as expected.
 #[allow(clippy::derived_hash_with_manual_eq)]
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self.n {
-            N::Float(_) => {
-                // you should feel bad for using f64 as a map key
-                3.hash(state);
+            N::Float(f) => {
+                // Hash the raw IEEE 754 bits so different floats produce
+                // different hashes. Canonicalize negative zero to positive
+                // zero so values considered equal have the same hash.
+                let mut bits = f.to_bits();
+                if bits == (-0.0f64).to_bits() {
+                    bits = 0.0f64.to_bits();
+                }
+                bits.hash(state);
             }
             N::PosInt(u) => u.hash(state),
             N::NegInt(i) => i.hash(state),

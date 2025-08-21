@@ -30,7 +30,6 @@ handling:
 
 ```rust
 use serde::Deserialize;
-use serde_yaml_bw::Deserializer;
 
 // Define the structure representing your YAML data.
 #[derive(Debug, Deserialize)]

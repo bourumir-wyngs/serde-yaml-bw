@@ -28,7 +28,11 @@ pub(crate) struct CStr<'a> {
 // CStr only implements Send and Sync for pointers that are valid for the
 // `'static` lifetime. This prevents accidentally sending a reference to data
 // that may be freed before another thread finishes using it.
+// SAFETY: A `CStr<'static>` points to bytes that live for the entire program,
+// so sharing or sending it between threads cannot cause dangling references.
 unsafe impl Send for CStr<'static> {}
+// SAFETY: As above, the referenced bytes outlive all threads making it safe to
+// share `CStr<'static>` across threads.
 unsafe impl Sync for CStr<'static> {}
 
 impl<'a> CStr<'a> {
@@ -36,6 +40,8 @@ impl<'a> CStr<'a> {
     pub fn from_bytes_with_nul(bytes: &'static [u8]) -> Self {
         assert_eq!(bytes.last(), Some(&b'\0'));
         let ptr = NonNull::from(bytes).cast();
+        // SAFETY: `bytes` is checked to be NUL-terminated and originates from a
+        // static slice, so the pointer is valid for `'static`.
         unsafe { Self::from_ptr(ptr) }
     }
 
@@ -44,6 +50,8 @@ impl<'a> CStr<'a> {
     /// - `ptr` must be non-null.
     /// - `ptr` must point to a valid NUL-terminated byte sequence.
     /// - The pointed-to data must remain valid for the returned `CStr`'s lifetime.
+    // SAFETY: `ptr` must be non-null and point to a valid NUL-terminated string
+    // that lives for at least `'a`.
     pub unsafe fn from_ptr(ptr: NonNull<i8>) -> Self {
         CStr {
             ptr: ptr.cast(),
@@ -55,6 +63,8 @@ impl<'a> CStr<'a> {
         let start = self.ptr.as_ptr();
         let mut end = start;
         let mut len = 0usize;
+        // SAFETY: `self.ptr` points to a valid NUL-terminated string. We bound
+        // the scan by `MAX_NAME_LENGTH` to avoid reading past the terminator.
         unsafe {
             while *end != 0 {
                 if len >= MAX_NAME_LENGTH {
@@ -69,6 +79,8 @@ impl<'a> CStr<'a> {
 
     pub fn to_bytes(self) -> Result<&'a [u8], CStrError> {
         let len = self.len()?;
+        // SAFETY: `self.ptr` is valid for `len` bytes, as ensured by `len()`
+        // returning successfully above.
         unsafe { Ok(slice::from_raw_parts(self.ptr.as_ptr(), len)) }
     }
 }
@@ -102,6 +114,8 @@ mod tests {
         let mut bytes = vec![b'a'; MAX_NAME_LENGTH + 1];
         bytes.push(0);
         let ptr = NonNull::new(bytes.as_mut_ptr() as *mut i8).unwrap();
+        // SAFETY: `ptr` comes from `bytes` which is NUL-terminated and lives for
+        // the duration of the test.
         let cstr = unsafe { CStr::from_ptr(ptr) };
         assert!(cstr.len().is_err());
     }
@@ -111,6 +125,7 @@ impl Display for CStr<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let ptr = self.ptr.as_ptr();
         let len = self.len().map_err(|_| fmt::Error)?;
+        // SAFETY: `ptr` is valid for `len` bytes from the preceding `len()` call.
         let bytes = unsafe { slice::from_raw_parts(ptr, len) };
         display_lossy(bytes, formatter)
     }
@@ -120,6 +135,7 @@ impl Debug for CStr<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let ptr = self.ptr.as_ptr();
         let len = self.len().map_err(|_| fmt::Error)?;
+        // SAFETY: `ptr` is valid for `len` bytes as above.
         let bytes = unsafe { slice::from_raw_parts(ptr, len) };
         debug_lossy(bytes, formatter)
     }
