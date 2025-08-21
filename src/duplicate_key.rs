@@ -111,8 +111,23 @@ mod tests {
     }
 
     #[test]
-    fn test_display() {
+    fn test_display_variants() {
+        let err = DuplicateKeyError::from_scalar(b"null");
+        assert_eq!(format!("{}", err), "duplicate entry with null key");
+
+        let err = DuplicateKeyError::from_scalar(b"true");
+        assert_eq!(format!("{}", err), "duplicate entry with key `true`");
+
+        let err = DuplicateKeyError::from_scalar(b"false");
+        assert_eq!(format!("{}", err), "duplicate entry with key `false`");
+
+        let err = DuplicateKeyError::from_scalar(b"42");
+        assert_eq!(format!("{}", err), "duplicate entry with key 42");
+
         let err = DuplicateKeyError::from_scalar(b"dup");
         assert_eq!(format!("{}", err), "duplicate entry with key \"dup\"");
+
+        let err = DuplicateKeyError::from_scalar(b"\xFF");
+        assert_eq!(format!("{}", err), "duplicate entry in YAML map");
     }
 }
