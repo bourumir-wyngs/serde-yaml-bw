@@ -1,3 +1,4 @@
+use crate::libyaml::parser::Anchor;
 use crate::libyaml::{emitter, error as libyaml};
 use crate::path::Path;
 use serde::{de, ser};
@@ -7,7 +8,6 @@ use std::io;
 use std::result;
 use std::string;
 use std::sync::Arc;
-use crate::libyaml::parser::Anchor;
 
 /// An error that happened serializing or deserializing YAML data.
 pub struct Error(Box<ErrorImpl>);
@@ -211,21 +211,21 @@ impl ErrorImpl {
     }
 
     fn message_no_mark(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
         fn sanitize(anchor: &Anchor) -> String {
-            let bytes = &anchor.0;
-            match std::str::from_utf8(bytes) {
-                Ok(string) =>
-                    // Block potential DIA
-                    string.chars().map(|c| {
-                        if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' {
-                            c
-                        } else {
-                            '_'
-                        }
-                    }).collect(),
-                Err(_) => "UTF-8 error".to_string(),
+            use std::fmt::Write as _;
+            let mut sanitized = String::new();
+            for &b in &anchor.0 {
+                match b {
+                    b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'_' => {
+                        sanitized.push(b as char);
+                    }
+                    _ => {
+                        // Represent any other byte as an escaped hexadecimal sequence.
+                        write!(&mut sanitized, "\\x{:02X}", b).unwrap();
+                    }
+                }
             }
+            sanitized
         }
 
         match self {
@@ -245,8 +245,9 @@ impl ErrorImpl {
             ),
             ErrorImpl::RecursionLimitExceeded(_mark) => f.write_str("recursion limit exceeded"),
             ErrorImpl::RepetitionLimitExceeded => f.write_str("repetition limit exceeded"),
-            ErrorImpl::UnknownAnchor(_mark, alias) => f.write_str(
-                &format!("unknown anchor [{}]", &sanitize(alias))),
+            ErrorImpl::UnknownAnchor(_mark, alias) => {
+                f.write_str(&format!("unknown anchor [{}]", &sanitize(alias)))
+            }
             ErrorImpl::ScalarInMerge => {
                 f.write_str("expected a mapping or list of mappings for merging, but found scalar")
             }
@@ -264,8 +265,10 @@ impl ErrorImpl {
             ErrorImpl::UnexpectedEndOfSequence => f.write_str("unexpected end of sequence"),
             ErrorImpl::UnexpectedEndOfMapping => f.write_str("unexpected end of mapping"),
             ErrorImpl::UnresolvedAlias => f.write_str("unresolved alias"),
-            ErrorImpl::SerializedValueBeforeSerializeKey => f.write_str("serialize_value called before serialize_key"),
-            ErrorImpl::TagError => f.write_str("unexpected tag error")
+            ErrorImpl::SerializedValueBeforeSerializeKey => {
+                f.write_str("serialize_value called before serialize_key")
+            }
+            ErrorImpl::TagError => f.write_str("unexpected tag error"),
         }
     }
 
