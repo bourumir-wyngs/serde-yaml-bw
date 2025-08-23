@@ -1,4 +1,4 @@
-![panic-free](https://img.shields.io/badge/panic--free-✔️-brightgreen)
+AAd![panic-free](https://img.shields.io/badge/panic--free-✔️-brightgreen)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/serde-yaml-bw/rust.yml)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions)
 [![crates.io](https://img.shields.io/crates/v/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![crates.io](https://img.shields.io/crates/l/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
@@ -6,13 +6,13 @@
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 [![Fuzz & Audit](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml/badge.svg)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml)
 
-This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. 
+This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply.
 
 Historically the project started as fork of **serde-yaml** but has seen notable development thereafter.
 
-Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag. 
+Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
-The library also uses Rust structure that is a parsing target as kind of schema. This schema allows to parse properly both "true" and "1.2" into String even without quotes. It can also handle standard YAML 1.1 boolean values when parsed into boolean (y, yes, on, n, no, off and the like). 
+The library also uses Rust structure that is a parsing target as kind of schema. This schema allows to parse properly both "true" and "1.2" into String even without quotes. It can also handle standard YAML 1.1 boolean values when parsed into boolean (y, yes, on, n, no, off and the like).
 
 These extensions come at the cost of some API restrictions: write access to indices and mappings has been removed. Read access remains possible, with `Value::Null` returned on invalid access. Also, duplicate keys are not longer permitted in YAML, returning proper error message instead.
 
@@ -21,7 +21,6 @@ We do not encourage using this crate beyond serialization with serde. If your us
 Since the API has changed to a more restrictive version, the major version number has been incremented.
 
 If a panic does occur under some short and clear input, please report it as a bug.
-
 
 ## Usage Example
 
@@ -60,7 +59,9 @@ fn main() {
     }
 }
 ```
+
 Here is example with merge keys (inherited properties):
+
 ```rust
 use serde::Deserialize;
 
@@ -80,7 +81,7 @@ struct Connection {
 
 fn main() {
     let yaml_input = r#"
-# Here we define "default configuration"    
+# Here we define "default configuration"  
 defaults: &defaults
   adapter: postgres
   host: localhost
@@ -203,9 +204,11 @@ fn parse_blob() {
 ```
 
 ### Rc, Arc, Box and Cow
+
 To serialize references (`Rc`, `Arc`), just add the [`"rc"` feature](https://serde.rs/feature-flags.html#-features-rc) to [Serde](https://serde.rs/). `Box` and `Cow` are supported [out of the box](https://serde.rs/data-model.html).
 
 ### Streaming
+
 This library does not read the whole content of the Reader before even trying to parse. Hence it is possible to implement
 streaming using the new [`StreamDeserializer`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.StreamDeserializer.html).
 
@@ -228,5 +231,9 @@ fn read_records() -> std::io::Result<()> {
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
 can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is useful for a human-intended output.
 
+### Rust struct as schema
 
+This reader uses the passed Rust struct as a YAML schema. Knowing that our parsing target is a String or a boolean field allows us to assign correctly values that would result in an error if parsed without this background knowledge:
 
+- YAML sees values like 1.2 as numbers, but if it is something like a version, the parsing target is likely to be a string. If parsed into a structure field, it is easy to see if the parsing target is a string or a number; hence, 1.2 can also be parsed as "1.2" without generating an unnecessary error.
+- Values like y, on, n, no, off can be used as boolean values in YAML 1.1. This causes the "Norway problem" if the parsing target is actually a string. However, if we know the parsing target, it is easy to parse "no" as false (for boolean) or as a String (for String).
