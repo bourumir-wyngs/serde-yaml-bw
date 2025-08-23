@@ -34,16 +34,30 @@ Contributions are welcome, whether they are bug fixes, improvements, documentati
 
 ## AI Usage
 
-AI-generated contributions are **permitted**, but they will be reviewed by the same acceptance criteria as any other code.  
-Submissions may be rejected if they include:
+AI-generated contributions are **welcome** and will be reviewed by the **same standards** as any other code.
 
-- unnecessary rewrites,
-- overcomplicated solutions,
-- features not in the YAML 1.1 or 1.2 specifications,
-- unreasonably high numbers of pull requests from the same author,
-- missing or insufficient test coverage.
+A submission may be rejected if it includes any of the following:
 
-In short: AI can help, but **you are responsible for the quality of your contribution**.
+- **Unnecessary rewrites**  
+  Drive-by refactors or widespread cosmetic edits unrelated to the stated goal. Keep diffs minimal and focused to respect reviewers’ time.
+
+- **Overcomplicated solutions**  
+  Prefer clear, idiomatic Rust over convoluted designs. Solve the problem as simply as possible.
+
+- **Features outside YAML 1.1/1.2**  
+  Do not propose features that are not part of the YAML 1.1 or 1.2 specifications. Keeping scope lean helps the project evolve without feature bloat.
+
+- **Excessive PR volume**  
+  A large number of small PRs from the same author in a short time often indicates insufficient self-review. Consolidate related changes.
+
+- **Missing or weak tests**  
+  Include meaningful tests. AI can be good at generating tests, but you must guide it and ensure tests actually verify behavior (and fail when they should).
+
+- **Unvetted or undisclosed dependencies**  
+  Do not add dependencies without prior discussion. Verify that a package exists, is maintained, appropriately licensed, and reputable. AI tools sometimes invent non-existent crates.
+
+In short: **you are responsible for the quality of your contribution**. AI is a tool like a text editor. It can also help improve writing if you are a non-native speaker, but avoid producing long, verbose text just because you can—the result is as annoying as when done poorly by a human.
+
 
 ## Reporting Issues
 
