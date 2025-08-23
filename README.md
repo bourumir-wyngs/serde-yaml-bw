@@ -1,4 +1,4 @@
-AAd![panic-free](https://img.shields.io/badge/panic--free-✔️-brightgreen)
+![panic-free](https://img.shields.io/badge/panic--free-✔️-brightgreen)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/serde-yaml-bw/rust.yml)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions)
 [![crates.io](https://img.shields.io/crates/v/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
 [![crates.io](https://img.shields.io/crates/l/serde_yaml_bw.svg)](https://crates.io/crates/serde_yaml_bw)
