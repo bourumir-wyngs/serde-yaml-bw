@@ -8,18 +8,31 @@ use std::mem;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 impl Serialize for Value {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, mut serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: serde::Serializer + crate::ser::Anchorable<Error = S::Error>,
     {
         match self {
-            Value::Null(_) => serializer.serialize_unit(),
-            Value::Bool(b, _) => serializer.serialize_bool(*b),
-            Value::Number(n, _) => n.serialize(serializer),
-            Value::String(s, _) => serializer.serialize_str(s),
+            Value::Null(anchor) => {
+                serializer.set_anchor(anchor.as_deref())?;
+                serializer.serialize_unit()
+            }
+            Value::Bool(b, anchor) => {
+                serializer.set_anchor(anchor.as_deref())?;
+                serializer.serialize_bool(*b)
+            }
+            Value::Number(n, anchor) => {
+                serializer.set_anchor(anchor.as_deref())?;
+                n.serialize(serializer)
+            }
+            Value::String(s, anchor) => {
+                serializer.set_anchor(anchor.as_deref())?;
+                serializer.serialize_str(s)
+            }
             Value::Sequence(seq) => seq.serialize(serializer),
             Value::Mapping(mapping) => {
                 use serde::ser::SerializeMap;
+                serializer.set_anchor(mapping.anchor.as_deref())?;
                 let mut map = serializer.serialize_map(Some(mapping.len()))?;
                 for (k, v) in mapping {
                     map.serialize_entry(k, v)?;

@@ -121,10 +121,11 @@ impl std::hash::Hash for Sequence {
 }
 
 impl serde::Serialize for Sequence {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, mut serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: serde::Serializer + crate::ser::Anchorable<Error = S::Error>,
     {
+        serializer.set_anchor(self.anchor.as_deref())?;
         self.elements.serialize(serializer)
     }
 }

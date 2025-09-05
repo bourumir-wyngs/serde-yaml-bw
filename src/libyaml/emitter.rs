@@ -44,6 +44,7 @@ pub(crate) enum Event<'a> {
 
 #[derive(Debug)]
 pub(crate) struct Scalar<'a> {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
     pub value: &'a str,
     pub style: ScalarStyle,
@@ -59,11 +60,13 @@ pub enum ScalarStyle {
 
 #[derive(Debug)]
 pub(crate) struct Sequence {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Mapping {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
 }
 
@@ -121,7 +124,10 @@ where
                     sys::yaml_document_end_event_initialize(sys_event, implicit)
                 }
                 Event::Scalar(mut scalar) => {
-                    let anchor = ptr::null();
+                    let anchor = scalar.anchor.as_mut().map_or_else(ptr::null, |a| {
+                        a.push('\0');
+                        a.as_ptr()
+                    });
                     let tag = scalar.tag.as_mut().map_or_else(ptr::null, |tag| {
                         tag.push('\0');
                         tag.as_ptr()
@@ -148,7 +154,10 @@ where
                     )
                 }
                 Event::SequenceStart(mut sequence) => {
-                    let anchor = ptr::null();
+                    let anchor = sequence.anchor.as_mut().map_or_else(ptr::null, |a| {
+                        a.push('\0');
+                        a.as_ptr()
+                    });
                     let tag = sequence.tag.as_mut().map_or_else(ptr::null, |tag| {
                         tag.push('\0');
                         tag.as_ptr()
@@ -161,7 +170,10 @@ where
                 }
                 Event::SequenceEnd => sys::yaml_sequence_end_event_initialize(sys_event),
                 Event::MappingStart(mut mapping) => {
-                    let anchor = ptr::null();
+                    let anchor = mapping.anchor.as_mut().map_or_else(ptr::null, |a| {
+                        a.push('\0');
+                        a.as_ptr()
+                    });
                     let tag = mapping.tag.as_mut().map_or_else(ptr::null, |tag| {
                         tag.push('\0');
                         tag.as_ptr()

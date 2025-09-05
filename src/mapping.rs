@@ -806,8 +806,12 @@ impl<'a> VacantEntry<'a> {
 
 impl Serialize for Mapping {
     #[inline]
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    fn serialize<S>(&self, mut serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer + crate::ser::Anchorable<Error = S::Error>,
+    {
         use serde::ser::SerializeMap;
+        serializer.set_anchor(self.anchor.as_deref())?;
         let mut map_serializer = serializer.serialize_map(Some(self.len()))?;
         for (k, v) in self {
             map_serializer.serialize_entry(k, v)?;

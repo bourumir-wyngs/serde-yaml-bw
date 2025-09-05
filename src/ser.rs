@@ -19,6 +19,15 @@ use crate::libyaml::tag::Tag;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// Trait for serializers that support assigning YAML anchors to the next value
+/// being serialized.
+pub trait Anchorable {
+    type Error;
+
+    /// Register an anchor to be applied to the next serialized value.
+    fn set_anchor(&mut self, anchor: Option<&str>) -> Result<(), Self::Error>;
+}
+
 /// Builder to configure [`Serializer`].
 /// ```
 /// use serde::Serialize;
@@ -90,6 +99,7 @@ impl SerializerBuilder {
             depth: 0,
             state: State::default(),
             tag_stack: Vec::new(),
+            next_anchor: None,
             emitter,
             default_scalar_style: self.scalar_style,
         })
@@ -129,8 +139,22 @@ where
     state: State,
     /// Stack of YAML tags currently in scope.
     tag_stack: Vec<String>,
+    /// Anchor to attach to the next emitted value, if any.
+    next_anchor: Option<String>,
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
+}
+
+impl<W> Anchorable for &mut Serializer<W>
+where
+    W: io::Write,
+{
+    type Error = Error;
+
+    fn set_anchor(&mut self, anchor: Option<&str>) -> Result<(), Self::Error> {
+        self.set_next_anchor(anchor);
+        Ok(())
+    }
 }
 
 enum State {
@@ -178,11 +202,20 @@ where
         Ok(writer)
     }
 
+    fn set_next_anchor(&mut self, anchor: Option<&str>) {
+        self.next_anchor = anchor.map(ToString::to_string);
+    }
+
+    fn take_anchor(&mut self) -> Option<String> {
+        self.next_anchor.take()
+    }
+
     fn emit_scalar(&mut self, mut scalar: Scalar) -> Result<()> {
         self.flush_mapping_start()?;
         if let Some(tag) = self.take_tag() {
             scalar.tag = Some(tag);
         }
+        scalar.anchor = self.take_anchor();
         self.value_start()?;
         self.emitter.emit(Event::Scalar(scalar))?;
         self.value_end()
@@ -192,7 +225,8 @@ where
         self.flush_mapping_start()?;
         self.value_start()?;
         let tag = self.take_tag();
-        self.emitter.emit(Event::SequenceStart(Sequence { tag }))?;
+        let anchor = self.take_anchor();
+        self.emitter.emit(Event::SequenceStart(Sequence { anchor, tag }))?;
         Ok(())
     }
 
@@ -205,7 +239,8 @@ where
         self.flush_mapping_start()?;
         self.value_start()?;
         let tag = self.take_tag();
-        self.emitter.emit(Event::MappingStart(Mapping { tag }))?;
+        let anchor = self.take_anchor();
+        self.emitter.emit(Event::MappingStart(Mapping { anchor, tag }))?;
         Ok(())
     }
 
@@ -269,6 +304,7 @@ where
 
     fn serialize_bool(self, v: bool) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: if v { "true" } else { "false" },
             style: self.default_scalar_style,
@@ -277,6 +313,7 @@ where
 
     fn serialize_i8(self, v: i8) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -285,6 +322,7 @@ where
 
     fn serialize_i16(self, v: i16) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -293,6 +331,7 @@ where
 
     fn serialize_i32(self, v: i32) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -301,6 +340,7 @@ where
 
     fn serialize_i64(self, v: i64) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -309,6 +349,7 @@ where
 
     fn serialize_i128(self, v: i128) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -317,6 +358,7 @@ where
 
     fn serialize_u8(self, v: u8) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -325,6 +367,7 @@ where
 
     fn serialize_u16(self, v: u16) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -333,6 +376,7 @@ where
 
     fn serialize_u32(self, v: u32) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -341,6 +385,7 @@ where
 
     fn serialize_u64(self, v: u64) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -349,6 +394,7 @@ where
 
     fn serialize_u128(self, v: u128) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -358,6 +404,7 @@ where
     fn serialize_f32(self, v: f32) -> Result<()> {
         let mut buffer = ryu::Buffer::new();
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: match v.classify() {
                 num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
@@ -372,6 +419,7 @@ where
     fn serialize_f64(self, v: f64) -> Result<()> {
         let mut buffer = ryu::Buffer::new();
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: match v.classify() {
                 num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
@@ -385,6 +433,7 @@ where
 
     fn serialize_char(self, value: char) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: value.encode_utf8(&mut [0u8; 4]),
             style: ScalarStyle::SingleQuoted,
@@ -451,6 +500,7 @@ where
         };
 
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value,
             style,
@@ -459,8 +509,8 @@ where
 
     fn serialize_bytes(self, value: &[u8]) -> Result<()> {
         let encoded = BASE64_STANDARD.encode(value);
-        self.emit_scalar(       
-            Scalar {
+        self.emit_scalar(Scalar {
+            anchor: None,
             tag: Some(Tag::BINARY.into()),
             value: &encoded,
             style: self.default_scalar_style,
@@ -469,6 +519,7 @@ where
 
     fn serialize_unit(self) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: "null",
             style: self.default_scalar_style,
