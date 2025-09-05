@@ -26,7 +26,9 @@ impl Serialize for Value {
                 }
                 map.end()
             }
-            Value::Alias(name) => serializer.serialize_str(name),
+            Value::Alias(name) => {
+                serializer.serialize_newtype_struct(crate::ser::ALIAS_NEWTYPE, name)
+            }
             Value::Tagged(tagged) => tagged.serialize(serializer),
         }
     }
@@ -141,7 +143,10 @@ impl ser::Serializer for Serializer {
             .iter()
             .map(|&b| Value::Number(Number::from(b), None))
             .collect();
-        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
+        Ok(Value::Sequence(Sequence {
+            anchor: None,
+            elements: vec,
+        }))
     }
 
     fn serialize_unit(self) -> Result<Value> {
@@ -619,7 +624,7 @@ impl ser::SerializeMap for SerializeMap {
                 match tagged::check_for_tag(value) {
                     MaybeTag::Tag(tag) => Ok(MaybeTag::Tag(tag)),
                     MaybeTag::NotTag(string) => Ok(MaybeTag::NotTag(Value::String(string, None))),
-                    MaybeTag::Error => Err(error::new(ErrorImpl::TagError))
+                    MaybeTag::Error => Err(error::new(ErrorImpl::TagError)),
                 }
             }
         }
