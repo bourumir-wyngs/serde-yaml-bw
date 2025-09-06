@@ -5,7 +5,10 @@
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml;
 use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence};
+use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
 use std::fmt::{self, Display};
@@ -13,9 +16,9 @@ use std::io;
 use std::mem;
 use std::num;
 use std::str;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
-use crate::libyaml::tag::Tag;
+
+pub(crate) const ALIAS_NEWTYPE: &str = "$serde_yaml::alias";
+pub(crate) const ANCHOR_NEWTYPE: &str = "$serde_yaml::anchor";
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -54,7 +57,11 @@ pub struct SerializerBuilder {
 
 impl Default for SerializerBuilder {
     fn default() -> Self {
-        Self { width: -1, indent: 2, scalar_style: ScalarStyle::Plain }
+        Self {
+            width: -1,
+            indent: 2,
+            scalar_style: ScalarStyle::Plain,
+        }
     }
 }
 
@@ -90,6 +97,7 @@ impl SerializerBuilder {
             depth: 0,
             state: State::default(),
             tag_stack: Vec::new(),
+            pending_anchor: None,
             emitter,
             default_scalar_style: self.scalar_style,
         })
@@ -129,6 +137,7 @@ where
     state: State,
     /// Stack of YAML tags currently in scope.
     tag_stack: Vec<String>,
+    pending_anchor: Option<String>,
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
 }
@@ -183,6 +192,7 @@ where
         if let Some(tag) = self.take_tag() {
             scalar.tag = Some(tag);
         }
+        scalar.anchor = self.pending_anchor.take();
         self.value_start()?;
         self.emitter.emit(Event::Scalar(scalar))?;
         self.value_end()
@@ -192,7 +202,9 @@ where
         self.flush_mapping_start()?;
         self.value_start()?;
         let tag = self.take_tag();
-        self.emitter.emit(Event::SequenceStart(Sequence { tag }))?;
+        let anchor = self.pending_anchor.take();
+        self.emitter
+            .emit(Event::SequenceStart(Sequence { anchor, tag }))?;
         Ok(())
     }
 
@@ -205,12 +217,21 @@ where
         self.flush_mapping_start()?;
         self.value_start()?;
         let tag = self.take_tag();
-        self.emitter.emit(Event::MappingStart(Mapping { tag }))?;
+        let anchor = self.pending_anchor.take();
+        self.emitter
+            .emit(Event::MappingStart(Mapping { anchor, tag }))?;
         Ok(())
     }
 
     fn emit_mapping_end(&mut self) -> Result<()> {
         self.emitter.emit(Event::MappingEnd)?;
+        self.value_end()
+    }
+
+    fn emit_alias(&mut self, anchor: &str) -> Result<()> {
+        self.flush_mapping_start()?;
+        self.value_start()?;
+        self.emitter.emit(Event::Alias(anchor.to_owned()))?;
         self.value_end()
     }
 
@@ -269,6 +290,7 @@ where
 
     fn serialize_bool(self, v: bool) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: if v { "true" } else { "false" },
             style: self.default_scalar_style,
@@ -277,6 +299,7 @@ where
 
     fn serialize_i8(self, v: i8) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -285,6 +308,7 @@ where
 
     fn serialize_i16(self, v: i16) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -293,6 +317,7 @@ where
 
     fn serialize_i32(self, v: i32) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -301,6 +326,7 @@ where
 
     fn serialize_i64(self, v: i64) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -309,6 +335,7 @@ where
 
     fn serialize_i128(self, v: i128) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -317,6 +344,7 @@ where
 
     fn serialize_u8(self, v: u8) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -325,6 +353,7 @@ where
 
     fn serialize_u16(self, v: u16) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -333,6 +362,7 @@ where
 
     fn serialize_u32(self, v: u32) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -341,6 +371,7 @@ where
 
     fn serialize_u64(self, v: u64) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -349,6 +380,7 @@ where
 
     fn serialize_u128(self, v: u128) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: itoa::Buffer::new().format(v),
             style: self.default_scalar_style,
@@ -358,6 +390,7 @@ where
     fn serialize_f32(self, v: f32) -> Result<()> {
         let mut buffer = ryu::Buffer::new();
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: match v.classify() {
                 num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
@@ -372,6 +405,7 @@ where
     fn serialize_f64(self, v: f64) -> Result<()> {
         let mut buffer = ryu::Buffer::new();
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: match v.classify() {
                 num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
@@ -385,6 +419,7 @@ where
 
     fn serialize_char(self, value: char) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: value.encode_utf8(&mut [0u8; 4]),
             style: ScalarStyle::SingleQuoted,
@@ -451,6 +486,7 @@ where
         };
 
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value,
             style,
@@ -459,8 +495,8 @@ where
 
     fn serialize_bytes(self, value: &[u8]) -> Result<()> {
         let encoded = BASE64_STANDARD.encode(value);
-        self.emit_scalar(       
-            Scalar {
+        self.emit_scalar(Scalar {
+            anchor: None,
             tag: Some(Tag::BINARY.into()),
             value: &encoded,
             style: self.default_scalar_style,
@@ -469,6 +505,7 @@ where
 
     fn serialize_unit(self) -> Result<()> {
         self.emit_scalar(Scalar {
+            anchor: None,
             tag: None,
             value: "null",
             style: self.default_scalar_style,
@@ -488,11 +525,17 @@ where
         self.serialize_str(variant)
     }
 
-    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
+    fn serialize_newtype_struct<T>(mut self, name: &'static str, value: &T) -> Result<()>
     where
         T: ?Sized + ser::Serialize,
     {
-        value.serialize(self)
+        if name == ALIAS_NEWTYPE {
+            value.serialize(AliasHelper { ser: &mut self })
+        } else if name == ANCHOR_NEWTYPE {
+            value.serialize(AnchorHelper { ser: &mut self })
+        } else {
+            value.serialize(self)
+        }
     }
 
     fn serialize_newtype_variant<T>(
@@ -778,6 +821,556 @@ where
     fn end(self) -> Result<()> {
         self.emit_mapping_end()?;
         self.emit_mapping_end()
+    }
+}
+
+struct AliasHelper<'a, W>
+where
+    W: io::Write,
+{
+    ser: &'a mut Serializer<W>,
+}
+
+#[inline]
+fn alias_must_be_string<T>() -> Result<T> {
+    Err(ser::Error::custom("alias must be a string"))
+}
+
+struct AnchorSetter<'a, W>
+where
+    W: io::Write,
+{
+    ser: &'a mut Serializer<W>,
+}
+
+#[inline]
+fn anchor_must_be_string<T>() -> Result<T> {
+    Err(ser::Error::custom("anchor must be a string"))
+}
+
+impl<'a, W> ser::Serializer for AliasHelper<'a, W>
+where
+    W: io::Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = ser::Impossible<Self::Ok, Self::Error>;
+
+    fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
+        self.ser.emit_alias(value)
+    }
+
+    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_i128(self, _v: i128) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_u128(self, _v: u128) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        alias_must_be_string()
+    }
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        alias_must_be_string()
+    }
+    fn serialize_newtype_variant<T>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        alias_must_be_string()
+    }
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct, Self::Error> {
+        alias_must_be_string()
+    }
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
+        alias_must_be_string()
+    }
+}
+
+impl<'a, W> ser::Serializer for AnchorSetter<'a, W>
+where
+    W: io::Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = ser::Impossible<Self::Ok, Self::Error>;
+
+    fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
+        self.ser.pending_anchor = Some(value.to_owned());
+        Ok(())
+    }
+
+    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i128(self, _v: i128) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u128(self, _v: u128) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_newtype_variant<T>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
+        anchor_must_be_string()
+    }
+}
+
+struct AnchorHelper<'a, W>
+where
+    W: io::Write,
+{
+    ser: &'a mut Serializer<W>,
+}
+
+struct AnchorTuple<'a, W>
+where
+    W: io::Write,
+{
+    ser: &'a mut Serializer<W>,
+    anchor_set: bool,
+}
+
+impl<'a, W> ser::Serializer for AnchorHelper<'a, W>
+where
+    W: io::Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = AnchorTuple<'a, W>;
+    type SerializeTupleStruct = AnchorTuple<'a, W>;
+    type SerializeTupleVariant = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = ser::Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = ser::Impossible<Self::Ok, Self::Error>;
+
+    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        if len == 2 {
+            Ok(AnchorTuple {
+                ser: self.ser,
+                anchor_set: false,
+            })
+        } else {
+            Err(ser::Error::custom("anchor newtype expects a tuple of length 2"))
+        }
+    }
+
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        self.serialize_tuple(len)
+    }
+
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        anchor_must_be_string()
+    }
+
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        anchor_must_be_string()
+    }
+
+    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_i128(self, _v: i128) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_u128(self, _v: u128) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_newtype_variant<T>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        anchor_must_be_string()
+    }
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct, Self::Error> {
+        anchor_must_be_string()
+    }
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
+        anchor_must_be_string()
+    }
+}
+
+impl<'a, W> ser::SerializeTuple for AnchorTuple<'a, W>
+where
+    W: io::Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        if !self.anchor_set {
+            value.serialize(AnchorSetter { ser: self.ser })?;
+            self.anchor_set = true;
+        } else {
+            value.serialize(&mut *self.ser)?;
+        }
+        Ok(())
+    }
+
+    fn end(self) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
+impl<'a, W> ser::SerializeTupleStruct for AnchorTuple<'a, W>
+where
+    W: io::Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Error>
+    where
+        T: ?Sized + ser::Serialize,
+    {
+        ser::SerializeTuple::serialize_element(self, value)
+    }
+
+    fn end(self) -> Result<(), Error> {
+        ser::SerializeTuple::end(self)
     }
 }
 

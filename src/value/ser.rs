@@ -13,20 +13,82 @@ impl Serialize for Value {
         S: serde::Serializer,
     {
         match self {
-            Value::Null(_) => serializer.serialize_unit(),
-            Value::Bool(b, _) => serializer.serialize_bool(*b),
-            Value::Number(n, _) => n.serialize(serializer),
-            Value::String(s, _) => serializer.serialize_str(s),
-            Value::Sequence(seq) => seq.serialize(serializer),
+            Value::Null(anchor) => {
+                if let Some(name) = anchor {
+                    let inner = Value::Null(None);
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    serializer.serialize_unit()
+                }
+            }
+            Value::Bool(b, anchor) => {
+                if let Some(name) = anchor {
+                    let inner = Value::Bool(*b, None);
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    serializer.serialize_bool(*b)
+                }
+            }
+            Value::Number(n, anchor) => {
+                if let Some(name) = anchor {
+                    let inner = Value::Number(n.clone(), None);
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    n.serialize(serializer)
+                }
+            }
+            Value::String(s, anchor) => {
+                if let Some(name) = anchor {
+                    let inner = Value::String(s.clone(), None);
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    serializer.serialize_str(s)
+                }
+            }
+            Value::Sequence(seq) => {
+                if let Some(name) = &seq.anchor {
+                    let mut inner = seq.clone();
+                    inner.anchor = None;
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    seq.elements.serialize(serializer)
+                }
+            }
             Value::Mapping(mapping) => {
                 use serde::ser::SerializeMap;
-                let mut map = serializer.serialize_map(Some(mapping.len()))?;
-                for (k, v) in mapping {
-                    map.serialize_entry(k, v)?;
+                if let Some(name) = &mapping.anchor {
+                    let mut inner = mapping.clone();
+                    inner.anchor = None;
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(name.as_str(), &inner),
+                    )
+                } else {
+                    let mut map = serializer.serialize_map(Some(mapping.len()))?;
+                    for (k, v) in mapping {
+                        map.serialize_entry(k, v)?;
+                    }
+                    map.end()
                 }
-                map.end()
             }
-            Value::Alias(name) => serializer.serialize_str(name),
+            Value::Alias(name) => {
+                serializer.serialize_newtype_struct(crate::ser::ALIAS_NEWTYPE, name)
+            }
             Value::Tagged(tagged) => tagged.serialize(serializer),
         }
     }
@@ -141,7 +203,10 @@ impl ser::Serializer for Serializer {
             .iter()
             .map(|&b| Value::Number(Number::from(b), None))
             .collect();
-        Ok(Value::Sequence(Sequence { anchor: None, elements: vec }))
+        Ok(Value::Sequence(Sequence {
+            anchor: None,
+            elements: vec,
+        }))
     }
 
     fn serialize_unit(self) -> Result<Value> {
@@ -619,7 +684,7 @@ impl ser::SerializeMap for SerializeMap {
                 match tagged::check_for_tag(value) {
                     MaybeTag::Tag(tag) => Ok(MaybeTag::Tag(tag)),
                     MaybeTag::NotTag(string) => Ok(MaybeTag::NotTag(Value::String(string, None))),
-                    MaybeTag::Error => Err(error::new(ErrorImpl::TagError))
+                    MaybeTag::Error => Err(error::new(ErrorImpl::TagError)),
                 }
             }
         }

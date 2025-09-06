@@ -1,6 +1,6 @@
 use crate::libyaml;
 use crate::libyaml::util::Owned;
-use std::ffi::c_void;
+use std::ffi::{c_void, CString};
 use std::io;
 use std::mem::MaybeUninit;
 use std::ptr::{self, addr_of_mut};
@@ -35,6 +35,7 @@ pub(crate) enum Event<'a> {
     StreamEnd,
     DocumentStart,
     DocumentEnd,
+    Alias(String),
     Scalar(Scalar<'a>),
     SequenceStart(Sequence),
     SequenceEnd,
@@ -44,6 +45,7 @@ pub(crate) enum Event<'a> {
 
 #[derive(Debug)]
 pub(crate) struct Scalar<'a> {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
     pub value: &'a str,
     pub style: ScalarStyle,
@@ -59,11 +61,13 @@ pub enum ScalarStyle {
 
 #[derive(Debug)]
 pub(crate) struct Sequence {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Mapping {
+    pub anchor: Option<String>,
     pub tag: Option<String>,
 }
 
@@ -120,12 +124,28 @@ where
                     let implicit = true;
                     sys::yaml_document_end_event_initialize(sys_event, implicit)
                 }
-                Event::Scalar(mut scalar) => {
-                    let anchor = ptr::null();
-                    let tag = scalar.tag.as_mut().map_or_else(ptr::null, |tag| {
-                        tag.push('\0');
-                        tag.as_ptr()
-                    });
+                Event::Alias(anchor) => {
+                    let anchor_c = CString::new(anchor).ok();
+                    let anchor = anchor_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
+                    sys::yaml_alias_event_initialize(sys_event, anchor)
+                }
+                Event::Scalar(scalar) => {
+                    let anchor_c = scalar
+                        .anchor
+                        .as_ref()
+                        .and_then(|a| CString::new(a.as_str()).ok());
+                    let anchor = anchor_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
+                    let tag_c = scalar
+                        .tag
+                        .as_ref()
+                        .and_then(|tag| CString::new(tag.as_str()).ok());
+                    let tag = tag_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let value = scalar.value.as_ptr();
                     let length = scalar.value.len() as i32;
                     let plain_implicit = tag.is_null();
@@ -147,12 +167,21 @@ where
                         style,
                     )
                 }
-                Event::SequenceStart(mut sequence) => {
-                    let anchor = ptr::null();
-                    let tag = sequence.tag.as_mut().map_or_else(ptr::null, |tag| {
-                        tag.push('\0');
-                        tag.as_ptr()
-                    });
+                Event::SequenceStart(sequence) => {
+                    let anchor_c = sequence
+                        .anchor
+                        .as_ref()
+                        .and_then(|a| CString::new(a.as_str()).ok());
+                    let anchor = anchor_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
+                    let tag_c = sequence
+                        .tag
+                        .as_ref()
+                        .and_then(|tag| CString::new(tag.as_str()).ok());
+                    let tag = tag_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let implicit = tag.is_null();
                     let style = sys::YAML_ANY_SEQUENCE_STYLE;
                     sys::yaml_sequence_start_event_initialize(
@@ -160,12 +189,21 @@ where
                     )
                 }
                 Event::SequenceEnd => sys::yaml_sequence_end_event_initialize(sys_event),
-                Event::MappingStart(mut mapping) => {
-                    let anchor = ptr::null();
-                    let tag = mapping.tag.as_mut().map_or_else(ptr::null, |tag| {
-                        tag.push('\0');
-                        tag.as_ptr()
-                    });
+                Event::MappingStart(mapping) => {
+                    let anchor_c = mapping
+                        .anchor
+                        .as_ref()
+                        .and_then(|a| CString::new(a.as_str()).ok());
+                    let anchor = anchor_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
+                    let tag_c = mapping
+                        .tag
+                        .as_ref()
+                        .and_then(|tag| CString::new(tag.as_str()).ok());
+                    let tag = tag_c
+                        .as_ref()
+                        .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let implicit = tag.is_null();
                     let style = sys::YAML_ANY_MAPPING_STYLE;
                     sys::yaml_mapping_start_event_initialize(
@@ -245,7 +283,10 @@ where
             }
         },
         None => {
-            ptr.write_error = Some(io::Error::new(io::ErrorKind::Other, "emitter writer missing"));
+            ptr.write_error = Some(io::Error::new(
+                io::ErrorKind::Other,
+                "emitter writer missing",
+            ));
             0
         }
     }
