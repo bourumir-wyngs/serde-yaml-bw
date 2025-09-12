@@ -13,18 +13,60 @@ impl Serialize for Value {
         S: serde::Serializer,
     {
         match self {
-            Value::Null(_) => serializer.serialize_unit(),
-            Value::Bool(b, _) => serializer.serialize_bool(*b),
-            Value::Number(n, _) => n.serialize(serializer),
-            Value::String(s, _) => serializer.serialize_str(s),
-            Value::Sequence(seq) => seq.serialize(serializer),
-            Value::Mapping(mapping) => {
-                use serde::ser::SerializeMap;
-                let mut map = serializer.serialize_map(Some(mapping.len()))?;
-                for (k, v) in mapping {
-                    map.serialize_entry(k, v)?;
+            Value::Null(anchor) => {
+                if let Some(a) = anchor {
+                    serializer
+                        .serialize_newtype_struct(crate::ser::ANCHOR_NEWTYPE, &(a.as_str(), &()))
+                } else {
+                    serializer.serialize_unit()
                 }
-                map.end()
+            }
+            Value::Bool(b, anchor) => {
+                if let Some(a) = anchor {
+                    serializer
+                        .serialize_newtype_struct(crate::ser::ANCHOR_NEWTYPE, &(a.as_str(), b))
+                } else {
+                    serializer.serialize_bool(*b)
+                }
+            }
+            Value::Number(n, anchor) => {
+                if let Some(a) = anchor {
+                    serializer
+                        .serialize_newtype_struct(crate::ser::ANCHOR_NEWTYPE, &(a.as_str(), n))
+                } else {
+                    n.serialize(serializer)
+                }
+            }
+            Value::String(s, anchor) => {
+                if let Some(a) = anchor {
+                    serializer
+                        .serialize_newtype_struct(crate::ser::ANCHOR_NEWTYPE, &(a.as_str(), s))
+                } else {
+                    serializer.serialize_str(s)
+                }
+            }
+            Value::Sequence(seq) => {
+                if let Some(a) = &seq.anchor {
+                    serializer
+                        .serialize_newtype_struct(crate::ser::ANCHOR_NEWTYPE, &(a.as_str(), seq))
+                } else {
+                    seq.serialize(serializer)
+                }
+            }
+            Value::Mapping(mapping) => {
+                if let Some(a) = &mapping.anchor {
+                    serializer.serialize_newtype_struct(
+                        crate::ser::ANCHOR_NEWTYPE,
+                        &(a.as_str(), mapping),
+                    )
+                } else {
+                    use serde::ser::SerializeMap;
+                    let mut map = serializer.serialize_map(Some(mapping.len()))?;
+                    for (k, v) in mapping {
+                        map.serialize_entry(k, v)?;
+                    }
+                    map.end()
+                }
             }
             Value::Alias(name) => {
                 serializer.serialize_newtype_struct(crate::ser::ALIAS_NEWTYPE, name)
