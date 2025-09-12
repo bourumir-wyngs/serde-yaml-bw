@@ -42,7 +42,6 @@ fn test_alias_in_mapping_branch() {
     assert_eq!(yaml, "a: &id foo\nb: *id\n");
 }
 
-// Missing functionality
 // We write two values as list. One is defined as value "referenced" and also has the anchor
 // "ref_value_anchor". Another is a map in entries "a" = "b" an "c" = &ref_value_anchor.
 // We first write this structure, then print it, and then parse and check that the second
