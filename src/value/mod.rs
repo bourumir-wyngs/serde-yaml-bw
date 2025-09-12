@@ -738,7 +738,7 @@ impl Value {
     /// assert_eq!(value["tasks"]["start"]["command"], "webpack");
     /// assert_eq!(value["tasks"]["start"]["args"], "start");
     /// ```
-    pub(crate) fn apply_merge(&mut self) -> Result<(), Error> {
+    pub fn apply_merge(&mut self) -> Result<(), Error> {
         use std::collections::HashSet;
         let mut stack = Vec::new();
         let mut visited = HashSet::new();
