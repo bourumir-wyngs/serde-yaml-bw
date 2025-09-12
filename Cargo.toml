@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "2.1.3"
+version = "2.2.0"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
