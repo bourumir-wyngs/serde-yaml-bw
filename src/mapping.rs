@@ -95,6 +95,15 @@ impl Mapping {
         self.map.insert(k, v)
     }
 
+    /// Convenience method, as key is most often as string.
+    pub fn set(&mut self, key: &str, anchor: Option<&str>, value: Value)  {
+        let anchor = anchor.map(|a| a.to_string());
+        self.insert(
+            Value::String(key.to_string(), anchor),
+            value,
+        );
+    }
+
     /// Checks if the map contains the given key.
     #[inline]
     pub fn contains_key<I: Index>(&self, index: I) -> bool {
