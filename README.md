@@ -237,3 +237,33 @@ This reader uses the passed Rust struct as a YAML schema. Knowing that our parsi
 
 - YAML sees values like 1.2 as numbers, but if it is something like a version, the parsing target is likely to be a string. If parsed into a structure field, it is easy to see if the parsing target is a string or a number; hence, 1.2 can also be parsed as "1.2" without generating an unnecessary error.
 - Values like y, on, n, no, off can be used as boolean values in YAML 1.1. This causes the "Norway problem" if the parsing target is actually a string. However, if we know the parsing target, it is easy to parse "no" as false (for boolean) or as a String (for String).
+
+### Anchors and references
+
+While we initially assumed that [`Value`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html) was an unnecessary relic in our package and even considered removing it, we recently encountered a use case involving very large structures with frequent repetition. In such cases, YAML anchors and references make the documents much more human-readable.
+
+To support this, the package now allows constructing abstract `Value` nodes that can hold any data but also carry an optional *anchor* field. In addition, [`Value::Alias`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#variant.Alias) represents a reference (serialized as a YAML alias). This makes it possible to work directly with YAML containing anchors and references.
+
+#### Example
+
+```rust
+use serde_yaml_bw::{Mapping, Value};
+
+let mut mapping = Mapping::new();
+mapping.insert(
+    Value::String("a".to_string(), None),
+    Value::String("foo".to_string(), Some("id".to_string())),
+);
+mapping.insert(
+    Value::String("b".to_string(), None),
+    Value::Alias("id".to_string()),
+);
+
+let value = Value::Mapping(mapping);
+let yaml = serde_yaml_bw::to_string(&value).unwrap();
+assert_eq!(yaml, "a: &id foo\nb: *id\n");
+```
+
+#### Preserving Anchors
+
+In addition, the public function [`from_str_value_preserve`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/fn.from_str_value_preserve.html) can be used to parse a YAML string into a [`Value`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html) **without resolving references or merge keys**. These can then be resolved later using [`Value::resolve_aliases`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.resolve_aliases) and [`Value::apply_merge`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.apply_merge) once you need to expand them.
