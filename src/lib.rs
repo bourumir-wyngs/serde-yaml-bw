@@ -162,7 +162,7 @@
 
 pub use crate::de::{
     from_reader, from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi,
-    from_str_value, digits_but_not_number, parse_bool_casefold, parse_f64,
+    from_str_value, from_str_value_preserve, digits_but_not_number, parse_bool_casefold, parse_f64,
     Deserializer, StreamDeserializer, DeserializerOptions
 };
 pub use crate::error::{Error, Location, Result};

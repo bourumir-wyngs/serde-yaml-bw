@@ -13,7 +13,7 @@ impl Value {
     /// let value: Value = from_str_value(yaml).unwrap();
     /// assert_eq!(value["b"], Value::Number(1.into(), None));
     /// ```
-    pub(crate) fn resolve_aliases(&mut self) -> Result<(), Error> {
+    pub fn resolve_aliases(&mut self) -> Result<(), Error> {
         fn collect_anchors(value: &Value, anchors: &mut HashMap<String, Value>) {
             match value {
                 Value::Null(anchor)

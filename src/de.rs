@@ -2212,9 +2212,40 @@ where
         .collect()
 }
 
-/// Deserialize a YAML `Value` while preserving anchors and aliases.
+/// Deserialize a YAML string into a [`Value`] while **preserving anchors and aliases**.
+///
+/// Unlike [`from_str_value`](crate::from_str_value), this function does not
+/// resolve aliases or apply merge keys automatically. Instead, the returned
+/// [`Value`] still contains [`Value::Alias`] nodes and merge anchors.
+///
+/// You can later transform the result explicitly:
+///
+/// - Call [`Value::resolve_aliases`](crate::Value::resolve_aliases) to replace
+///   all [`Value::Alias`] nodes with clones of their referenced values.
+/// - Call [`Value::apply_merge`](crate::Value::apply_merge) to expand `<<`
+///   merge keys in mappings.
+///
+/// # Examples
+///
+/// ```
+/// use serde_yaml_bw::{from_str_value_preserve, Value};
+///
+/// let yaml = "a: &A 1\nb: *A";
+/// let mut v: Value = from_str_value_preserve(yaml).unwrap();
+///
+/// // At this point, aliases are still preserved:
+/// assert!(matches!(v["b"], Value::Alias(_)));
+///
+/// // You can resolve them explicitly:
+/// v.resolve_aliases().unwrap();
+/// assert_eq!(v["b"], Value::Number(1.into(), None));
+/// ```
+///
+/// # Errors
+///
+/// Returns an error if the input is not valid YAML.
 #[allow(clippy::redundant_closure_for_method_calls)]
-pub(crate) fn from_str_value_preserve(s: &str) -> Result<Value> {
+pub fn from_str_value_preserve(s: &str) -> Result<Value> {
     Deserializer::from_str(s).de(|state| state.parse_value())
 }
 
