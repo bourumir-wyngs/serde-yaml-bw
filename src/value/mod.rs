@@ -198,6 +198,15 @@ impl Sequence {
         }
     }
 
+    /// Creates an empty YAML sequence with the given anchor.
+    #[inline]
+    pub fn with_anchor(anchor: impl Into<String>) -> Self {
+        Sequence {
+            anchor: Some(anchor.into()),
+            elements: Vec::new(),
+        }
+    }
+
     /// Const constructor used for statics.
     pub const fn const_new() -> Self {
         Sequence {

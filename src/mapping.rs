@@ -68,6 +68,16 @@ impl Mapping {
         }
     }
 
+    /// Creates an empty YAML map with the given anchor.
+    #[inline]
+    pub fn with_anchor(anchor: impl Into<String>) -> Self {
+        Mapping {
+            anchor: Some(anchor.into()),
+            map: IndexMap::new(),
+            id: crate::value::next_id(),
+        }
+    }
+
     /// Reserves capacity for at least `additional` more elements to be inserted
     /// into the map. The map may reserve more space to avoid frequent
     /// allocations.

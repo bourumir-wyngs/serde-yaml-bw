@@ -82,3 +82,17 @@ fn test_sequence_default() {
     assert!(seq.elements.is_empty());
     assert_eq!(seq, Sequence::new());
 }
+
+#[test]
+fn test_sequence_with_anchor() {
+    let seq = Sequence::with_anchor("anchor");
+    assert_eq!(seq.anchor.as_deref(), Some("anchor"));
+    assert!(seq.elements.is_empty());
+}
+
+#[test]
+fn test_mapping_with_anchor() {
+    let map = Mapping::with_anchor("anchor");
+    assert_eq!(map.anchor.as_deref(), Some("anchor"));
+    assert!(map.is_empty());
+}
