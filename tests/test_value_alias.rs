@@ -1,4 +1,5 @@
-use serde_yaml_bw::Value;
+use serde_yaml_bw::{Sequence, Value};
+use serde_yaml_bw::Mapping;
 
 #[test]
 fn test_alias_serialization() {
@@ -25,7 +26,6 @@ fn test_alias_in_sequence_resolves() {
 
 #[test]
 fn test_alias_in_mapping_branch() {
-    use serde_yaml_bw::Mapping;
 
     let mut mapping = Mapping::new();
     mapping.insert(
@@ -47,9 +47,8 @@ fn test_alias_in_mapping_branch() {
 // "ref_value_anchor". Another is a map in entries "a" = "b" an "c" = &ref_value_anchor.
 // We first write this structure, then print it, and then parse and check that the second
 // structure has its anchor properly resolved.
-#[ignore]
 #[test]
-fn test_alias_in_sequence_resolves() {
+fn test_alias_in_sequence_resolves_2() {
     let referenced = Value::String(
         "referenced".to_string(),
         Some("ref_value_anchor".to_string()),
