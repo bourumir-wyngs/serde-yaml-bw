@@ -23,18 +23,6 @@ pub struct Tag {
     pub(crate) string: String,
 }
 
-impl Tag {
-    /// Return the string content of this tag.
-    pub fn as_str(&self) -> &str {
-        &self.string
-    }
-
-    /// Return the string content of this tag.
-    pub fn to_string(&self) -> String {
-        self.string.clone()
-    }
-}
-
 /// A `Tag` + `Value` representing a tagged YAML scalar, sequence, or mapping.
 ///
 /// ```
