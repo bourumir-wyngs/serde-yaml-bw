@@ -95,11 +95,11 @@ impl Mapping {
         self.map.insert(k, v)
     }
 
-    /// Convenience method, as key is most often as string.
-    pub fn set(&mut self, key: &str, anchor: Option<&str>, value: Value)  {
-        let anchor = anchor.map(|a| a.to_string());
+    /// Convenience method, as key is most often as string and the key itself
+    /// normally has no anchor, value does.
+    pub fn set(&mut self, key: &str, value: Value)  {
         self.insert(
-            Value::String(key.to_string(), anchor),
+            Value::String(key.to_string(), None),
             value,
         );
     }
