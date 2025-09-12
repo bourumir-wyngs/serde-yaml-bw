@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
-    use serde_yaml_bw::{from_str_value_preserve, Value};
+    use serde_yaml_bw::{from_str_value_preserve, Mapping, Value};
 
     /// A simple struct we can deserialize into, to verify that alias resolution
     /// produces independent (cloned) values with identical content.
@@ -45,7 +45,9 @@ second: *A
         let mut doc: Value = from_str_value_preserve(yaml).expect("parse YAML");
 
         match &doc["first"] {
-            Value::Alias(m) => assert_eq!(m, "A", "from_str_value_preserve must retain anchor values"),
+            Value::Alias(m) => {
+                assert_eq!(m, "A", "from_str_value_preserve must retain anchor values")
+            }
             other => panic!("expected Mapping for `first`, got {other:?}"),
         }
 
@@ -98,7 +100,10 @@ second: *A
         }
 
         // After mutation, `first` != `second`
-        assert_ne!(doc["first"], doc["second"], "mutating one alias copy must not affect the other");
+        assert_ne!(
+            doc["first"], doc["second"],
+            "mutating one alias copy must not affect the other"
+        );
 
         // --- Optional: also ensure we can deserialize into typed structs and both are equal ---
         // Note: `serde_yaml_bw::from_value` is commonly provided. If your crate uses
@@ -106,11 +111,42 @@ second: *A
         let typed: Container = serde_yaml_bw::from_value(doc.clone()).expect("typed deserialize");
         assert_eq!(
             typed.first,
-            Item { id: 100, name: "different".to_string(), tags: vec!["z".into()] }
+            Item {
+                id: 100,
+                name: "different".to_string(),
+                tags: vec!["z".into()]
+            }
         );
         assert_eq!(
             typed.second,
-            Item { id: 7, name: "gizmo".to_string(), tags: vec!["x".into(), "y".into()] }
+            Item {
+                id: 7,
+                name: "gizmo".to_string(),
+                tags: vec!["x".into(), "y".into()]
+            }
+        );
+    }
+
+    #[test]
+    pub fn test_anchor_example() {
+        let mut mapping = Mapping::new();
+        mapping.insert(
+            Value::String("a".to_string(), None),
+            Value::String(
+                "foo".to_string(),
+                Some("anchor_referencing_foo".to_string()),
+            ),
+        );
+        mapping.insert(
+            Value::String("b".to_string(), None),
+            Value::Alias("anchor_referencing_foo".to_string()),
+        );
+
+        let value = Value::Mapping(mapping);
+        let yaml = serde_yaml_bw::to_string(&value).unwrap();
+        assert_eq!(
+            yaml,
+            "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n"
         );
     }
 }

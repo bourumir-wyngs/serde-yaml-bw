@@ -252,16 +252,16 @@ use serde_yaml_bw::{Mapping, Value};
 let mut mapping = Mapping::new();
 mapping.insert(
     Value::String("a".to_string(), None),
-    Value::String("foo".to_string(), Some("id".to_string())),
+    Value::String("foo".to_string(), Some("anchor_referencing_foo".to_string())),
 );
 mapping.insert(
     Value::String("b".to_string(), None),
-    Value::Alias("id".to_string()),
+    Value::Alias("anchor_referencing_foo".to_string()),
 );
 
 let value = Value::Mapping(mapping);
 let yaml = serde_yaml_bw::to_string(&value).unwrap();
-assert_eq!(yaml, "a: &id foo\nb: *id\n");
+assert_eq!(yaml, "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n");
 ```
 
 #### Preserving Anchors
