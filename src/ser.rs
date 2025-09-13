@@ -11,6 +11,7 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
+use std::collections::HashSet;
 use std::fmt::{self, Display};
 use std::io;
 use std::mem;
@@ -98,6 +99,7 @@ impl SerializerBuilder {
             state: State::default(),
             tag_stack: Vec::new(),
             pending_anchor: None,
+            anchors: HashSet::new(),
             emitter,
             default_scalar_style: self.scalar_style,
         })
@@ -138,6 +140,7 @@ where
     /// Stack of YAML tags currently in scope.
     tag_stack: Vec<String>,
     pending_anchor: Option<String>,
+    anchors: HashSet<String>,
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
 }
@@ -193,6 +196,9 @@ where
             scalar.tag = Some(tag);
         }
         scalar.anchor = self.pending_anchor.take();
+        if let Some(ref a) = scalar.anchor {
+            self.anchors.insert(a.clone());
+        }
         self.value_start()?;
         self.emitter.emit(Event::Scalar(scalar))?;
         self.value_end()
@@ -203,6 +209,9 @@ where
         self.value_start()?;
         let tag = self.take_tag();
         let anchor = self.pending_anchor.take();
+        if let Some(ref a) = anchor {
+            self.anchors.insert(a.clone());
+        }
         self.emitter
             .emit(Event::SequenceStart(Sequence { anchor, tag }))?;
         Ok(())
@@ -218,6 +227,9 @@ where
         self.value_start()?;
         let tag = self.take_tag();
         let anchor = self.pending_anchor.take();
+        if let Some(ref a) = anchor {
+            self.anchors.insert(a.clone());
+        }
         self.emitter
             .emit(Event::MappingStart(Mapping { anchor, tag }))?;
         Ok(())
@@ -229,6 +241,13 @@ where
     }
 
     fn emit_alias(&mut self, anchor: &str) -> Result<()> {
+        if !self.anchors.contains(anchor) {
+            use crate::libyaml::error::Mark;
+            use crate::libyaml::parser::Anchor as YamlAnchor;
+            let mark = unsafe { mem::MaybeUninit::<Mark>::zeroed().assume_init() };
+            let missing = YamlAnchor(anchor.as_bytes().to_vec().into_boxed_slice());
+            return Err(error::new(ErrorImpl::UnknownAnchor(mark, missing)));
+        }
         self.flush_mapping_start()?;
         self.value_start()?;
         self.emitter.emit(Event::Alias(anchor.to_owned()))?;
