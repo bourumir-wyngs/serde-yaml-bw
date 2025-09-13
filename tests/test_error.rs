@@ -100,7 +100,7 @@ fn test_unknown_anchor() {
         ---
         *some
     "};
-    let expected = "unknown anchor [some] at line 2 column 1";
+    let expected = "reference to non existing anchor [some] at line 2 column 1";
     test_error::<String>(yaml, expected);
 }
 
@@ -115,7 +115,7 @@ fn test_ignored_unknown_anchor() {
         b: [*This_anchor-is-unknown]
         c: ~
     "};
-    let expected = "unknown anchor [This_anchor-is-unknown] at line 1 column 5";
+    let expected = "reference to non existing anchor [This_anchor-is-unknown] at line 1 column 5";
     test_error::<Wrapper>(yaml, expected);
 }
 
@@ -126,7 +126,10 @@ fn test_invalid_anchor_reference_message() {
     match result {
         Ok(_) => panic!("Expected error for invalid anchor"),
         Err(e) => {
-            assert_eq!("unknown anchor [invalid_anchor]", e.to_string());
+            assert_eq!(
+                "reference to non existing anchor [invalid_anchor]",
+                e.to_string()
+            );
         }
     }
 }
@@ -677,7 +680,7 @@ b: *missing_anchor
             let msg = e.to_string();
             println!("Captured Error: {}", msg);
             assert!(
-                msg.contains("unknown anchor"),
+                msg.contains("reference to non existing anchor"),
                 "Unexpected error message: '{}'",
                 msg
             );

@@ -2,10 +2,13 @@ use serde_yaml_bw::{Sequence, Value};
 use serde_yaml_bw::Mapping;
 
 #[test]
-fn test_alias_serialization() {
+fn test_alias_serialization_errors_without_anchor() {
     let value = Value::Alias("anchor".to_string());
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
-    assert_eq!(yaml, "*anchor\n");
+    let err = serde_yaml_bw::to_string(&value).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "reference to non existing anchor [anchor]"
+    );
 }
 
 #[test]
