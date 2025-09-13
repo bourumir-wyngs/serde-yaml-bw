@@ -831,11 +831,10 @@ impl IntoDeserializer<'_, Error> for Value {
 impl Value {
     /// Construct a `Value::Sequence` from a `Vec<Value>`.
     pub fn from_vector(values: Vec<Value>) -> Self {
-        values
-            .iter()
-            .filter_map(|value| to_value(value).ok())
-            .into_iter()
-            .collect()
+        Value::Sequence(Sequence {
+            anchor: None,
+            elements: values
+        })
     }
 }
 

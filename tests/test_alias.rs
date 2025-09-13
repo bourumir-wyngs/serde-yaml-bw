@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
-    use serde_yaml_bw::{from_str_value_preserve, Mapping, Value};
+    use serde_yaml_bw::{from_str_value_preserve, Mapping, Sequence, Value};
 
     /// A simple struct we can deserialize into, to verify that alias resolution
     /// produces independent (cloned) values with identical content.
@@ -148,5 +148,50 @@ second: *A
             yaml,
             "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n"
         );
+    }
+
+    #[test]
+    fn test_value_from_vector() {
+        let mut mapping = Mapping::new();
+        mapping.insert(
+            Value::String("a".to_string(), None),
+            Value::String(
+                "foo".to_string(),
+                Some("anchor_referencing_foo".to_string()),
+            ),
+        );
+        mapping.insert(
+            Value::String("b".to_string(), None),
+            Value::Alias("anchor_referencing_foo".to_string()),
+        );
+
+        let mut sub_mapping = Mapping::new();
+        sub_mapping.insert(
+            Value::String("as".to_string(), None),
+            Value::String(
+                "foos".to_string(),
+                Some("anchor_referencing_foos".to_string()),
+            ),
+        );
+        sub_mapping.insert(
+            Value::String("bs".to_string(), None),
+            Value::Alias("anchor_referencing_foos".to_string()),
+        );
+
+        let mut sub_vector = Sequence::new();
+        sub_vector.push(Value::Mapping(sub_mapping));
+        let sub_vector = Value::from_vector(sub_vector.iter().cloned().collect());
+
+        mapping.insert(Value::String("subvector".to_string(), None), sub_vector);
+        let value = Value::Mapping(mapping);
+        let yaml = serde_yaml_bw::to_string(&value).unwrap();
+        let expected =
+r#"a: &anchor_referencing_foo foo
+b: *anchor_referencing_foo
+subvector:
+- as: &anchor_referencing_foos foos
+  bs: *anchor_referencing_foos
+"#;
+        assert_eq!(yaml, expected);
     }
 }
