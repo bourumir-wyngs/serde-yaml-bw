@@ -242,12 +242,14 @@ where
         self.value_start()?;
         let tag = self.take_tag();
         let anchor = self.pending_anchor.take();
-        if let Some(ref a) = anchor {
-            self.anchors.insert(a.clone());
-        }
-        let style = self.next_sequence_style.take().unwrap_or(style);
-        self.emitter
-            .emit(Event::SequenceStart(Sequence { anchor, tag, style }))?;
+       if let Some(ref a) = anchor {
+           self.anchors.insert(a.clone());
+       }
+       let style = self.next_sequence_style.take().unwrap_or(style);
+        let mut sequence = Sequence::with_style(style);
+        sequence.anchor = anchor;
+        sequence.tag = tag;
+        self.emitter.emit(Event::SequenceStart(sequence))?;
         Ok(())
     }
 

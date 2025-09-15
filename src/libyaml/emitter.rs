@@ -60,9 +60,13 @@ pub enum ScalarStyle {
 }
 
 #[derive(Debug, Clone, Copy)]
+/// Style of an emitted YAML sequence.
 pub enum SequenceStyle {
+    /// Let the emitter choose the most appropriate style.
     Any,
+    /// Emit the sequence in block style.
     Block,
+    /// Emit the sequence in flow style.
     Flow,
 }
 
@@ -71,6 +75,17 @@ pub(crate) struct Sequence {
     pub anchor: Option<String>,
     pub tag: Option<String>,
     pub style: SequenceStyle,
+}
+
+impl Sequence {
+    /// Create a sequence event with the specified style.
+    pub fn with_style(style: SequenceStyle) -> Self {
+        Sequence {
+            anchor: None,
+            tag: None,
+            style,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -312,5 +327,38 @@ where
         // SAFETY: The emitter was initialized by libyaml and must be cleaned up
         // with `yaml_emitter_delete`.
         unsafe { sys::yaml_emitter_delete(&raw mut self.sys) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sequence_with_style_flow() {
+        let mut out = Vec::new();
+        let mut emitter = Emitter::new(&mut out, -1, 2).unwrap();
+
+        emitter.emit(Event::StreamStart).unwrap();
+        emitter.emit(Event::DocumentStart).unwrap();
+        emitter
+            .emit(Event::SequenceStart(Sequence::with_style(SequenceStyle::Flow)))
+            .unwrap();
+        for value in ["1", "2", "3"] {
+            emitter
+                .emit(Event::Scalar(Scalar {
+                    anchor: None,
+                    tag: None,
+                    value,
+                    style: ScalarStyle::Any,
+                }))
+                .unwrap();
+        }
+        emitter.emit(Event::SequenceEnd).unwrap();
+        emitter.emit(Event::DocumentEnd).unwrap();
+        emitter.emit(Event::StreamEnd).unwrap();
+        drop(emitter);
+
+        assert_eq!(out, b"[1, 2, 3]\n");
     }
 }
