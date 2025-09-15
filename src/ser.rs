@@ -4,7 +4,7 @@
 
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml;
-use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence};
+use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence, SequenceStyle};
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
 use base64::prelude::BASE64_STANDARD;
@@ -20,8 +20,39 @@ use std::str;
 
 pub(crate) const ALIAS_NEWTYPE: &str = "$serde_yaml::alias";
 pub(crate) const ANCHOR_NEWTYPE: &str = "$serde_yaml::anchor";
+pub(crate) const FLOW_SEQ_NEWTYPE: &str = "$serde_yaml::flow_seq";
 
 type Result<T, E = Error> = std::result::Result<T, E>;
+
+/// Wrapper type that serializes the contained sequence using YAML flow style.
+///
+/// # Example
+///
+/// ```
+/// use serde::Serialize;
+/// use serde_yaml_bw::{to_string, FlowSeq};
+///
+/// #[derive(Serialize)]
+/// struct Data {
+///     flow: FlowSeq<Vec<u32>>,
+/// }
+///
+/// let yaml = to_string(&Data { flow: FlowSeq(vec![1, 2, 3]) }).unwrap();
+/// assert_eq!(yaml, "flow: [1, 2, 3]\n");
+/// ```
+pub struct FlowSeq<T>(pub T);
+
+impl<T> ser::Serialize for FlowSeq<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serializer.serialize_newtype_struct(FLOW_SEQ_NEWTYPE, &self.0)
+    }
+}
 
 /// Builder to configure [`Serializer`].
 /// ```
@@ -102,6 +133,7 @@ impl SerializerBuilder {
             anchors: HashSet::new(),
             emitter,
             default_scalar_style: self.scalar_style,
+            next_sequence_style: None,
         })
     }
 }
@@ -143,6 +175,7 @@ where
     anchors: HashSet<String>,
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
+    next_sequence_style: Option<SequenceStyle>,
 }
 
 enum State {
@@ -204,7 +237,7 @@ where
         self.value_end()
     }
 
-    fn emit_sequence_start(&mut self) -> Result<()> {
+    fn emit_sequence_start(&mut self, style: SequenceStyle) -> Result<()> {
         self.flush_mapping_start()?;
         self.value_start()?;
         let tag = self.take_tag();
@@ -212,8 +245,9 @@ where
         if let Some(ref a) = anchor {
             self.anchors.insert(a.clone());
         }
+        let style = self.next_sequence_style.take().unwrap_or(style);
         self.emitter
-            .emit(Event::SequenceStart(Sequence { anchor, tag }))?;
+            .emit(Event::SequenceStart(Sequence { anchor, tag, style }))?;
         Ok(())
     }
 
@@ -552,6 +586,14 @@ where
             value.serialize(AliasHelper { ser: &mut self })
         } else if name == ANCHOR_NEWTYPE {
             value.serialize(AnchorHelper { ser: &mut self })
+        } else if name == FLOW_SEQ_NEWTYPE {
+            self.next_sequence_style = Some(SequenceStyle::Flow);
+            let result = value.serialize(&mut *self);
+            if self.next_sequence_style.is_some() {
+                self.next_sequence_style = None;
+                return Err(ser::Error::custom("flow sequence newtype must serialize a sequence"));
+            }
+            result
         } else {
             value.serialize(self)
         }
@@ -585,12 +627,12 @@ where
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
-        self.emit_sequence_start()?;
+        self.emit_sequence_start(SequenceStyle::Any)?;
         Ok(self)
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
-        self.emit_sequence_start()?;
+        self.emit_sequence_start(SequenceStyle::Any)?;
         Ok(self)
     }
 
@@ -599,7 +641,7 @@ where
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
-        self.emit_sequence_start()?;
+        self.emit_sequence_start(SequenceStyle::Any)?;
         Ok(self)
     }
 
@@ -612,7 +654,7 @@ where
     ) -> Result<Self::SerializeTupleVariant> {
         self.emit_mapping_start()?;
         self.serialize_str(variant)?;
-        self.emit_sequence_start()?;
+        self.emit_sequence_start(SequenceStyle::Any)?;
         Ok(self)
     }
 

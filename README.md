@@ -119,6 +119,27 @@ production:
 
 Merge keys are standard in YAML 1.1. Although YAML 1.2 no longer includes merge keys in its specification, it doesn't explicitly disallow them either, and many parsers implement this feature.
 
+### Flow style sequences
+
+By default sequences are emitted in block style. Wrap a sequence in [`FlowSeq`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.FlowSeq.html) to serialize it in YAML flow style:
+
+```rust
+use serde::Serialize;
+use serde_yaml_bw::{to_string, FlowSeq};
+
+#[derive(Serialize)]
+struct Data {
+    flow: FlowSeq<Vec<u32>>,
+    block: Vec<u32>,
+}
+
+let yaml = to_string(&Data {
+    flow: FlowSeq(vec![1, 2, 3]),
+    block: vec![4, 5, 6],
+}).unwrap();
+assert_eq!(yaml, "flow: [1, 2, 3]\nblock:\n- 4\n- 5\n- 6\n");
+```
+
 ### Nested enums
 
 Externally tagged enums naturally nest in YAML as maps keyed by the variant name. They enable the use of strict types (Rust enums with associated data) instead of falling back to generic maps.

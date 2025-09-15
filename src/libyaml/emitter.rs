@@ -59,10 +59,18 @@ pub enum ScalarStyle {
     Literal,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum SequenceStyle {
+    Any,
+    Block,
+    Flow,
+}
+
 #[derive(Debug)]
 pub(crate) struct Sequence {
     pub anchor: Option<String>,
     pub tag: Option<String>,
+    pub style: SequenceStyle,
 }
 
 #[derive(Debug)]
@@ -183,7 +191,11 @@ where
                         .as_ref()
                         .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let implicit = tag.is_null();
-                    let style = sys::YAML_ANY_SEQUENCE_STYLE;
+                    let style = match sequence.style {
+                        SequenceStyle::Any => sys::YAML_ANY_SEQUENCE_STYLE,
+                        SequenceStyle::Block => sys::YAML_BLOCK_SEQUENCE_STYLE,
+                        SequenceStyle::Flow => sys::YAML_FLOW_SEQUENCE_STYLE,
+                    };
                     sys::yaml_sequence_start_event_initialize(
                         sys_event, anchor, tag, implicit, style,
                     )
