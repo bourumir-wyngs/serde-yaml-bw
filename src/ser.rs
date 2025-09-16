@@ -17,6 +17,7 @@ use std::io;
 use std::mem;
 use std::num;
 use std::str;
+use serde::Deserialize;
 
 pub(crate) const ALIAS_NEWTYPE: &str = "$serde_yaml::alias";
 pub(crate) const ANCHOR_NEWTYPE: &str = "$serde_yaml::anchor";
@@ -40,6 +41,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 /// let yaml = to_string(&Data { flow: FlowSeq(vec![1, 2, 3]) }).unwrap();
 /// assert_eq!(yaml, "flow: [1, 2, 3]\n");
 /// ```
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct FlowSeq<T>(pub T);
 
 impl<T> ser::Serialize for FlowSeq<T>
