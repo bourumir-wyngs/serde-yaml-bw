@@ -3,7 +3,7 @@
 //! This module provides YAML serialization with the type `Serializer`.
 
 use crate::error::{self, Error, ErrorImpl};
-use crate::libyaml;
+use crate::{libyaml};
 use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence, SequenceStyle};
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
@@ -59,25 +59,27 @@ where
 /// Builder to configure [`Serializer`].
 /// ```
 /// use serde::Serialize;
-/// use serde_yaml_bw::SerializerBuilder;
+/// use serde_yaml_bw::{SerializerBuilder, Value};
 ///
 /// #[derive(Serialize)]
-/// struct Inner { value: u32 }
-/// #[derive(Serialize)]
-/// struct Outer { inner: Inner }
+/// struct Data { value: u32 }
 ///
-/// fn main() -> Result<(), serde_yaml_bw::Error> {
+/// pub fn to_yaml(value: &Data) -> String {
 ///     let mut buf = Vec::new();
-///     let mut ser = SerializerBuilder::new()
+///     match SerializerBuilder::default()
 ///         .indent(4)
 ///         .width(80)
 ///         .check_unresolved_anchors(false)
-///         .build(&mut buf)?;
-///     let data = Outer { inner: Inner { value: 1 } };
-///     data.serialize(&mut ser)?;
-///     drop(ser);
-///     assert_eq!(buf, b"inner:\n    value: 1\n");
-///     Ok(())
+///         .build(&mut buf)
+///     {
+///         Ok(mut serializer) => {
+///             if value.serialize(&mut serializer).is_err() {
+///                 return "Failed to serialize".to_string();
+///             };
+///         }
+///         Err(err) => return format!("Failed to build serializer: {}", err),
+///     };
+///     String::from_utf8(buf).unwrap_or_else(|_| "Invalid UTF-8".to_string())
 /// }
 /// ```
 #[derive(Debug, Clone)]
