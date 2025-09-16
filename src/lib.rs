@@ -167,8 +167,9 @@ pub use crate::de::{
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{
-    to_string, to_string_multi, to_writer, to_writer_multi, Serializer, SerializerBuilder,
+    to_string, to_string_multi, to_writer, to_writer_multi, FlowSeq, Serializer, SerializerBuilder,
 };
+pub use crate::libyaml::emitter::SequenceStyle;
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 
