@@ -829,7 +829,19 @@ impl IntoDeserializer<'_, Error> for Value {
 }
 
 impl Value {
-    /// Construct a `Value::Sequence` from a `Vec<Value>`.
+    /// Wraps an array into a sequence (with no anchor).
+    ///
+    /// This method is handy when converting an array of objects that can be
+    /// individually converted into [`Value`]s:
+    ///
+    /// ```rust,ignore
+    /// let annotations: Value = Value::from_vector(
+    ///     annotation_objects
+    ///         .iter()
+    ///         .map(|annotation_object| annotation_object.to_value())
+    ///         .collect(),
+    /// );
+    /// ```
     pub fn from_vector(values: Vec<Value>) -> Self {
         Value::Sequence(Sequence {
             anchor: None,

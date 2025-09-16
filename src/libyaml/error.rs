@@ -3,7 +3,7 @@ use std::fmt::{self, Debug, Display, Write as _};
 use std::mem::MaybeUninit;
 use std::ptr::NonNull;
 use std::str;
-use unsafe_libyaml as sys;
+use unsafe_libyaml_norway as sys;
 
 pub(crate) struct Error {
     kind: sys::yaml_error_type_t,

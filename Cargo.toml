@@ -17,7 +17,7 @@ indexmap = ">=2.0, <=2.10"# All range tested
 itoa = "1.0"
 ryu = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-unsafe-libyaml = "0.2.11"
+unsafe-libyaml-norway = "0.2"
 base64 = ">=0.21, <0.23"
 
 [dev-dependencies]

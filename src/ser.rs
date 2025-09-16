@@ -38,6 +38,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 ///     let mut ser = SerializerBuilder::new()
 ///         .indent(4)
 ///         .width(80)
+///         .check_unresolved_anchors(false)
 ///         .build(&mut buf)?;
 ///     let data = Outer { inner: Inner { value: 1 } };
 ///     data.serialize(&mut ser)?;
@@ -54,6 +55,8 @@ pub struct SerializerBuilder {
     indent: i32,
     /// Scalar style to use for simple scalars when none is specified.
     scalar_style: ScalarStyle,
+    /// If true, unresolved anchors are reported on write
+    check_unresolved_anchors: bool,
 }
 
 impl Default for SerializerBuilder {
@@ -62,6 +65,7 @@ impl Default for SerializerBuilder {
             width: -1,
             indent: 2,
             scalar_style: ScalarStyle::Plain,
+            check_unresolved_anchors: true,
         }
     }
 }
@@ -90,6 +94,14 @@ impl SerializerBuilder {
         self
     }
 
+    /// If set, unresolved anchor error is reported if the anchor remains unknown
+    /// at the time of writing (default). If for some reason non existent anchors should
+    /// be emitted, set to true
+    pub fn check_unresolved_anchors(mut self, check_unresolved_anchors: bool) -> Self {
+        self.check_unresolved_anchors = check_unresolved_anchors;
+        self
+    }
+
     /// Build a [`Serializer`] writing to the given writer.
     pub fn build<W: io::Write>(self, writer: W) -> Result<Serializer<W>> {
         let mut emitter = Emitter::new(writer, self.width, self.indent)?;
@@ -102,6 +114,7 @@ impl SerializerBuilder {
             anchors: HashSet::new(),
             emitter,
             default_scalar_style: self.scalar_style,
+            check_missing_anchors: self.check_unresolved_anchors,
         })
     }
 }
@@ -143,6 +156,8 @@ where
     anchors: HashSet<String>,
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
+    /// If set, error is returned when anchor cannot be resolved on write.
+    check_missing_anchors: bool
 }
 
 enum State {
@@ -241,7 +256,7 @@ where
     }
 
     fn emit_alias(&mut self, anchor: &str) -> Result<()> {
-        if !self.anchors.contains(anchor) {
+        if self.check_missing_anchors && !self.anchors.contains(anchor) {
             use crate::libyaml::error::Mark;
             use crate::libyaml::parser::Anchor as YamlAnchor;
             let mark = unsafe { mem::MaybeUninit::<Mark>::zeroed().assume_init() };
