@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml_bw"
-version = "2.3.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "base64",
