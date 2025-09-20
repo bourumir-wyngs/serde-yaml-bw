@@ -1,6 +1,5 @@
 use crate::libyaml::cstr::{self, CStr};
 use std::fmt::{self, Debug, Display, Write as _};
-use std::mem::MaybeUninit;
 use std::ptr::NonNull;
 use std::str;
 use unsafe_libyaml_norway as sys;
@@ -66,16 +65,9 @@ impl Error {
                     None => Box::from(&b"libyaml emitter failed but there is no error"[..]),
                 },
                 problem_offset: 0,
-                problem_mark: Mark {
-                    // SAFETY: `yaml_mark_t` is plain data and zero-initialized marks
-                    // represent "no location" in libyaml.
-                    sys: MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init(),
-                },
+                problem_mark: Mark::default(),
                 context: None,
-                context_mark: Mark {
-                    // SAFETY: as above, a zeroed mark is a valid default value.
-                    sys: MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init(),
-                },
+                context_mark: Mark::default(),
             }
         }
     }
@@ -147,6 +139,17 @@ impl Debug for Error {
 #[derive(Copy, Clone)]
 pub(crate) struct Mark {
     pub(super) sys: sys::yaml_mark_t,
+}
+
+impl Default for Mark {
+    fn default() -> Self {
+        // SAFETY: yaml_mark_t is a plain old data struct from libyaml. A zeroed value
+        // represents an empty/unknown location (index=0, line=0, column=0) and is
+        // used by libyaml to denote absence of a mark. This matches how this type is
+        // consumed throughout the codebase (checking for zeros).
+        let sys_mark = unsafe { std::mem::MaybeUninit::<sys::yaml_mark_t>::zeroed().assume_init() };
+        Self { sys: sys_mark }
+    }
 }
 
 impl Mark {

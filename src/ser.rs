@@ -298,7 +298,7 @@ where
         if self.check_missing_anchors && !self.anchors.contains(anchor) {
             use crate::libyaml::error::Mark;
             use crate::libyaml::parser::Anchor as YamlAnchor;
-            let mark = unsafe { mem::MaybeUninit::<Mark>::zeroed().assume_init() };
+            let mark = Mark::default();
             let missing = YamlAnchor(anchor.as_bytes().to_vec().into_boxed_slice());
             return Err(error::new(ErrorImpl::UnknownAnchor(mark, missing)));
         }
