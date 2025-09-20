@@ -45,7 +45,7 @@ impl DuplicateKeyError {
     }
 
     pub(crate) fn from_scalar(bytes: &[u8]) -> Self {
-        use DuplicateKeyKind::{Bool, Null, Number, Other, String};
+        use DuplicateKeyKind::{Bool, Null, Number, String};
         if is_null(bytes) {
             return DuplicateKeyError { kind: Null, first: None, duplicate: None };
         }
