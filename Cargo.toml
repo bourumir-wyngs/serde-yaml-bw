@@ -28,6 +28,8 @@ serde_bytes = "0.11"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_repr = "0.1.20"
 chrono = "0.4.41"
+# For differential testing.
+serde_yaml = "0.9.34+deprecated"
 
 [lib]
 doc-scrape-examples = false
