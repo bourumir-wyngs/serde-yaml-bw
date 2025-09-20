@@ -834,13 +834,26 @@ impl Value {
     /// This method is handy when converting an array of objects that can be
     /// individually converted into [`Value`]s:
     ///
-    /// ```rust,ignore
+    /// ```
+    /// use serde_yaml_bw::Value;
+    ///
+    /// fn to_value(x: &str) -> Value {
+    ///     match x {
+    ///         "one" => Value::from(1_usize),
+    ///         "two_half" => Value::from(2.5_f32),
+    ///         _ => Value::Null(None),
+    ///     }
+    /// }
+    ///
+    /// let annotation_objects = vec!["one", "two_half"];
     /// let annotations: Value = Value::from_vector(
     ///     annotation_objects
     ///         .iter()
-    ///         .map(|annotation_object| annotation_object.to_value())
+    ///         .map(|annotation_object| to_value(annotation_object))
     ///         .collect(),
     /// );
+    ///
+    /// assert_eq!(annotations.as_sequence().unwrap().len(), 2);
     /// ```
     pub fn from_vector(values: Vec<Value>) -> Self {
         Value::Sequence(Sequence {
