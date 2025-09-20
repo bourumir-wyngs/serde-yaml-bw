@@ -170,6 +170,7 @@ name = "serde_yaml_bw-fuzz"
 version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
+ "serde",
  "serde_yaml_bw",
 ]
 
