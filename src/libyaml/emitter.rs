@@ -88,10 +88,18 @@ impl Sequence {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum MappingStyle {
+    Any,
+    Block,
+    Flow,
+}
+
 #[derive(Debug)]
 pub(crate) struct Mapping {
     pub anchor: Option<String>,
     pub tag: Option<String>,
+    pub style: MappingStyle,
 }
 
 impl<W> Emitter<W>
@@ -232,7 +240,11 @@ where
                         .as_ref()
                         .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let implicit = tag.is_null();
-                    let style = sys::YAML_ANY_MAPPING_STYLE;
+                    let style = match mapping.style {
+                        MappingStyle::Any => sys::YAML_ANY_MAPPING_STYLE,
+                        MappingStyle::Block => sys::YAML_BLOCK_MAPPING_STYLE,
+                        MappingStyle::Flow => sys::YAML_FLOW_MAPPING_STYLE,
+                    };
                     sys::yaml_mapping_start_event_initialize(
                         sys_event, anchor, tag, implicit, style,
                     )

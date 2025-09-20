@@ -274,7 +274,7 @@ pub use crate::de::{
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::ser::{
-    to_string, to_string_multi, to_writer, to_writer_multi, FlowSeq, Serializer, SerializerBuilder,
+    to_string, to_string_multi, to_writer, to_writer_multi, FlowSeq, FlowMap, Serializer, SerializerBuilder,
 };
 pub use crate::libyaml::emitter::SequenceStyle;
 #[doc(inline)]

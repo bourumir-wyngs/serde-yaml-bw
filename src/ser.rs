@@ -4,7 +4,7 @@
 
 use crate::error::{self, Error, ErrorImpl};
 use crate::{libyaml};
-use crate::libyaml::emitter::{Emitter, Event, Mapping, Scalar, ScalarStyle, Sequence, SequenceStyle};
+use crate::libyaml::emitter::{Emitter, Event, Mapping, MappingStyle, Scalar, ScalarStyle, Sequence, SequenceStyle};
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
 use base64::prelude::BASE64_STANDARD;
@@ -22,6 +22,7 @@ use serde::Deserialize;
 pub(crate) const ALIAS_NEWTYPE: &str = "$serde_yaml::alias";
 pub(crate) const ANCHOR_NEWTYPE: &str = "$serde_yaml::anchor";
 pub(crate) const FLOW_SEQ_NEWTYPE: &str = "$serde_yaml::flow_seq";
+pub(crate) const FLOW_MAP_NEWTYPE: &str = "$serde_yaml::flow_map";
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -53,6 +54,41 @@ where
         S: ser::Serializer,
     {
         serializer.serialize_newtype_struct(FLOW_SEQ_NEWTYPE, &self.0)
+    }
+}
+
+/// Wrapper type that serializes the contained mapping using YAML flow style.
+///
+/// # Example
+///
+/// ```
+/// use serde::Serialize;
+/// use serde_yaml_bw::{to_string, FlowMap};
+/// use std::collections::BTreeMap;
+///
+/// #[derive(Serialize)]
+/// struct Data {
+///     flow: FlowMap<BTreeMap<&'static str, u32>>,
+/// }
+///
+/// let mut m = BTreeMap::new();
+/// m.insert("a", 1);
+/// m.insert("b", 2);
+/// let yaml = to_string(&Data { flow: FlowMap(m) }).unwrap();
+/// assert_eq!(yaml.trim_end(), "flow: {a: 1, b: 2}");
+/// ```
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+pub struct FlowMap<T>(pub T);
+
+impl<T> ser::Serialize for FlowMap<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serializer.serialize_newtype_struct(FLOW_MAP_NEWTYPE, &self.0)
     }
 }
 
@@ -150,6 +186,7 @@ impl SerializerBuilder {
             emitter,
             default_scalar_style: self.scalar_style,
             next_sequence_style: None,
+            next_mapping_style: None,
             check_missing_anchors: self.check_unresolved_anchors,
         })
     }
@@ -193,6 +230,7 @@ where
     emitter: Emitter<W>,
     default_scalar_style: ScalarStyle,
     next_sequence_style: Option<SequenceStyle>,
+    next_mapping_style: Option<MappingStyle>,
     check_missing_anchors: bool
 }
 
@@ -284,8 +322,9 @@ where
         if let Some(ref a) = anchor {
             self.anchors.insert(a.clone());
         }
+        let style = self.next_mapping_style.take().unwrap_or(MappingStyle::Any);
         self.emitter
-            .emit(Event::MappingStart(Mapping { anchor, tag }))?;
+            .emit(Event::MappingStart(Mapping { anchor, tag, style }))?;
         Ok(())
     }
 
@@ -612,6 +651,14 @@ where
             if self.next_sequence_style.is_some() {
                 self.next_sequence_style = None;
                 return Err(ser::Error::custom("flow sequence newtype must serialize a sequence"));
+            }
+            result
+        } else if name == FLOW_MAP_NEWTYPE {
+            self.next_mapping_style = Some(MappingStyle::Flow);
+            let result = value.serialize(&mut *self);
+            if self.next_mapping_style.is_some() {
+                self.next_mapping_style = None;
+                return Err(ser::Error::custom("flow mapping newtype must serialize a map"));
             }
             result
         } else {
