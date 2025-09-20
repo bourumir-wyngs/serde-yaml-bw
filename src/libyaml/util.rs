@@ -12,9 +12,9 @@ impl<T> Owned<T> {
     pub fn new_uninit() -> Owned<MaybeUninit<T>, T> {
         let boxed = Box::<T>::new_uninit();
         Owned {
-            // SAFETY: `Box::into_raw` never returns null and we immediately wrap it
-            // in `NonNull` to preserve that invariant.
-            ptr: unsafe { NonNull::new_unchecked(Box::into_raw(boxed)) },
+            // Box::into_raw never returns null; construct NonNull without unsafe.
+            // Using NonNull::new + expect avoids unsafe while preserving the invariant.
+            ptr: NonNull::new(Box::into_raw(boxed)).expect("Box::into_raw returned null"),
             marker: PhantomData,
         }
     }
