@@ -114,6 +114,113 @@
 //!     Ok(())
 //! }
 //! ```
+//!
+//! ## Using `Value`
+//!
+//! The `Value` enum represents any YAML node at runtime. It is useful when you
+//! don't have a fixed Rust type or when you need to preserve YAML features such
+//! as anchors and aliases.
+//!
+//! Basic construction examples:
+//!
+//! ```
+//! use serde_yaml_bw::{Mapping, Value};
+//!
+//! // Scalars
+//! let n = Value::from(42);                // number
+//! let b = Value::from(true);              // bool
+//! let s = Value::from("hello");           // string
+//!
+//! // Sequence from Vec and from iterator
+//! let seq = Value::from(vec![1, 2, 3]);
+//! let seq2: Value = ["a", "b", "c"].into_iter().collect();
+//!
+//! // Mapping (a key to value map)
+//! let mut m = Mapping::new();
+//! m.set("name", Value::from("app"));
+//! m.set("version", Value::from(1));
+//! let doc = Value::from(m);
+//!
+//! // Serialize to YAML
+//! let yaml = serde_yaml_bw::to_string(&doc).unwrap();
+//! assert!(yaml.contains("name: app"));
+//! ```
+//!
+//! ### Anchors and aliases
+//!
+//! When building `Value`s manually you can attach an anchor to scalars,
+//! sequences, and mappings, and you can create `Value::Alias` nodes that refer
+//! to them by name. During serialization, aliases to missing anchors are
+//! rejected by default.
+//!
+//! ```
+//! use serde_yaml_bw::{Mapping, Value};
+//!
+//! // Create a scalar with an anchor "greet"
+//! let anchored = Value::String("Hello".to_string(), Some("greet".to_string()));
+//!
+//! // Build a small document that reuses the anchored value via an alias
+//! let mut root = Mapping::new();
+//! root.set("first", anchored.clone());
+//! root.set("second", Value::Alias("greet".to_string()));
+//! let yaml = serde_yaml_bw::to_string(&Value::from(root)).unwrap();
+//!
+//! // The exact formatting may vary, but both an anchor and an alias are emitted
+//! assert!(yaml.contains("&greet"), "expected an anchor in: {yaml}");
+//! assert!(yaml.contains("*greet"), "expected an alias in: {yaml}");
+//! ```
+//!
+//! Anchors can be attached to complex nodes too:
+//!
+//! ```
+//! use serde_yaml_bw::{Mapping, Value};
+//!
+//! // An anchored mapping
+//! let mut base = Mapping::with_anchor("base");
+//! base.set("x", 1.into());
+//! base.set("y", 2.into());
+//!
+//! // Refer to it elsewhere using an alias node
+//! let mut root = Mapping::new();
+//! root.set("anchor", Value::from(base));
+//! root.set("alias", Value::Alias("base".into()));
+//!
+//! let out = serde_yaml_bw::to_string(&Value::from(root)).unwrap();
+//! assert!(out.contains("&base"));
+//! assert!(out.contains("*base"));
+//! ```
+//!
+//! If you serialize an alias whose anchor has not appeared earlier in the
+//! document, serialization fails by default. You can change this behavior using
+//! `SerializerBuilder::check_unresolved_anchors(false)` if you prefer deferred
+//! checking on the consumer side.
+//!
+//! ```
+//! use serde::Serialize;
+//! use serde_yaml_bw::{SerializerBuilder, Value};
+//!
+//! // Try to serialize a dangling alias and observe the error.
+//! let mut buf = Vec::new();
+//! let mut ser = SerializerBuilder::default()
+//!     .check_unresolved_anchors(true)
+//!     .build(&mut buf)
+//!     .unwrap();
+//!
+//! let err = Value::Alias("missing".into()).serialize(&mut ser).unwrap_err();
+//! assert!(err.to_string().starts_with("reference to non existing anchor"));
+//! ```
+//!
+//! For in-memory processing of YAML Values that contain anchors/aliases, you
+//! can expand aliases after parsing:
+//!
+//! ```
+//! use serde_yaml_bw::Value;
+//!
+//! let yaml = "a: &id 1\nb: *id\n";
+//! let mut v: Value = serde_yaml_bw::from_str_value_preserve(yaml).unwrap();
+//! v.resolve_aliases().unwrap();
+//! assert_eq!(v["a"].as_i64(), v["b"].as_i64());
+//! ```
 
 #![doc(html_root_url = "https://docs.rs/serde_yaml_bw/2.2.0")]
 #![deny(missing_docs, unsafe_op_in_unsafe_fn)]
