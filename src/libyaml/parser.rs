@@ -232,7 +232,13 @@ unsafe fn convert_event<'input>(
                 sys::YAML_ANY_SCALAR_STYLE | _ => ScalarStyle::Plain,
             },
             repr: if let Some(Cow::Borrowed(input)) = input {
-                Some(&input[sys.start_mark.index as usize..sys.end_mark.index as usize])
+                let start = sys.start_mark.index as usize;
+                let end = sys.end_mark.index as usize;
+                if start <= end && end <= input.len() {
+                    Some(&input[start..end])
+                } else {
+                    None
+                }
             } else {
                 None
             },
