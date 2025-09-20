@@ -13,15 +13,15 @@ pub(crate) struct Error {
     context_mark: Mark,
 }
 
-// SAFETY: `problem` must point to a valid NUL-terminated C string provided by
+// `problem` must point to a valid NUL-terminated C string provided by
 // libyaml. The caller ensures the pointer is non-null and the data remains
 // alive for the duration of the call.
-unsafe fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
+fn define_string(problem: NonNull<i8>) -> Box<[u8]> {
     const EMPTY_Z: [u8; 1] = [0];
     // SAFETY: `problem` satisfies the invariants described above, so creating a
     // `CStr` and reading its bytes is sound.
-    Box::from(unsafe { CStr::from_ptr(problem) }
-        .to_bytes().unwrap_or(&EMPTY_Z))
+    let cstr = unsafe { CStr::from_ptr(problem) };
+    Box::from(cstr.to_bytes().unwrap_or(&EMPTY_Z))
 }
 
 impl Error {
