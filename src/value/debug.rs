@@ -5,16 +5,32 @@ use std::fmt::{self, Debug, Display};
 impl Debug for Value {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Null(_) => formatter.write_str("Null"),
-            Value::Bool(boolean, _) => write!(formatter, "Bool({})", boolean),
-            Value::Number(number, _) => write!(formatter, "Number({})", number),
-            Value::String(string, _) => write!(formatter, "String({:?})", string),
+            Value::Null(anchor) => match anchor {
+                Some(a) => write!(formatter, "Null(&{})", a),
+                None => formatter.write_str("Null"),
+            },
+            Value::Bool(boolean, anchor) => match anchor {
+                Some(a) => write!(formatter, "Bool({}, &{})", boolean, a),
+                None => write!(formatter, "Bool({})", boolean),
+            },
+            Value::Number(number, anchor) => match anchor {
+                Some(a) => write!(formatter, "Number({}, &{})", number, a),
+                None => write!(formatter, "Number({})", number),
+            },
+            Value::String(string, anchor) => match anchor {
+                Some(a) => write!(formatter, "String({:?}, &{})", string, a),
+                None => write!(formatter, "String({:?})", string),
+            },
             Value::Sequence(sequence) => {
-                formatter.write_str("Sequence ")?;
+                // Print optional anchor if present, then the list contents.
+                match &sequence.anchor {
+                    Some(a) => write!(formatter, "Sequence(&{}) ", a)?,
+                    None => formatter.write_str("Sequence ")?,
+                }
                 formatter.debug_list().entries(sequence).finish()
             }
             Value::Mapping(mapping) => Debug::fmt(mapping, formatter),
-            Value::Alias(name) => write!(formatter, "Alias({:?})", name),
+            Value::Alias(name) => write!(formatter, "Alias(*{})", name),
             Value::Tagged(tagged) => Debug::fmt(tagged, formatter),
         }
     }
@@ -36,7 +52,10 @@ impl Debug for Number {
 
 impl Debug for Mapping {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("Mapping ")?;
+        match &self.anchor {
+            Some(a) => write!(formatter, "Mapping(&{}) ", a)?,
+            None => formatter.write_str("Mapping ")?,
+        }
         let mut debug = formatter.debug_map();
         for (k, v) in self {
             let tmp;
