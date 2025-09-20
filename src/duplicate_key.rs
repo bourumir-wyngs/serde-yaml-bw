@@ -12,9 +12,16 @@ pub(crate) enum DuplicateKeyKind {
     Other,
 }
 
+use crate::libyaml::error::Mark;
+
 #[derive(Clone, Debug)]
 pub(crate) struct DuplicateKeyError {
     pub(crate) kind: DuplicateKeyKind,
+    /// Location of the first occurrence of the key, if known.
+    pub(crate) first: Option<Mark>,
+    /// Location of the duplicate key occurrence, if known. This is generally
+    /// used as the primary error location by the caller.
+    pub(crate) duplicate: Option<Mark>,
 }
 
 impl DuplicateKeyError {
@@ -27,26 +34,42 @@ impl DuplicateKeyError {
             Value::String(s, _) => String(s.clone()),
             _ => Other,
         };
-        DuplicateKeyError { kind }
+        DuplicateKeyError { kind, first: None, duplicate: None }
+    }
+
+    pub(crate) fn from_value_with_marks(value: &Value, first: Mark, duplicate: Mark) -> Self {
+        let mut err = Self::from_value(value);
+        err.first = Some(first);
+        err.duplicate = Some(duplicate);
+        err
     }
 
     pub(crate) fn from_scalar(bytes: &[u8]) -> Self {
         use DuplicateKeyKind::{Bool, Null, Number, Other, String};
         if is_null(bytes) {
-            return DuplicateKeyError { kind: Null };
+            return DuplicateKeyError { kind: Null, first: None, duplicate: None };
         }
         if let Ok(s) = std::str::from_utf8(bytes) {
             if let Some(b) = parse_bool(s) {
-                return DuplicateKeyError { kind: Bool(b) };
+                return DuplicateKeyError { kind: Bool(b), first: None, duplicate: None };
             }
             if let Ok(n) = Num::from_str(s) {
-                return DuplicateKeyError { kind: Number(n) };
+                return DuplicateKeyError { kind: Number(n), first: None, duplicate: None };
             }
             return DuplicateKeyError {
                 kind: String(s.to_string()),
+                first: None,
+                duplicate: None,
             };
         }
-        DuplicateKeyError { kind: Other }
+        DuplicateKeyError { kind: DuplicateKeyKind::Other, first: None, duplicate: None }
+    }
+
+    pub(crate) fn from_scalar_with_marks(bytes: &[u8], first: Mark, duplicate: Mark) -> Self {
+        let mut err = Self::from_scalar(bytes);
+        err.first = Some(first);
+        err.duplicate = Some(duplicate);
+        err
     }
 }
 
@@ -63,12 +86,20 @@ impl Display for DuplicateKeyError {
         use DuplicateKeyKind::{Bool, Null, Number, Other, String};
         formatter.write_str("duplicate entry ")?;
         match &self.kind {
-            Null => formatter.write_str("with null key"),
-            Bool(b) => write!(formatter, "with key `{}`", b),
-            Number(n) => write!(formatter, "with key {}", n),
-            String(s) => write!(formatter, "with key {:?}", s),
-            Other => formatter.write_str("in YAML map"),
+            Null => formatter.write_str("with null key")?,
+            Bool(b) => write!(formatter, "with key `{}`", b)?,
+            Number(n) => write!(formatter, "with key {}", n)?,
+            String(s) => write!(formatter, "with key {:?}", s)?,
+            Other => formatter.write_str("in YAML map")?,
         }
+        if let Some(first) = self.first {
+            // Note: The primary error location (duplicate) will be shown by the
+            // enclosing error formatter. Here we include the first occurrence.
+            let line = first.line() as usize + 1;
+            let col = first.column() as usize + 1;
+            write!(formatter, " (first defined at line {} column {})", line, col)?;
+        }
+        Ok(())
     }
 }
 

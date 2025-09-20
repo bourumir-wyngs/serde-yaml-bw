@@ -547,7 +547,7 @@ fn test_duplicate_keys_cases() {
         thing: true
         thing: false
     "};
-    let expected = "duplicate entry with key \"thing\" at line 2 column 1";
+    let expected = "duplicate entry with key \"thing\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<Value>(yaml, expected);
 
     let yaml = indoc! {"
@@ -563,7 +563,7 @@ fn test_duplicate_keys_cases() {
         99: true
         99: false
     "};
-    let expected = "duplicate entry with key 99 at line 2 column 1";
+    let expected = "duplicate entry with key 99 (first defined at line 2 column 1) at line 3 column 1";
     test_error::<Value>(yaml, expected);
 
     let yaml = indoc! {"
@@ -583,7 +583,7 @@ fn test_duplicate_keys_hashmap() {
         a: 1
         a: 2
     "};
-    let expected = "duplicate entry with key \"a\" at line 2 column 1";
+    let expected = "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<HashMap<String, i32>>(yaml, expected);
 }
 
@@ -599,7 +599,7 @@ fn test_duplicate_keys_struct() {
         a: 1
         a: 2
     "};
-    let expected = "duplicate entry with key \"a\" at line 2 column 1";
+    let expected = "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<S>(yaml, expected);
 }
 
@@ -625,7 +625,7 @@ fn test_duplicate_key_error_message() {
         Ok(data) => panic!("Takes duplicate keys and returns {data:?}"),
         Err(err) => assert_eq!(
             format!("{}", err),
-            r#"data: duplicate entry with key "key" at line 2 column 3"#
+            r#"data: duplicate entry with key "key" (first defined at line 2 column 3) at line 3 column 3"#
         ),
     }
 }
@@ -775,7 +775,7 @@ fn test_from_str_value_duplicate_location() {
     let yaml = "---\na: 1\na: 2\n";
     let err = serde_yaml_bw::from_str_value(yaml).unwrap_err();
     let loc = err.location().expect("location");
-    assert_eq!(2, loc.line());
+    assert_eq!(3, loc.line());
     assert_eq!(1, loc.column());
 }
 

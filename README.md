@@ -250,8 +250,7 @@ fn read_records() -> std::io::Result<()> {
 ```
 
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
-can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is useful for a human-intended output.
-
+can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is useful for a human-intended output. Here you can also re-enable duplicate keys if needed for legacy configurations, choosing between LastWins and FirstWins.
 ### Rust struct as schema
 
 This reader uses the passed Rust struct as a YAML schema. Knowing that our parsing target is a String or a boolean field allows us to assign correctly values that would result in an error if parsed without this background knowledge:

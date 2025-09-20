@@ -185,6 +185,23 @@ impl de::Error for Error {
     }
 }
 
+pub(crate) fn sanitize_anchor(anchor: &Anchor) -> String {
+    use std::fmt::Write as _;
+    let mut sanitized = String::new();
+    for &b in &anchor.0 {
+        match b {
+            b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'_' => {
+                sanitized.push(b as char);
+            }
+            _ => {
+                // Represent any other byte as an escaped hexadecimal sequence.
+                write!(&mut sanitized, "\\x{:02X}", b).unwrap();
+            }
+        }
+    }
+    sanitized
+}
+
 impl ErrorImpl {
     fn location(&self) -> Option<Location> {
         self.mark().map(Location::from_mark)
@@ -211,23 +228,6 @@ impl ErrorImpl {
     }
 
     fn message_no_mark(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fn sanitize(anchor: &Anchor) -> String {
-            use std::fmt::Write as _;
-            let mut sanitized = String::new();
-            for &b in &anchor.0 {
-                match b {
-                    b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'_' => {
-                        sanitized.push(b as char);
-                    }
-                    _ => {
-                        // Represent any other byte as an escaped hexadecimal sequence.
-                        write!(&mut sanitized, "\\x{:02X}", b).unwrap();
-                    }
-                }
-            }
-            sanitized
-        }
-
         match self {
             ErrorImpl::Message(msg, None) => f.write_str(msg),
             ErrorImpl::Message(msg, Some(Pos { mark: _, path })) => {
@@ -248,7 +248,7 @@ impl ErrorImpl {
             ErrorImpl::UnknownAnchor(_mark, alias) => {
                 f.write_str(&format!(
                     "reference to non existing anchor [{}]",
-                    &sanitize(alias)
+                    &crate::error::sanitize_anchor(alias)
                 ))
             }
             ErrorImpl::ScalarInMerge => {

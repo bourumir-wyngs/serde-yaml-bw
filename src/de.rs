@@ -14,7 +14,7 @@ use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny, Unexpected, Visitor,
 };
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io;
 use std::marker::PhantomData;
@@ -30,6 +30,17 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 /// Default recursion limit for deserialization.
 const DEFAULT_RECURSION_LIMIT: u8 = 128;
 
+/// Strategy to handle duplicate keys encountered in a YAML mapping during deserialization.
+#[derive(Clone, Debug)]
+pub enum DuplicateKeyStrategy {
+    /// Keep the first occurrence of the key and ignore subsequent duplicates.
+    FirstWins,
+    /// Replace the previous value with the last occurrence of the key.
+    LastWins,
+    /// Report an error when a duplicate key is encountered. This is the default.
+    Error,
+}
+
 /// Configuration options for YAML deserialization.
 #[derive(Clone, Debug)]
 pub struct DeserializerOptions {
@@ -40,6 +51,8 @@ pub struct DeserializerOptions {
     /// [`RepetitionLimitExceeded`]. A value of 0 preserves the default limit
     /// based on the input size.
     pub alias_limit: usize,
+    /// Strategy to handle duplicate keys in mappings.
+    pub duplicate_key: DuplicateKeyStrategy,
 }
 
 impl Default for DeserializerOptions {
@@ -47,6 +60,7 @@ impl Default for DeserializerOptions {
         Self {
             recursion_limit: DEFAULT_RECURSION_LIMIT,
             alias_limit: 0,
+            duplicate_key: DuplicateKeyStrategy::Error,
         }
     }
 }
@@ -183,6 +197,7 @@ impl<'de> Deserializer<'de> {
                     self.options.alias_limit
                 };
                 let t = f(&mut DeserializerFromEvents {
+                    duplicate_key_strategy: self.options.duplicate_key.clone(),
                     document: &document,
                     pos: &mut pos,
                     jumpcount: &mut jumpcount,
@@ -213,6 +228,7 @@ impl<'de> Deserializer<'de> {
             self.options.alias_limit
         };
         let t = f(&mut DeserializerFromEvents {
+            duplicate_key_strategy: self.options.duplicate_key.clone(),
             document: &document,
             pos: &mut pos,
             jumpcount: &mut jumpcount,
@@ -557,6 +573,7 @@ struct DeserializerFromEvents<'de, 'document> {
     remaining_depth: u8,
     enum_depth: Rc<RefCell<usize>>,
     alias_limit: usize,
+    duplicate_key_strategy: DuplicateKeyStrategy,
 }
 
 impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
@@ -606,6 +623,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             Some(found) => {
                 *pos = *found;
                 Ok(DeserializerFromEvents {
+                                    duplicate_key_strategy: self.duplicate_key_strategy.clone(),
                     document: self.document,
                     pos,
                     jumpcount: self.jumpcount,
@@ -694,7 +712,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 de,
                 len: 0,
                 key: None,
-                seen: HashSet::new(),
+                seen: HashMap::new(),
             };
             let value = visitor.visit_map(&mut map)?;
             Ok((value, map.len))
@@ -747,7 +765,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                 de: self,
                 len,
                 key: None,
-                seen: HashSet::new(),
+                seen: HashMap::new(),
             };
             while de::MapAccess::next_entry::<IgnoredAny, IgnoredAny>(&mut map)?.is_some() {}
             map.len
@@ -825,20 +843,44 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             MappingStart(map) => {
                 let anchor = map.anchor.clone();
                 let mut mapping = Mapping::new();
+                let strategy = self.duplicate_key_strategy.clone();
+                // Track first occurrence marks for keys (only needed for Error strategy)
+                let mut first_marks: Option<HashMap<Value, Mark>> = match strategy {
+                    DuplicateKeyStrategy::Error => Some(HashMap::new()),
+                    _ => None,
+                };
                 while !matches!(self.peek_event()?, MappingEnd) {
+                    // Capture key mark before parsing key value
+                    let (_evt, key_mark) = self.peek_event_mark()?;
                     let key = self.parse_value()?;
-                    if mapping.contains_key(&key) {
-                        return Err(error::fix_mark(
-                            error::new(ErrorImpl::Message(
-                                DuplicateKeyError::from_value(&key).to_string(),
-                                None,
-                            )),
-                            mark,
-                            self.path,
-                        ));
+                    if let Some(ref marks) = first_marks {
+                        if let Some(first_mark) = marks.get(&key).cloned() {
+                            let msg = DuplicateKeyError::from_value_with_marks(&key, first_mark, key_mark).to_string();
+                            return Err(error::fix_mark(error::new(ErrorImpl::Message(msg, None)), key_mark, self.path));
+                        }
                     }
-                    let value = self.parse_value()?;
-                    mapping.insert(key, value);
+                    match strategy {
+                        DuplicateKeyStrategy::FirstWins => {
+                            if mapping.contains_key(&key) {
+                                // Skip the duplicate value
+                                let _ = self.parse_value()?;
+                                continue;
+                            }
+                            let value = self.parse_value()?;
+                            mapping.insert(key.clone(), value);
+                        }
+                        DuplicateKeyStrategy::LastWins => {
+                            let value = self.parse_value()?;
+                            mapping.insert(key.clone(), value);
+                        }
+                        DuplicateKeyStrategy::Error => {
+                            if let Some(ref mut marks) = first_marks {
+                                marks.insert(key.clone(), key_mark);
+                            }
+                            let value = self.parse_value()?;
+                            mapping.insert(key.clone(), value);
+                        }
+                    }
                 }
                 self.next_event()?; // consume MappingEnd
                 mapping.anchor = anchor;
@@ -879,6 +921,7 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
             Event::SequenceEnd | Event::Void => Ok(None),
             _ => {
                 let mut element_de = DeserializerFromEvents {
+                                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
                     document: self.de.document,
                     pos: self.de.pos,
                     jumpcount: self.de.jumpcount,
@@ -902,7 +945,7 @@ struct MapAccess<'de, 'document, 'map> {
     de: &'map mut DeserializerFromEvents<'de, 'document>,
     len: usize,
     key: Option<&'document [u8]>,
-    seen: std::collections::HashSet<Vec<u8>>,
+    seen: std::collections::HashMap<Vec<u8>, crate::libyaml::error::Mark>,
 }
 
 impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
@@ -915,22 +958,51 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
         if self.empty {
             return Ok(None);
         }
-        match self.de.peek_event()? {
-            Event::MappingEnd | Event::Void => Ok(None),
-            Event::Scalar(scalar) => {
-                self.len += 1;
-                if !self.seen.insert(scalar.value.value.to_vec()) {
-                    return Err(de::Error::custom(DuplicateKeyError::from_scalar(
-                        &scalar.value.value,
-                    )));
+        loop {
+            match self.de.peek_event()? {
+                Event::MappingEnd | Event::Void => return Ok(None),
+                Event::Scalar(scalar) => {
+                    self.len += 1;
+                    let strategy = self.de.duplicate_key_strategy.clone();
+                    // Capture current key mark (duplicate location)
+                    let dup_mark = self.de.peek_event_mark()?.1;
+                    let key_bytes = scalar.value.value.to_vec();
+                    match strategy {
+                        DuplicateKeyStrategy::LastWins => {
+                            self.key = Some(&scalar.value.value);
+                            return seed.deserialize(&mut *self.de).map(Some);
+                        }
+                        DuplicateKeyStrategy::Error | DuplicateKeyStrategy::FirstWins => {
+                            if let Some(first_mark) = self.seen.get(&key_bytes).cloned() {
+                                if let DuplicateKeyStrategy::Error = strategy {
+                                    let err = de::Error::custom(DuplicateKeyError::from_scalar_with_marks(
+                                        &key_bytes,
+                                        first_mark,
+                                        dup_mark,
+                                    ));
+                                    return Err(crate::error::fix_mark(err, dup_mark, self.de.path));
+                                } else {
+                                    // FirstWins: skip this duplicate pair (key and its value)
+                                    // consume key
+                                    self.de.ignore_any()?;
+                                    // consume corresponding value
+                                    self.de.ignore_any()?;
+                                    // and continue to next key
+                                    continue;
+                                }
+                            }
+                            // first time seen
+                            self.seen.insert(key_bytes.clone(), dup_mark);
+                            self.key = Some(&scalar.value.value);
+                            return seed.deserialize(&mut *self.de).map(Some);
+                        }
+                    }
                 }
-                self.key = Some(&scalar.value.value);
-                seed.deserialize(&mut *self.de).map(Some)
-            }
-            _ => {
-                self.len += 1;
-                self.key = None;
-                seed.deserialize(&mut *self.de).map(Some)
+                _ => {
+                    self.len += 1;
+                    self.key = None;
+                    return seed.deserialize(&mut *self.de).map(Some);
+                }
             }
         }
     }
@@ -940,6 +1012,7 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
         V: DeserializeSeed<'de>,
     {
         let mut value_de = DeserializerFromEvents {
+                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
@@ -978,6 +1051,7 @@ impl<'de, 'variant> de::EnumAccess<'de> for EnumAccess<'de, '_, 'variant> {
         let variant = seed.deserialize(str_de)?;
         *self.de.enum_depth.borrow_mut() += 1;
         let visitor = DeserializerFromEvents {
+                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
@@ -2002,7 +2076,7 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                         de: self,
                         len: 0,
                         key: None,
-                        seen: HashSet::new(),
+                        seen: HashMap::new(),
                     })
                 } else {
                     Err(invalid_type(other, &visitor))
