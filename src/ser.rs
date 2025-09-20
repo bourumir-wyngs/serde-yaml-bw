@@ -1548,3 +1548,31 @@ where
     to_writer_multi(&mut vec, values)?;
     String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Serialize;
+    use crate::Value;
+
+    // Ensure that serializing an Alias with check_unresolved_anchors(true)
+    // produces an UnknownAnchor error when the anchor has not been defined.
+    #[test]
+    fn unresolved_alias_is_reported() {
+        let mut buf = Vec::new();
+        let mut ser = SerializerBuilder::default()
+            .check_unresolved_anchors(true)
+            .build(&mut buf)
+            .expect("failed to build serializer");
+
+        let alias = Value::Alias("missing".to_string());
+        let err = alias.serialize(&mut ser).expect_err("expected error for unresolved alias");
+        let msg = err.to_string();
+        assert!(
+            msg.starts_with("reference to non existing anchor [missing]"),
+            "unexpected error message: {}",
+            msg
+        );
+    }
+}
