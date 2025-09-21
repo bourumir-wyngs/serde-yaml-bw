@@ -89,6 +89,7 @@ impl Sequence {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum MappingStyle {
     Any,
     Block,
