@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Ultra-simple fuzz runner: hardcoded for 4 days on up to 48 cores.
 # No auto-install, no fancy flags. Save logs, artifacts, and reproduce info.
-set -euo pipefail
 
 # Hardcoded knobs
 CORES=48
