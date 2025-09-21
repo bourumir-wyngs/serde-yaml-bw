@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Run all cargo-fuzz targets (nightly) and summarize crashes.
 # Env:
-#   THREADS (default 1)
-#   FUZZ_TIME (seconds, default 60)
-#   RSS_LIMIT_MB (default 1024)
+#   THREADS     (default 1)          # max parallel targets
+#   FUZZ_TIME   (seconds, default 60)
+#   RSS_LIMIT_MB(default 1024)
 #   CLOSE_FD_MASK (default 3)
-#   QUIET (0/1, default 0)   # only affects libFuzzer verbosity and echoed messages
-#   MINIMIZE (0/1, default 0)
-#   REPRODUCE (0/1, default 0)
-#   MAX_PROCS (default 48)   # hard cap on total concurrent fuzzing processes
+#   QUIET       (0/1, default 0)     # only trims libFuzzer chatter + our echoes
+#   MINIMIZE    (0/1, default 0)     # run tmin on crashes
+#   REPRODUCE   (0/1, default 0)     # write reproduce cmd into summary
+#   MAX_PROCS   (default 48)         # hard cap: THREADS * workers <= MAX_PROCS
 # Usage:
 #   THREADS=4 FUZZ_TIME=345600 MAX_PROCS=48 ./fuzz.sh -- -workers=10 -jobs=10
 set -euo pipefail
@@ -57,14 +57,23 @@ command -v cargo-fuzz >/dev/null 2>&1 || {
   fi
 }
 
-# --- Discover fuzz targets from fuzz/Cargo.toml [[bin]] ---
-mapfile -t TARGETS < <(awk '
-  BEGIN{inbin=0}
-  /^\[\[bin\]\]/{inbin=1; next}
-  /^\[\[/{if($0!~/^\[\[bin\]\]/)inbin=0}
-  inbin && $1~/^name$/ && $2=="=" {match($0,/"([^"]+)"/,m); if(m[1]!="") print m[1]}
-' fuzz/Cargo.toml)
-((${#TARGETS[@]})) || { echo "[error] No fuzz targets found in fuzz/Cargo.toml"; exit 1; }
+# --- Discover fuzz targets (prefer cargo-fuzz list; fallback to parsing TOML) ---
+TARGETS=()
+if out="$(set +e; cargo +nightly fuzz list 2>/dev/null; echo $? )"; then
+  # last line is exit code captured by echo; split safely:
+  IFS=$'\n' read -r -d '' -a lines < <(printf '%s\0' "$(cargo +nightly fuzz list 2>/dev/null || true)")
+  if ((${#lines[@]} > 0)); then TARGETS=("${lines[@]}"); fi
+fi
+if ((${#TARGETS[@]} == 0)); then
+  # Fallback: parse fuzz/Cargo.toml [[bin]]
+  mapfile -t TARGETS < <(awk '
+    BEGIN{inbin=0}
+    /^\[\[bin\]\]/{inbin=1; next}
+    /^\[\[/{if($0!~/^\[\[bin\]\]/)inbin=0}
+    inbin && $1~/^name$/ && $2=="=" {match($0,/"([^"]+)"/,m); if(m[1]!="") print m[1]}
+  ' fuzz/Cargo.toml 2>/dev/null || true)
+fi
+((${#TARGETS[@]})) || { echo "[error] No fuzz targets found."; exit 1; }
 [[ "$QUIET" != "1" ]] && echo "Found fuzz targets: ${TARGETS[*]}"
 
 # --- Quiet handling: only adjust libFuzzer verbosity if user didn't set it ---
@@ -109,7 +118,7 @@ if (( REQ_WORKERS == 0 )); then
   (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
 else
   EFF_WORKERS="$REQ_WORKERS"
-fi
+endif=false  # no-op to keep shellcheck quiet
 
 TOTAL=$(( THREADS * EFF_WORKERS ))
 if (( TOTAL > MAX_PROCS )); then
@@ -122,45 +131,27 @@ fi
 set_flag_val -workers "$EFF_WORKERS"
 set_flag_val -jobs    "$EFF_WORKERS"
 
-# --- Serialize arrays so xargs/bash subshell can reconstruct them ---
-serialize_array() {
-  # print each arg with NUL separator
-  local IFS=
-  printf '%s\0' "$@"
-}
-EXTRA_ARGS_SER="$(serialize_array "${EXTRA_ARGS[@]}")"
-DEFAULT_FUZZ_ARGS_SER="$(serialize_array "${DEFAULT_FUZZ_ARGS[@]}")"
-
-# --- Output dirs & summary file ---
 mkdir -p fuzz/logs
 SUMMARY_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.summary.txt"
 : >"$SUMMARY_FILE"
 
+# --- One target run ---
 run_one() {
   local tgt="$1"
-
-  # Rebuild arrays from serialized strings
-  local IFS=
-  # shellcheck disable=SC2034
-  read -r -d '' -a EXTRA_ARGS_ARR < <(printf '%s' "$EXTRA_ARGS_SER")
-  # shellcheck disable=SC2034
-  read -r -d '' -a DEFAULT_FUZZ_ARGS_ARR < <(printf '%s' "$DEFAULT_FUZZ_ARGS_SER")
-
   local log="fuzz/logs/${tgt}.${START_TS}.log"
   local art_dir="fuzz/artifacts/${tgt}/"
   mkdir -p "$art_dir"
 
-  echo -e "\n=== START '$tgt' for ${FUZZ_TIME}s (workers=$(get_flag_val -workers)) ==="
+  [[ "$QUIET" != "1" ]] && echo -e "\n=== START '$tgt' for ${FUZZ_TIME}s (workers=$(get_flag_val -workers)) ==="
 
-  # Run and do NOT abort on crash; capture status.
   set +e
   cargo +nightly fuzz run "$tgt" -- \
     -artifact_prefix="${art_dir}" \
     -max_total_time="${FUZZ_TIME}" \
     -rss_limit_mb="${RSS_LIMIT_MB}" \
     -close_fd_mask="${CLOSE_FD_MASK}" \
-    "${DEFAULT_FUZZ_ARGS_ARR[@]}" \
-    "${EXTRA_ARGS_ARR[@]}" \
+    "${DEFAULT_FUZZ_ARGS[@]}" \
+    "${EXTRA_ARGS[@]}" \
     2>&1 | tee "$log"
   local status="${PIPESTATUS[0]}"
   set -e
@@ -203,17 +194,18 @@ run_one() {
   fi
 }
 
-export -f run_one
-# Export only scalars/serialized arrays for child shells
-export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET EXTRA_ARGS_SER DEFAULT_FUZZ_ARGS_SER SUMMARY_FILE
-export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE
-
-# --- Run sequentially or in parallel ---
-if (( THREADS <= 1 )); then
-  for t in "${TARGETS[@]}"; do run_one "$t"; done
-else
-  printf '%s\n' "${TARGETS[@]}" | xargs -P "$THREADS" -n 1 -I {} bash -lc 'run_one "$@"' _ {}
-fi
+# --- Concurrency: no xargs; keep arrays intact ---
+active_jobs() { jobs -r -p | wc -l; }
+for tgt in "${TARGETS[@]}"; do
+  # Wait until we have a free slot
+  while (( $(active_jobs) >= THREADS )); do
+    # Avoid set -e abort on non-zero from waited jobs
+    wait -n || true
+  done
+  run_one "$tgt" &
+done
+# Wait for all background runs
+wait || true
 
 # --- Stats footer ---
 END_ISO="$(date -Iseconds)"
