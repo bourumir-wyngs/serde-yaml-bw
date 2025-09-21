@@ -1,246 +1,84 @@
 #!/usr/bin/env bash
-# Run all cargo-fuzz targets (nightly) and summarize crashes.
-# Env:
-#   THREADS     (default 1)          # max parallel targets
-#   FUZZ_TIME   (seconds, default 60)
-#   RSS_LIMIT_MB(default 1024)
-#   CLOSE_FD_MASK (default 3)
-#   QUIET       (0/1, default 0)     # only trims libFuzzer chatter + our echoes
-#   MINIMIZE    (0/1, default 0)     # run tmin on crashes
-#   REPRODUCE   (0/1, default 0)     # write reproduce cmd into summary
-#   MAX_PROCS   (default 48)         # hard cap: THREADS * workers <= MAX_PROCS
-# Usage example (4 days on a 48‑core box; 4 targets × 10 workers = 40 procs):
-#   THREADS=4 FUZZ_TIME=345600 MAX_PROCS=48 ./fuzz.sh -- -workers=10 -jobs=10
+# Ultra-simple fuzz runner: hardcoded for 4 days on up to 48 cores.
+# No auto-install, no fancy flags. Save logs, artifacts, and reproduce info.
 set -euo pipefail
 
-# --- Defaults ---
-THREADS="${THREADS:-1}"
-FUZZ_TIME="${FUZZ_TIME:-60}"
-RSS_LIMIT_MB="${RSS_LIMIT_MB:-1024}"
-CLOSE_FD_MASK="${CLOSE_FD_MASK:-3}"
-QUIET="${QUIET:-0}"
-MINIMIZE="${MINIMIZE:-0}"
-REPRODUCE="${REPRODUCE:-0}"
-MAX_PROCS="${MAX_PROCS:-48}"
+# Hardcoded knobs
+CORES=48
+DURATION=345600            # 4 days in seconds
+RSS_LIMIT_MB=4096
+TIMEOUT=5                  # libFuzzer per-run timeout
+CLOSE_FD_MASK=3
+START_TS="$(date +%Y%m%d-%H%M%S)"
+SUMMARY="fuzz_summary_${START_TS}.txt"
 
-CALLER_CWD="${PWD}"
-START_TS="$(date "+%Y%m%d-%H%M%S")"
-START_ISO="$(date -Iseconds)"
-START_EPOCH="$(date +%s)"
-
-# --- Parse pass-through libFuzzer args after "--" ---
-EXTRA_ARGS=( )
-pass_through=false
-for arg in "$@"; do
-  if [[ "$arg" == "--" ]]; then pass_through=true; continue; fi
-  $pass_through && EXTRA_ARGS+=("$arg")
-done
-
-# --- Locate repo root (script dir must contain fuzz/) ---
+# Stay in repo root (must contain fuzz/)
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-[[ -d fuzz ]] || { echo "[error] 'fuzz' dir not found. Run from repo root."; exit 1; }
+[[ -d fuzz ]] || { echo "fuzz/ not found"; exit 1; }
 
-# --- Toolchains & cargo-fuzz availability ---
-if command -v rustup >/dev/null 2>&1; then
-  if ! rustup toolchain list | grep -q "^nightly"; then
-    [[ "$QUIET" == "1" ]] || echo "Installing Rust nightly…"
-    rustup toolchain install nightly --profile minimal -y >/dev/null 2>&1 || rustup toolchain install nightly --profile minimal -y
-  fi
-fi
-if ! command -v cargo-fuzz >/dev/null 2>&1; then
-  [[ "$QUIET" == "1" ]] || echo "Installing cargo-fuzz…"
-  if [[ "$QUIET" == "1" ]]; then
-    cargo +nightly install cargo-fuzz -q
-  else
-    cargo +nightly install cargo-fuzz
-  fi
-fi
+# Discover targets (require cargo-fuzz and nightly pre-installed)
+mapfile -t TARGETS < <(cargo +nightly fuzz list)
+((${#TARGETS[@]})) || { echo "no fuzz targets"; exit 1; }
 
-# --- Discover fuzz targets (prefer cargo-fuzz list; fallback to parsing TOML) ---
-TARGETS=()
-if mapfile -t TARGETS < <(cargo +nightly fuzz list 2>/dev/null); then :; fi
-if ((${#TARGETS[@]} == 0)); then
-  mapfile -t TARGETS < <(awk '
-    BEGIN{inbin=0}
-    /^\[\[bin\]\]/{inbin=1; next}
-    /^\[\[/{if($0!~/^\[\[bin\]\]/)inbin=0}
-    inbin && $1~/^name$/ && $2=="=" {match($0,/"([^"]+)"/,m); if(m[1]!="") print m[1]}
-  ' fuzz/Cargo.toml 2>/dev/null || true)
-fi
-((${#TARGETS[@]})) || { echo "[error] No fuzz targets found."; exit 1; }
-[[ "$QUIET" != "1" ]] && echo "Found fuzz targets: ${TARGETS[*]}"
+# Workers per target so total processes ≤ CORES
+TGT_N=${#TARGETS[@]}
+WORKERS=$(( CORES / (TGT_N>0?TGT_N:1) ))
+(( WORKERS < 1 )) && WORKERS=1
 
-# --- Quiet handling: only adjust libFuzzer verbosity if user didn't set it ---
-if [[ "$QUIET" == "1" ]]; then
-  has_verbosity=0
-  for a in "${EXTRA_ARGS[@]}"; do
-    [[ "$a" == -verbosity=* || "$a" == "-verbosity" ]] && has_verbosity=1
-  done
-  ((has_verbosity==0)) && EXTRA_ARGS+=("-verbosity=0" "-print_final_stats=1")
-fi
+mkdir -p fuzz/logs fuzz/artifacts
+: >"$SUMMARY"
 
-# --- Sensible defaults for parsers (can be overridden by EXTRA_ARGS) ---
-DEFAULT_FUZZ_ARGS=( -use_value_profile=1 -entropic=1 -len_control=1 -timeout=5 )
-
-# --- Sanitizer / backtrace for nicer crash logs ---
-export RUST_BACKTRACE=1
-export ASAN_OPTIONS="${ASAN_OPTIONS:-abort_on_error=1:alloc_dealloc_mismatch=1:detect_leaks=1}"
-export UBSAN_OPTIONS="${UBSAN_OPTIONS:-print_stacktrace=1:halt_on_error=1}"
-
-# --- Helpers to read/update -flag=value in EXTRA_ARGS ---
-get_flag_val() {
-  local name="$1"; local val=""
-  for a in "${EXTRA_ARGS[@]}"; do
-    if [[ "$a" == "$name="* ]]; then val="${a#*=}"; break; fi
-  done
-  printf '%s' "$val"
-}
-set_flag_val() {
-  local name="$1"; local value="$2"; local found=0
-  for i in "${!EXTRA_ARGS[@]}"; do
-    if [[ "${EXTRA_ARGS[i]}" == "$name="* ]]; then EXTRA_ARGS[i]="$name=$value"; found=1; fi
-  done
-  ((found==0)) && EXTRA_ARGS+=("$name=$value")
-}
-
-# --- Cap workers/jobs so THREADS * workers <= MAX_PROCS ---
-REQ_WORKERS="$(get_flag_val -workers)"; [[ -z "$REQ_WORKERS" ]] && REQ_WORKERS=0
-REQ_JOBS="$(get_flag_val -jobs)";     [[ -z "$REQ_JOBS"    ]] && REQ_JOBS=0
-
-if (( REQ_WORKERS == 0 )); then
-  EFF_WORKERS=$(( MAX_PROCS / THREADS ))
-  (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
-else
-  EFF_WORKERS="$REQ_WORKERS"
-fi
-
-TOTAL=$(( THREADS * EFF_WORKERS ))
-if (( TOTAL > MAX_PROCS )); then
-  EFF_WORKERS=$(( MAX_PROCS / THREADS ))
-  (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
-  [[ "$QUIET" != "1" ]] && echo "Capping to ${EFF_WORKERS} workers per target so ${THREADS}×${EFF_WORKERS} ≤ MAX_PROCS=${MAX_PROCS}"
-fi
-
-# Ensure both flags present and aligned
-set_flag_val -workers "$EFF_WORKERS"
-set_flag_val -jobs    "$EFF_WORKERS"
-
-# --- Output dirs & summary file ---
-mkdir -p fuzz/logs
-SUMMARY_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.summary.txt"
-: >"$SUMMARY_FILE"
-
-# --- Bash version feature check for wait -n (Bash >= 4.3) ---
-HAVE_WAIT_N=0
-if [[ "${BASH_VERSINFO[0]:-0}" -gt 4 || ( "${BASH_VERSINFO[0]:-0}" -eq 4 && "${BASH_VERSINFO[1]:-0}" -ge 3 ) ]]; then
-  HAVE_WAIT_N=1
-fi
-
-# --- One target run ---
-run_one() {
+run_target() {
   local tgt="$1"
-  local log="fuzz/logs/${tgt}.${START_TS}.log"
   local art_dir="fuzz/artifacts/${tgt}/"
+  local log="fuzz/logs/${tgt}.${START_TS}.log"
   mkdir -p "$art_dir"
-
-  [[ "$QUIET" != "1" ]] && echo -e "\n=== START '$tgt' for ${FUZZ_TIME}s (workers=$(get_flag_val -workers)) ==="
-
+  echo "==> $tgt (workers=$WORKERS, duration=${DURATION}s)" | tee -a "$SUMMARY"
   set +e
   cargo +nightly fuzz run "$tgt" -- \
+    -workers=$WORKERS \
     -artifact_prefix="${art_dir}" \
-    -max_total_time="${FUZZ_TIME}" \
-    -rss_limit_mb="${RSS_LIMIT_MB}" \
-    -close_fd_mask="${CLOSE_FD_MASK}" \
-    "${DEFAULT_FUZZ_ARGS[@]}" \
-    "${EXTRA_ARGS[@]}" \
+    -max_total_time=$DURATION \
+    -rss_limit_mb=$RSS_LIMIT_MB \
+    -close_fd_mask=$CLOSE_FD_MASK \
+    -use_value_profile=1 -entropic=1 -len_control=1 -timeout=$TIMEOUT \
     2>&1 | tee "$log"
-  local status="${PIPESTATUS[0]}"
+  local status=${PIPESTATUS[0]}
   set -e
 
-  # Collect artifacts
-  local found=( )
-  while IFS= read -r -d '' f; do found+=("$f"); done < <(
-    find "$art_dir" -maxdepth 1 -type f \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null || true
-  )
+  # List artifacts
+  local found=()
+  while IFS= read -r -d '' f; do found+=("$f"); done < <(find "$art_dir" -maxdepth 1 -type f \
+    \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null)
 
   {
-    echo "target:   $tgt"
-    echo "status:   $status"
-    echo "log:      $log"
-    echo "workers:  $(get_flag_val -workers)"
+    echo "target: $tgt"
+    echo "status: $status"
+    echo "log: $log"
     if ((${#found[@]})); then
-      echo "artifacts:"
-      for f in "${found[@]}"; do echo "  - $f"; done
+      echo "artifacts:"; for f in "${found[@]}"; do echo "  - $f"; done
     else
       echo "artifacts: (none)"
     fi
-    echo
-  } >>"$SUMMARY_FILE"
+  } >>"$SUMMARY"
 
-  # Optional minimize & reproduce
+  # Minimize and write reproduce commands
   if ((${#found[@]})); then
     for f in "${found[@]}"; do
-      if [[ "${MINIMIZE}" == "1" ]]; then
-        local min="${f}.min"
-        cargo +nightly fuzz tmin "$tgt" "$f" -- -timeout=5 -runs=100000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log"
-        [[ -f "$min" ]] || cp -f "$f" "$min"
-      fi
-      if [[ "${REPRODUCE}" == "1" ]]; then
-        {
-          echo "# Reproduce:"
-          echo "cargo +nightly fuzz reproduce $tgt $f -- -timeout=5"
-        } >>"$SUMMARY_FILE"
-      fi
+      local min="${f}.min"
+      cargo +nightly fuzz tmin "$tgt" "$f" -- -timeout=$TIMEOUT -runs=200000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log" || true
+      [[ -f "$min" ]] || cp -f "$f" "$min" || true
+      {
+        echo "reproduce (orig): cargo +nightly fuzz reproduce $tgt $f -- -timeout=$TIMEOUT"
+        echo "reproduce (min):  cargo +nightly fuzz reproduce $tgt ${min} -- -timeout=$TIMEOUT"
+      } >>"$SUMMARY"
     done
   fi
 }
 
-active_jobs() { jobs -r -p | wc -l; }
+# Launch all targets concurrently; total procs ~ TGT_N * WORKERS ≤ CORES
+for t in "${TARGETS[@]}"; do run_target "$t" & done
+wait
 
-# --- Launch with concurrency control (no xargs, arrays stay intact) ---
-for tgt in "${TARGETS[@]}"; do
-  # Wait for a free slot
-  while (( $(active_jobs) >= THREADS )); do
-    if (( HAVE_WAIT_N )); then
-      wait -n || true
-    else
-      pid="$(jobs -r -p | head -n1 || true)"
-      if [[ -n "${pid:-}" ]]; then wait "$pid" || true; else sleep 0.1; fi
-    fi
-  done
-  run_one "$tgt" &
-done
-wait || true
-
-# --- Stats footer ---
-END_ISO="$(date -Iseconds)"
-END_EPOCH="$(date +%s)"
-DURATION_SEC=$(( END_EPOCH - START_EPOCH ))
-STATS_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.stats.txt"
-{
-  echo "start_time: ${START_ISO}"
-  echo "end_time:   ${END_ISO}"
-  echo "duration_s: ${DURATION_SEC}"
-  echo "threads:    ${THREADS}"
-  echo "targets_n:  ${#TARGETS[@]}"
-  echo "targets:    ${TARGETS[*]}"
-  echo "fuzz_time_s:${FUZZ_TIME}"
-  echo "rss_limit_mb:${RSS_LIMIT_MB}"
-  echo "close_fd_mask:${CLOSE_FD_MASK}"
-  echo "quiet:      ${QUIET}"
-  echo "minimize:   ${MINIMIZE}"
-  echo "reproduce:  ${REPRODUCE}"
-  echo "max_procs:  ${MAX_PROCS}"
-  echo "extra_args: ${EXTRA_ARGS[*]}"
-  echo "summary:    ${SUMMARY_FILE}"
-  echo "hostname:   $(hostname 2>/dev/null || true)"
-  echo "os_kernel:  $(uname -srm 2>/dev/null || true)"
-  echo "cpu_count:  $(command -v nproc >/dev/null 2>&1 && nproc || getconf _NPROCESSORS_ONLN 2>/dev/null || echo unknown)"
-  echo "git_commit: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-  echo "rustc:      $(rustc +nightly --version 2>/dev/null || rustc --version 2>/dev/null || echo unavailable)"
-  echo "cargo:      $(cargo --version 2>/dev/null || echo unavailable)"
-  echo "cargo-fuzz: $(cargo-fuzz --version 2>/dev/null || echo unavailable)"
-} >"$STATS_FILE" 2>/dev/null || true
-
-[[ "$QUIET" != "1" ]] && echo -e "\nAll done.\nSummary: ${SUMMARY_FILE}\nStats:   ${STATS_FILE}"
+echo "Done. Summary: $SUMMARY"

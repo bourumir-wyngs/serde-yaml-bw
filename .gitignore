@@ -2,3 +2,4 @@ target
 .idea
 /LAST_TEST_RESULTS.LOG
 /suggestions.md
+/fuzz/logs
