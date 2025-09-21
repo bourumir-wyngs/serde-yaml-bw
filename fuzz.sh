@@ -40,7 +40,11 @@ if command -v rustup >/dev/null 2>&1; then
 fi
 command -v cargo-fuzz >/dev/null 2>&1 || {
   [[ "$QUIET" == "1" ]] || echo "Installing cargo-fuzz…"
-  if [[ "$QUIET" == "1" ]]; then cargo +nightly install cargo-fuzz -q; else cargo +nightly install cargo-fuzz; fi
+  if [[ "$QUIET" == "1" ]]; then
+    cargo +nightly install cargo-fuzz -q
+  else
+    cargo +nightly install cargo-fuzz
+  fi
 }
 
 # Discover targets
@@ -50,10 +54,6 @@ mapfile -t TARGETS < <(awk '
 ' fuzz/Cargo.toml)
 ((${#TARGETS[@]})) || { echo "[error] No fuzz targets in fuzz/Cargo.toml"; exit 1; }
 [[ "$QUIET" != "1" ]] && echo "Found fuzz targets: ${TARGETS[*]}"
-
-# Quiet flags
-CARGO_QUIET=( )
-[[ "$QUIET" == "1" ]] && CARGO_QUIET+=(--quiet)
 
 # If QUIET and no -verbosity provided, reduce libFuzzer chatter
 if [[ "$QUIET" == "1" ]]; then
@@ -83,7 +83,7 @@ run_one() {
   [[ "$QUIET" != "1" ]] && echo -e "\n=== Running '$tgt' for ${FUZZ_TIME}s ==="
   # Run and do NOT abort on crash; capture status.
   set +e
-  cargo +nightly fuzz run "${CARGO_QUIET[@]}" "$tgt" -- \
+  cargo +nightly fuzz run "$tgt" -- \
     -artifact_prefix="${art_dir}" \
     -max_total_time="${FUZZ_TIME}" \
     -rss_limit_mb="${RSS_LIMIT_MB}" \
@@ -115,10 +115,8 @@ run_one() {
   if ((${#found[@]})); then
     for f in "${found[@]}"; do
       if [[ "${MINIMIZE}" == "1" ]]; then
-        # Create minimized artifact next to it
         local min="${f}.min"
-        cargo +nightly fuzz tmin "${CARGO_QUIET[@]}" "$tgt" "$f" -- -timeout=5 -runs=100000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log"
-        # If libFuzzer wrote minimized file, keep it; otherwise copy original
+        cargo +nightly fuzz tmin "$tgt" "$f" -- -timeout=5 -runs=100000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log"
         [[ -f "$min" ]] || cp -f "$f" "$min"
       fi
       if [[ "${REPRODUCE}" == "1" ]]; then
@@ -132,7 +130,7 @@ run_one() {
 }
 
 export -f run_one
-export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET CARGO_QUIET EXTRA_ARGS DEFAULT_FUZZ_ARGS SUMMARY_FILE
+export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET EXTRA_ARGS DEFAULT_FUZZ_ARGS SUMMARY_FILE
 export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE
 
 if (( THREADS <= 1 )); then
