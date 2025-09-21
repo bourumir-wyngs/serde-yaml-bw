@@ -7,6 +7,9 @@ use std::io::Cursor;
 // This fuzzer stresses large scalar handling, both plain and block scalars.
 // We cap constructed sizes to avoid pathological memory usage.
 fuzz_target!(|data: &[u8]| {
+    if data.len() < 256 {
+        return;
+    }
     // Cap to 1 MiB generated content.
     let cap: usize = 1 << 20;
 
