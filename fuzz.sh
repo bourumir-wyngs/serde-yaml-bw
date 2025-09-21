@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 # Run all cargo-fuzz targets (nightly) and summarize crashes.
 # Env:
-#   THREADS (default 1), FUZZ_TIME (s, default 60), RSS_LIMIT_MB (1024),
-#   CLOSE_FD_MASK (3), QUIET (0/1), MINIMIZE (0/1), REPRODUCE (0/1)
-#   MAX_PROCS (default 48)  <-- hard cap on total concurrent workers across targets
-#   EXTRA libFuzzer args after "--" (e.g., -workers=10 -jobs=10)
+#   THREADS (default 1)
+#   FUZZ_TIME (seconds, default 60)
+#   RSS_LIMIT_MB (default 1024)
+#   CLOSE_FD_MASK (default 3)
+#   QUIET (0/1, default 0)   # only affects libFuzzer verbosity and echoed messages
+#   MINIMIZE (0/1, default 0)
+#   REPRODUCE (0/1, default 0)
+#   MAX_PROCS (default 48)   # hard cap on total concurrent fuzzing processes
+# Usage:
+#   THREADS=4 FUZZ_TIME=345600 MAX_PROCS=48 ./fuzz.sh -- -workers=10 -jobs=10
 set -euo pipefail
 
+# --- Defaults ---
 THREADS="${THREADS:-1}"
 FUZZ_TIME="${FUZZ_TIME:-60}"
 RSS_LIMIT_MB="${RSS_LIMIT_MB:-1024}"
@@ -21,7 +28,7 @@ START_TS="$(date "+%Y%m%d-%H%M%S")"
 START_ISO="$(date -Iseconds)"
 START_EPOCH="$(date +%s)"
 
-# Pass-through libFuzzer args after "--"
+# --- Parse pass-through libFuzzer args after "--" ---
 EXTRA_ARGS=( )
 pass_through=false
 for arg in "$@"; do
@@ -29,11 +36,12 @@ for arg in "$@"; do
   $pass_through && EXTRA_ARGS+=("$arg")
 done
 
+# --- Locate repo root (script dir must contain fuzz/) ---
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-[[ -d fuzz ]] || { echo "[error] 'fuzz' dir not found"; exit 1; }
+[[ -d fuzz ]] || { echo "[error] 'fuzz' dir not found. Run from repo root."; exit 1; }
 
-# Toolchains & cargo-fuzz
+# --- Toolchains & cargo-fuzz availability ---
 if command -v rustup >/dev/null 2>&1; then
   rustup toolchain list | grep -q "^nightly" || {
     [[ "$QUIET" == "1" ]] || echo "Installing Rust nightly…"
@@ -42,34 +50,41 @@ if command -v rustup >/dev/null 2>&1; then
 fi
 command -v cargo-fuzz >/dev/null 2>&1 || {
   [[ "$QUIET" == "1" ]] || echo "Installing cargo-fuzz…"
-  if [[ "$QUIET" == "1" ]]; then cargo +nightly install cargo-fuzz -q; else cargo +nightly install cargo-fuzz; fi
+  if [[ "$QUIET" == "1" ]]; then
+    cargo +nightly install cargo-fuzz -q
+  else
+    cargo +nightly install cargo-fuzz
+  fi
 }
 
-# Discover targets
+# --- Discover fuzz targets from fuzz/Cargo.toml [[bin]] ---
 mapfile -t TARGETS < <(awk '
-  BEGIN{inbin=0} /^\[\[bin\]\]/{inbin=1;next} /^\[\[/{if($0!~/^\[\[bin\]\]/)inbin=0}
+  BEGIN{inbin=0}
+  /^\[\[bin\]\]/{inbin=1; next}
+  /^\[\[/{if($0!~/^\[\[bin\]\]/)inbin=0}
   inbin && $1~/^name$/ && $2=="=" {match($0,/"([^"]+)"/,m); if(m[1]!="") print m[1]}
 ' fuzz/Cargo.toml)
-((${#TARGETS[@]})) || { echo "[error] No fuzz targets in fuzz/Cargo.toml"; exit 1; }
+((${#TARGETS[@]})) || { echo "[error] No fuzz targets found in fuzz/Cargo.toml"; exit 1; }
 [[ "$QUIET" != "1" ]] && echo "Found fuzz targets: ${TARGETS[*]}"
 
-# If QUIET and no -verbosity provided, reduce libFuzzer chatter
+# --- Quiet handling: only adjust libFuzzer verbosity if user didn't set it ---
 if [[ "$QUIET" == "1" ]]; then
   has_verbosity=0
-  for a in "${EXTRA_ARGS[@]}"; do [[ "$a" == -verbosity=* || "$a" == "-verbosity" ]] && has_verbosity=1; done
+  for a in "${EXTRA_ARGS[@]}"; do
+    [[ "$a" == -verbosity=* || "$a" == "-verbosity" ]] && has_verbosity=1
+  done
   ((has_verbosity==0)) && EXTRA_ARGS+=("-verbosity=0" "-print_final_stats=1")
 fi
 
-# Recommended defaults for parsers (can be overridden by EXTRA_ARGS)
+# --- Sensible defaults for parsers (can be overridden by EXTRA_ARGS) ---
 DEFAULT_FUZZ_ARGS=( -use_value_profile=1 -entropic=1 -len_control=1 -timeout=5 )
 
-# Sanitizer / backtrace for nicer crash logs
+# --- Sanitizer / backtrace for nicer crash logs ---
 export RUST_BACKTRACE=1
 export ASAN_OPTIONS="${ASAN_OPTIONS:-abort_on_error=1:alloc_dealloc_mismatch=1:detect_leaks=1}"
 export UBSAN_OPTIONS="${UBSAN_OPTIONS:-print_stacktrace=1:halt_on_error=1}"
 
-# --- Workers/jobs auto-capping to avoid overloading the machine ---
-# Helpers to read/replace flags in EXTRA_ARGS (supports -flag=V form)
+# --- Helpers to read/update -flag=value in EXTRA_ARGS ---
 get_flag_val() {
   local name="$1"; local val=""
   for a in "${EXTRA_ARGS[@]}"; do
@@ -78,53 +93,65 @@ get_flag_val() {
   printf '%s' "$val"
 }
 set_flag_val() {
-  local name="$1"; local value="$2"; local found=0; local i
-  for ((i=0; i<${#EXTRA_ARGS[@]}; ++i)); do
-    if [[ "${EXTRA_ARGS[i]}" == "$name="* ]]; then
-      EXTRA_ARGS[i]="$name=$value"; found=1
-    fi
+  local name="$1"; local value="$2"; local found=0
+  for i in "${!EXTRA_ARGS[@]}"; do
+    if [[ "${EXTRA_ARGS[i]}" == "$name="* ]]; then EXTRA_ARGS[i]="$name=$value"; found=1; fi
   done
   ((found==0)) && EXTRA_ARGS+=("$name=$value")
 }
 
-# Determine requested workers/jobs (0 = unspecified)
-REQ_WORKERS="$(get_flag_val -workers)"
-REQ_JOBS="$(get_flag_val -jobs)"
-if [[ -z "$REQ_WORKERS" ]]; then REQ_WORKERS=0; fi
-if [[ -z "$REQ_JOBS" ]]; then REQ_JOBS=0; fi
+# --- Cap workers/jobs so THREADS * workers <= MAX_PROCS ---
+REQ_WORKERS="$(get_flag_val -workers)"; [[ -z "$REQ_WORKERS" ]] && REQ_WORKERS=0
+REQ_JOBS="$(get_flag_val -jobs)";     [[ -z "$REQ_JOBS"    ]] && REQ_JOBS=0
 
-# Choose effective workers per target to not exceed MAX_PROCS
 if (( REQ_WORKERS == 0 )); then
-  # Default workers if not provided
   EFF_WORKERS=$(( MAX_PROCS / THREADS ))
   (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
 else
   EFF_WORKERS="$REQ_WORKERS"
 fi
 
-# Cap if user-requested workers would exceed MAX_PROCS with given THREADS
 TOTAL=$(( THREADS * EFF_WORKERS ))
 if (( TOTAL > MAX_PROCS )); then
   EFF_WORKERS=$(( MAX_PROCS / THREADS ))
   (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
-  [[ "$QUIET" != "1" ]] && echo "Capping workers to ${EFF_WORKERS} per target so ${THREADS}×${EFF_WORKERS} ≤ MAX_PROCS=${MAX_PROCS}"
+  [[ "$QUIET" != "1" ]] && echo "Capping to ${EFF_WORKERS} workers per target so ${THREADS}×${EFF_WORKERS} ≤ MAX_PROCS=${MAX_PROCS}"
 fi
 
-# Ensure -workers and -jobs are present and aligned
+# Ensure both flags present and aligned
 set_flag_val -workers "$EFF_WORKERS"
-set_flag_val -jobs "$EFF_WORKERS"
+set_flag_val -jobs    "$EFF_WORKERS"
 
+# --- Serialize arrays so xargs/bash subshell can reconstruct them ---
+serialize_array() {
+  # print each arg with NUL separator
+  local IFS=
+  printf '%s\0' "$@"
+}
+EXTRA_ARGS_SER="$(serialize_array "${EXTRA_ARGS[@]}")"
+DEFAULT_FUZZ_ARGS_SER="$(serialize_array "${DEFAULT_FUZZ_ARGS[@]}")"
+
+# --- Output dirs & summary file ---
 mkdir -p fuzz/logs
 SUMMARY_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.summary.txt"
 : >"$SUMMARY_FILE"
 
 run_one() {
   local tgt="$1"
+
+  # Rebuild arrays from serialized strings
+  local IFS=
+  # shellcheck disable=SC2034
+  read -r -d '' -a EXTRA_ARGS_ARR < <(printf '%s' "$EXTRA_ARGS_SER")
+  # shellcheck disable=SC2034
+  read -r -d '' -a DEFAULT_FUZZ_ARGS_ARR < <(printf '%s' "$DEFAULT_FUZZ_ARGS_SER")
+
   local log="fuzz/logs/${tgt}.${START_TS}.log"
   local art_dir="fuzz/artifacts/${tgt}/"
   mkdir -p "$art_dir"
 
-  [[ "$QUIET" != "1" ]] && echo -e "\n=== Running '$tgt' for ${FUZZ_TIME}s with $(get_flag_val -workers) workers ==="
+  echo -e "\n=== START '$tgt' for ${FUZZ_TIME}s (workers=$(get_flag_val -workers)) ==="
+
   # Run and do NOT abort on crash; capture status.
   set +e
   cargo +nightly fuzz run "$tgt" -- \
@@ -132,21 +159,23 @@ run_one() {
     -max_total_time="${FUZZ_TIME}" \
     -rss_limit_mb="${RSS_LIMIT_MB}" \
     -close_fd_mask="${CLOSE_FD_MASK}" \
-    "${DEFAULT_FUZZ_ARGS[@]}" \
-    "${EXTRA_ARGS[@]}" \
+    "${DEFAULT_FUZZ_ARGS_ARR[@]}" \
+    "${EXTRA_ARGS_ARR[@]}" \
     2>&1 | tee "$log"
   local status="${PIPESTATUS[0]}"
   set -e
 
   # Collect artifacts
   local found=( )
-  while IFS= read -r -d '' f; do found+=("$f"); done < <(find "$art_dir" -maxdepth 1 -type f \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null || true)
+  while IFS= read -r -d '' f; do found+=("$f"); done < <(
+    find "$art_dir" -maxdepth 1 -type f \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null || true
+  )
 
   {
-    echo "target: $tgt"
-    echo "status: $status"
-    echo "log:    $log"
-    echo "workers: $(get_flag_val -workers)"
+    echo "target:   $tgt"
+    echo "status:   $status"
+    echo "log:      $log"
+    echo "workers:  $(get_flag_val -workers)"
     if ((${#found[@]})); then
       echo "artifacts:"
       for f in "${found[@]}"; do echo "  - $f"; done
@@ -156,7 +185,7 @@ run_one() {
     echo
   } >>"$SUMMARY_FILE"
 
-  # Optional minimize & reproduce hints
+  # Optional minimize & reproduce
   if ((${#found[@]})); then
     for f in "${found[@]}"; do
       if [[ "${MINIMIZE}" == "1" ]]; then
@@ -175,15 +204,18 @@ run_one() {
 }
 
 export -f run_one
-export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET EXTRA_ARGS DEFAULT_FUZZ_ARGS SUMMARY_FILE
-export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE MAX_PROCS THREADS
+# Export only scalars/serialized arrays for child shells
+export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET EXTRA_ARGS_SER DEFAULT_FUZZ_ARGS_SER SUMMARY_FILE
+export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE
 
+# --- Run sequentially or in parallel ---
 if (( THREADS <= 1 )); then
   for t in "${TARGETS[@]}"; do run_one "$t"; done
 else
   printf '%s\n' "${TARGETS[@]}" | xargs -P "$THREADS" -n 1 -I {} bash -lc 'run_one "$@"' _ {}
 fi
 
+# --- Stats footer ---
 END_ISO="$(date -Iseconds)"
 END_EPOCH="$(date +%s)"
 DURATION_SEC=$(( END_EPOCH - START_EPOCH ))
