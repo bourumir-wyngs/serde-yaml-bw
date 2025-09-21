@@ -20,8 +20,11 @@ fn collect_test_inputs(base: &Path) -> std::io::Result<Vec<PathBuf>> {
     Ok(inputs)
 }
 
-// Parse all documents from bytes using serde_yaml. If the input is not valid UTF-8
-// or YAML, this returns an error.
+// Parse all documents from raw bytes using serde_yaml.
+// Important: YAML requires Unicode. serde_yaml will reject inputs that are not
+// valid UTF‑8 or not valid YAML. We use this behavior as the reference: if
+// serde_yaml errors (including on non‑UTF‑8), we treat the test input as
+// unsupported and skip any assertions against our parser for that file.
 fn parse_all_with_serde_yaml_from_bytes(input: &[u8]) -> anyhow::Result<Vec<serde_yaml::Value>> {
     let mut docs = Vec::new();
     let des = serde_yaml::Deserializer::from_slice(input);
@@ -43,6 +46,10 @@ enum Status {
     Crash,
 }
 
+// Run serde_yaml under catch_unwind to classify outcomes without aborting the test.
+// Status::Ok yields the parsed documents; Status::Error covers both parse errors
+// and the "zero documents" case (which we also treat as an error for differential
+// testing); Status::Crash captures panics inside the library.
 fn classify_serde(input: &[u8]) -> (Status, Option<Vec<serde_yaml::Value>>) {
     let res = catch_unwind(AssertUnwindSafe(|| parse_all_with_serde_yaml_from_bytes(input)));
     match res {
@@ -53,6 +60,8 @@ fn classify_serde(input: &[u8]) -> (Status, Option<Vec<serde_yaml::Value>>) {
     }
 }
 
+// Same classifier for our parser, also protected with catch_unwind so we can
+// print a clean per-file summary even if our code panics on some inputs.
 fn classify_bw(input: &[u8]) -> (Status, Option<Vec<serde_yaml_bw::Value>>) {
     let res = catch_unwind(AssertUnwindSafe(|| parse_all_with_bw_from_bytes(input)));
     match res {
@@ -71,6 +80,15 @@ fn status_str(s: Status) -> &'static str {
     }
 }
 
+// Differential test over the fuzz_crashes corpus.
+// Strategy:
+// 1) Load file as raw bytes (may be non‑UTF‑8).
+// 2) Let serde_yaml parse it; if serde_yaml rejects or yields zero docs, we print
+//    a per-file summary and skip (the input is outside YAML or not Unicode).
+// 3) Otherwise, our parser must succeed (no panic, no error). We print a summary
+//    and then perform two roundtrip checks using serde_yaml as the semantic oracle:
+//    (a) our parse -> our serialize -> serde_yaml parse equals serde_yaml docs
+//    (b) serde_yaml docs -> our serialize -> our parse -> our serialize -> serde_yaml parse equals original serde_yaml docs.
 #[test]
 fn yaml_test_suite_differential() -> Result<()> {
     let base = Path::new("tests/fuzz_crashes");
