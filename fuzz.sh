@@ -9,7 +9,7 @@
 #   MINIMIZE    (0/1, default 0)     # run tmin on crashes
 #   REPRODUCE   (0/1, default 0)     # write reproduce cmd into summary
 #   MAX_PROCS   (default 48)         # hard cap: THREADS * workers <= MAX_PROCS
-# Usage:
+# Usage example (4 days on a 48‑core box; 4 targets × 10 workers = 40 procs):
 #   THREADS=4 FUZZ_TIME=345600 MAX_PROCS=48 ./fuzz.sh -- -workers=10 -jobs=10
 set -euo pipefail
 
@@ -43,29 +43,24 @@ cd "$SCRIPT_DIR"
 
 # --- Toolchains & cargo-fuzz availability ---
 if command -v rustup >/dev/null 2>&1; then
-  rustup toolchain list | grep -q "^nightly" || {
+  if ! rustup toolchain list | grep -q "^nightly"; then
     [[ "$QUIET" == "1" ]] || echo "Installing Rust nightly…"
     rustup toolchain install nightly --profile minimal -y >/dev/null 2>&1 || rustup toolchain install nightly --profile minimal -y
-  }
+  fi
 fi
-command -v cargo-fuzz >/dev/null 2>&1 || {
+if ! command -v cargo-fuzz >/dev/null 2>&1; then
   [[ "$QUIET" == "1" ]] || echo "Installing cargo-fuzz…"
   if [[ "$QUIET" == "1" ]]; then
     cargo +nightly install cargo-fuzz -q
   else
     cargo +nightly install cargo-fuzz
   fi
-}
+fi
 
 # --- Discover fuzz targets (prefer cargo-fuzz list; fallback to parsing TOML) ---
 TARGETS=()
-if out="$(set +e; cargo +nightly fuzz list 2>/dev/null; echo $? )"; then
-  # last line is exit code captured by echo; split safely:
-  IFS=$'\n' read -r -d '' -a lines < <(printf '%s\0' "$(cargo +nightly fuzz list 2>/dev/null || true)")
-  if ((${#lines[@]} > 0)); then TARGETS=("${lines[@]}"); fi
-fi
+if mapfile -t TARGETS < <(cargo +nightly fuzz list 2>/dev/null); then :; fi
 if ((${#TARGETS[@]} == 0)); then
-  # Fallback: parse fuzz/Cargo.toml [[bin]]
   mapfile -t TARGETS < <(awk '
     BEGIN{inbin=0}
     /^\[\[bin\]\]/{inbin=1; next}
@@ -118,7 +113,7 @@ if (( REQ_WORKERS == 0 )); then
   (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
 else
   EFF_WORKERS="$REQ_WORKERS"
-endif=false  # no-op to keep shellcheck quiet
+fi
 
 TOTAL=$(( THREADS * EFF_WORKERS ))
 if (( TOTAL > MAX_PROCS )); then
@@ -131,9 +126,16 @@ fi
 set_flag_val -workers "$EFF_WORKERS"
 set_flag_val -jobs    "$EFF_WORKERS"
 
+# --- Output dirs & summary file ---
 mkdir -p fuzz/logs
 SUMMARY_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.summary.txt"
 : >"$SUMMARY_FILE"
+
+# --- Bash version feature check for wait -n (Bash >= 4.3) ---
+HAVE_WAIT_N=0
+if [[ "${BASH_VERSINFO[0]:-0}" -gt 4 || ( "${BASH_VERSINFO[0]:-0}" -eq 4 && "${BASH_VERSINFO[1]:-0}" -ge 3 ) ]]; then
+  HAVE_WAIT_N=1
+fi
 
 # --- One target run ---
 run_one() {
@@ -194,17 +196,21 @@ run_one() {
   fi
 }
 
-# --- Concurrency: no xargs; keep arrays intact ---
 active_jobs() { jobs -r -p | wc -l; }
+
+# --- Launch with concurrency control (no xargs, arrays stay intact) ---
 for tgt in "${TARGETS[@]}"; do
-  # Wait until we have a free slot
+  # Wait for a free slot
   while (( $(active_jobs) >= THREADS )); do
-    # Avoid set -e abort on non-zero from waited jobs
-    wait -n || true
+    if (( HAVE_WAIT_N )); then
+      wait -n || true
+    else
+      pid="$(jobs -r -p | head -n1 || true)"
+      if [[ -n "${pid:-}" ]]; then wait "$pid" || true; else sleep 0.1; fi
+    fi
   done
   run_one "$tgt" &
 done
-# Wait for all background runs
 wait || true
 
 # --- Stats footer ---
