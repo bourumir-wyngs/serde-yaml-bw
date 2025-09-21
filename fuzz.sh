@@ -3,11 +3,16 @@
 # No auto-install, no fancy flags. Save logs, artifacts, and reproduce info.
 
 # Hardcoded knobs
-CORES=48
-DURATION=345600            # 4 days in seconds
-RSS_LIMIT_MB=4096
-TIMEOUT=5                  # libFuzzer per-run timeout
-CLOSE_FD_MASK=3
+CORES=${CORES:-48}
+# Duration: if DURATION is not set, compute from DURATION_DAYS (default 4)
+DURATION_DAYS=${DURATION_DAYS:-4}
+if [[ -z "${DURATION:-}" ]]; then
+  DURATION=$(( DURATION_DAYS * 24 * 60 * 60 ))
+fi
+RSS_LIMIT_MB=${RSS_LIMIT_MB:-4096}
+TIMEOUT=${TIMEOUT:-5}                  # libFuzzer per-run timeout
+CLOSE_FD_MASK=${CLOSE_FD_MASK:-3}
+INSTANCES=${INSTANCES:-10}               # run N independent instances per target
 START_TS="$(date +%Y%m%d-%H%M%S)"
 SUMMARY="fuzz_summary_${START_TS}.txt"
 
@@ -20,64 +25,93 @@ cd "$SCRIPT_DIR"
 mapfile -t TARGETS < <(cargo +nightly fuzz list)
 ((${#TARGETS[@]})) || { echo "no fuzz targets"; exit 1; }
 
-# Workers per target so total processes ≤ CORES
+# Workers per instance so total processes ≤ CORES
 TGT_N=${#TARGETS[@]}
-WORKERS=$(( CORES / (TGT_N>0?TGT_N:1) ))
+TOTAL_INSTANCES=$(( TGT_N * INSTANCES ))
+WORKERS=$(( CORES / (TOTAL_INSTANCES>0?TOTAL_INSTANCES:1) ))
 (( WORKERS < 1 )) && WORKERS=1
 
 mkdir -p fuzz/logs fuzz/artifacts
 : >"$SUMMARY"
 
-run_target() {
+run_target_instance() {
   local tgt="$1"
-  local art_dir="fuzz/artifacts/${tgt}/"
-  local log="fuzz/logs/${tgt}.${START_TS}.log"
+  local idx="$2"
+  local run_id
+  run_id=$(printf "run-%02d" "$idx")
+  local art_dir="fuzz/artifacts/${tgt}/${run_id}/"
+  local log="fuzz/logs/${tgt}.${run_id}.${START_TS}.log"
   mkdir -p "$art_dir"
-  echo "==> $tgt (workers=$WORKERS, duration=${DURATION}s)" | tee -a "$SUMMARY"
-  set +e
-  cargo +nightly fuzz run "$tgt" -- \
-    -workers=$WORKERS \
-    -artifact_prefix="${art_dir}" \
-    -max_total_time=$DURATION \
-    -rss_limit_mb=$RSS_LIMIT_MB \
-    -close_fd_mask=$CLOSE_FD_MASK \
-    -use_value_profile=1 -entropic=1 -len_control=1 -timeout=$TIMEOUT \
-    2>&1 | tee "$log"
-  local status=${PIPESTATUS[0]}
-  set -e
+  echo "==> $tgt [$run_id] (workers=$WORKERS, total_duration=${DURATION}s (~$(( DURATION / 86400 ))d))" | tee -a "$SUMMARY"
 
-  # List artifacts
-  local found=()
-  while IFS= read -r -d '' f; do found+=("$f"); done < <(find "$art_dir" -maxdepth 1 -type f \
-    \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null)
+  local start_ts=$(date +%s)
+  local end_ts=$(( start_ts + DURATION ))
+  local iter=0
+  local status=0
 
-  {
-    echo "target: $tgt"
-    echo "status: $status"
-    echo "log: $log"
+  while :; do
+    local now=$(date +%s)
+    local rem=$(( end_ts - now ))
+    (( rem <= 0 )) && break
+    iter=$((iter + 1))
+
+    echo "-- $tgt [$run_id]: iteration $iter, remaining ${rem}s" | tee -a "$SUMMARY"
+
+    set +e
+    cargo +nightly fuzz run "$tgt" -- \
+      -workers=$WORKERS \
+      -artifact_prefix="${art_dir}" \
+      -max_total_time=$rem \
+      -rss_limit_mb=$RSS_LIMIT_MB \
+      -close_fd_mask=$CLOSE_FD_MASK \
+      -ignore_crashes=1 \
+      -print_final_stats=1 \
+      -use_value_profile=1 -entropic=1 -len_control=1 -timeout=$TIMEOUT \
+      2>&1 | tee -a "$log"
+    status=${PIPESTATUS[0]}
+    set -e
+
+    # List artifacts
+    local found=()
+    while IFS= read -r -d '' f; do found+=("$f"); done < <(find "$art_dir" -maxdepth 1 -type f \
+      \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' \) -print0 2>/dev/null)
+
+    {
+      echo "target: $tgt"
+      echo "instance: $run_id"
+      echo "iteration: $iter"
+      echo "status: $status"
+      echo "log: $log"
+      if ((${#found[@]})); then
+        echo "artifacts:"; for f in "${found[@]}"; do echo "  - $f"; done
+      else
+        echo "artifacts: (none)"
+      fi
+    } >>"$SUMMARY"
+
+    # Minimize and write reproduce commands
     if ((${#found[@]})); then
-      echo "artifacts:"; for f in "${found[@]}"; do echo "  - $f"; done
-    else
-      echo "artifacts: (none)"
+      for f in "${found[@]}"; do
+        local min="${f}.min"
+        if [[ ! -f "$min" ]]; then
+          cargo +nightly fuzz tmin "$tgt" "$f" -- -timeout=$TIMEOUT -runs=200000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log" || true
+          [[ -f "$min" ]] || cp -f "$f" "$min" || true
+          {
+            echo "reproduce (orig): cargo +nightly fuzz reproduce $tgt $f -- -timeout=$TIMEOUT"
+            echo "reproduce (min):  cargo +nightly fuzz reproduce $tgt ${min} -- -timeout=$TIMEOUT"
+          } >>"$SUMMARY"
+        fi
+      done
     fi
-  } >>"$SUMMARY"
-
-  # Minimize and write reproduce commands
-  if ((${#found[@]})); then
-    for f in "${found[@]}"; do
-      local min="${f}.min"
-      cargo +nightly fuzz tmin "$tgt" "$f" -- -timeout=$TIMEOUT -runs=200000 -artifact_prefix="${art_dir}" 2>&1 | tee -a "$log" || true
-      [[ -f "$min" ]] || cp -f "$f" "$min" || true
-      {
-        echo "reproduce (orig): cargo +nightly fuzz reproduce $tgt $f -- -timeout=$TIMEOUT"
-        echo "reproduce (min):  cargo +nightly fuzz reproduce $tgt ${min} -- -timeout=$TIMEOUT"
-      } >>"$SUMMARY"
-    done
-  fi
+  done
 }
 
-# Launch all targets concurrently; total procs ~ TGT_N * WORKERS ≤ CORES
-for t in "${TARGETS[@]}"; do run_target "$t" & done
+# Launch all targets with multiple instances concurrently; total procs ~ TOTAL_INSTANCES * WORKERS ≤ CORES
+for t in "${TARGETS[@]}"; do
+  for i in $(seq 1 "$INSTANCES"); do
+    run_target_instance "$t" "$i" &
+  done
+done
 wait
 
 echo "Done. Summary: $SUMMARY"
