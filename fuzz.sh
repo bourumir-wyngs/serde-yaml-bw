@@ -3,7 +3,8 @@
 # Env:
 #   THREADS (default 1), FUZZ_TIME (s, default 60), RSS_LIMIT_MB (1024),
 #   CLOSE_FD_MASK (3), QUIET (0/1), MINIMIZE (0/1), REPRODUCE (0/1)
-#   EXTRA libFuzzer args after "--"
+#   MAX_PROCS (default 48)  <-- hard cap on total concurrent workers across targets
+#   EXTRA libFuzzer args after "--" (e.g., -workers=10 -jobs=10)
 set -euo pipefail
 
 THREADS="${THREADS:-1}"
@@ -13,6 +14,7 @@ CLOSE_FD_MASK="${CLOSE_FD_MASK:-3}"
 QUIET="${QUIET:-0}"
 MINIMIZE="${MINIMIZE:-0}"
 REPRODUCE="${REPRODUCE:-0}"
+MAX_PROCS="${MAX_PROCS:-48}"
 
 CALLER_CWD="${PWD}"
 START_TS="$(date "+%Y%m%d-%H%M%S")"
@@ -40,11 +42,7 @@ if command -v rustup >/dev/null 2>&1; then
 fi
 command -v cargo-fuzz >/dev/null 2>&1 || {
   [[ "$QUIET" == "1" ]] || echo "Installing cargo-fuzz…"
-  if [[ "$QUIET" == "1" ]]; then
-    cargo +nightly install cargo-fuzz -q
-  else
-    cargo +nightly install cargo-fuzz
-  fi
+  if [[ "$QUIET" == "1" ]]; then cargo +nightly install cargo-fuzz -q; else cargo +nightly install cargo-fuzz; fi
 }
 
 # Discover targets
@@ -70,6 +68,52 @@ export RUST_BACKTRACE=1
 export ASAN_OPTIONS="${ASAN_OPTIONS:-abort_on_error=1:alloc_dealloc_mismatch=1:detect_leaks=1}"
 export UBSAN_OPTIONS="${UBSAN_OPTIONS:-print_stacktrace=1:halt_on_error=1}"
 
+# --- Workers/jobs auto-capping to avoid overloading the machine ---
+# Helpers to read/replace flags in EXTRA_ARGS (supports -flag=V form)
+get_flag_val() {
+  local name="$1"; local val=""
+  for a in "${EXTRA_ARGS[@]}"; do
+    if [[ "$a" == "$name="* ]]; then val="${a#*=}"; break; fi
+  done
+  printf '%s' "$val"
+}
+set_flag_val() {
+  local name="$1"; local value="$2"; local found=0; local i
+  for ((i=0; i<${#EXTRA_ARGS[@]}; ++i)); do
+    if [[ "${EXTRA_ARGS[i]}" == "$name="* ]]; then
+      EXTRA_ARGS[i]="$name=$value"; found=1
+    fi
+  done
+  ((found==0)) && EXTRA_ARGS+=("$name=$value")
+}
+
+# Determine requested workers/jobs (0 = unspecified)
+REQ_WORKERS="$(get_flag_val -workers)"
+REQ_JOBS="$(get_flag_val -jobs)"
+if [[ -z "$REQ_WORKERS" ]]; then REQ_WORKERS=0; fi
+if [[ -z "$REQ_JOBS" ]]; then REQ_JOBS=0; fi
+
+# Choose effective workers per target to not exceed MAX_PROCS
+if (( REQ_WORKERS == 0 )); then
+  # Default workers if not provided
+  EFF_WORKERS=$(( MAX_PROCS / THREADS ))
+  (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
+else
+  EFF_WORKERS="$REQ_WORKERS"
+fi
+
+# Cap if user-requested workers would exceed MAX_PROCS with given THREADS
+TOTAL=$(( THREADS * EFF_WORKERS ))
+if (( TOTAL > MAX_PROCS )); then
+  EFF_WORKERS=$(( MAX_PROCS / THREADS ))
+  (( EFF_WORKERS < 1 )) && EFF_WORKERS=1
+  [[ "$QUIET" != "1" ]] && echo "Capping workers to ${EFF_WORKERS} per target so ${THREADS}×${EFF_WORKERS} ≤ MAX_PROCS=${MAX_PROCS}"
+fi
+
+# Ensure -workers and -jobs are present and aligned
+set_flag_val -workers "$EFF_WORKERS"
+set_flag_val -jobs "$EFF_WORKERS"
+
 mkdir -p fuzz/logs
 SUMMARY_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.summary.txt"
 : >"$SUMMARY_FILE"
@@ -80,7 +124,7 @@ run_one() {
   local art_dir="fuzz/artifacts/${tgt}/"
   mkdir -p "$art_dir"
 
-  [[ "$QUIET" != "1" ]] && echo -e "\n=== Running '$tgt' for ${FUZZ_TIME}s ==="
+  [[ "$QUIET" != "1" ]] && echo -e "\n=== Running '$tgt' for ${FUZZ_TIME}s with $(get_flag_val -workers) workers ==="
   # Run and do NOT abort on crash; capture status.
   set +e
   cargo +nightly fuzz run "$tgt" -- \
@@ -102,6 +146,7 @@ run_one() {
     echo "target: $tgt"
     echo "status: $status"
     echo "log:    $log"
+    echo "workers: $(get_flag_val -workers)"
     if ((${#found[@]})); then
       echo "artifacts:"
       for f in "${found[@]}"; do echo "  - $f"; done
@@ -131,7 +176,7 @@ run_one() {
 
 export -f run_one
 export START_TS FUZZ_TIME RSS_LIMIT_MB CLOSE_FD_MASK QUIET EXTRA_ARGS DEFAULT_FUZZ_ARGS SUMMARY_FILE
-export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE
+export ASAN_OPTIONS UBSAN_OPTIONS RUST_BACKTRACE MAX_PROCS THREADS
 
 if (( THREADS <= 1 )); then
   for t in "${TARGETS[@]}"; do run_one "$t"; done
@@ -156,6 +201,7 @@ STATS_FILE="${CALLER_CWD}/fuzz_run_${START_TS}.stats.txt"
   echo "quiet:      ${QUIET}"
   echo "minimize:   ${MINIMIZE}"
   echo "reproduce:  ${REPRODUCE}"
+  echo "max_procs:  ${MAX_PROCS}"
   echo "extra_args: ${EXTRA_ARGS[*]}"
   echo "summary:    ${SUMMARY_FILE}"
   echo "hostname:   $(hostname 2>/dev/null || true)"
