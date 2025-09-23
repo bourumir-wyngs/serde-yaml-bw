@@ -2,7 +2,7 @@ use serde::de::{Deserialize, SeqAccess, Visitor};
 use std::collections::BTreeMap;
 use std::fmt;
 
-#[path = "utils.rs"]
+#[path = "utils/mod.rs"]
 mod utils;
 use utils::test_error;
 

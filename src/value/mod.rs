@@ -869,7 +869,6 @@ mod tests {
     use crate::de::from_str_value_preserve;
     use crate::value::{Tag, TaggedValue};
     use indoc::indoc;
-    use serde::{Deserialize, Serialize};
 
     #[test]
     fn test_apply_merge_example() {

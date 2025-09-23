@@ -6,7 +6,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::Deserialize;
 
 use serde_yaml_bw::{Deserializer, Value};
-#[path = "utils.rs"]
+#[path = "utils/mod.rs"]
 mod utils;
 use utils::{test_error, deserializer_no_pathology};
 #[cfg(not(miri))]

@@ -1,10 +1,9 @@
 use indoc::indoc;
-use serde::de::Deserialize;
 use serde::Deserialize as Derive;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-#[path = "utils.rs"]
+#[path = "utils/mod.rs"]
 mod utils;
 use utils::test_error;
 
