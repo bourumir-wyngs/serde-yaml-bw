@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "2.3.0"
+version = "2.4.0"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
@@ -19,7 +19,6 @@ ryu = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 unsafe-libyaml-norway = "0.2"
 base64 = ">=0.21, <0.23"
-saphyr-parser = { version = "0.0.6", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0" # All range tested
@@ -29,8 +28,6 @@ serde_bytes = "0.11"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_repr = "0.1.20"
 chrono = "0.4.41"
-# For differential testing.
-serde_yaml = "0.9.34+deprecated"
 
 [lib]
 doc-scrape-examples = false
