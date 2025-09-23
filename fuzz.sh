@@ -5,7 +5,7 @@
 # Hardcoded knobs
 CORES=${CORES:-48}
 # Duration: if DURATION is not set, compute from DURATION_DAYS (default 4)
-DURATION_DAYS=${DURATION_DAYS:-4}
+DURATION_DAYS=${DURATION_DAYS:-8}
 if [[ -z "${DURATION:-}" ]]; then
   DURATION=$(( DURATION_DAYS * 24 * 60 * 60 ))
 fi
