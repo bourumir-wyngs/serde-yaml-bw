@@ -297,10 +297,11 @@ In addition, the public function [`from_str_value_preserve`](https://docs.rs/ser
 
 After we intensified fuzz testing, we discovered that certain kinds of long sequences can bring the
 underlying libyaml library to a grinding halt. It does not crash or permit exploits, but it may take a very long time
-to process such input, creating room for denial-of-service attacks.
+and lots of RAM to process such input, creating room for denial-of-service attacks.
 
 To mitigate this, for sufficiently large inputs we run a fast sanity pre-check that can catch many malicious patterns
 without fully parsing or building a data tree. This protection is enabled by default above a size threshold (so small
 files are unaffected) and is fully configurable via
 [`PathologyCfg`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/pathology/struct.PathologyCfg.html) as part of
-[`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).  
+[`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).
+The default settings are conservative. If you know the type of YAML you normally parse, they can be significantly tightened. Alternatively, if you are certain you only parse YAML you produce yourself, this protection can be disabled.
