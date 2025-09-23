@@ -13,7 +13,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 
 [dependencies]
-indexmap = ">=2.0, <=2.10"# All range tested
+indexmap = ">=2.0, <=2.11"# All range tested
 itoa = "1.0"
 ryu = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -31,12 +31,6 @@ serde_repr = "0.1.20"
 chrono = "0.4.41"
 # For differential testing.
 serde_yaml = "0.9.34+deprecated"
-
-[features]
-# Enable experimental saphyr-based parser helpers.
-saphyr = ["dep:saphyr-parser"]
-
-authors-features-placeholder = []
 
 [lib]
 doc-scrape-examples = false

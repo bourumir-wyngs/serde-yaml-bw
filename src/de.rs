@@ -24,6 +24,7 @@ use std::rc::Rc;
 use std::str;
 use std::str::FromStr;
 use std::sync::Arc;
+use crate::pathology::PathologyCfg;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -42,17 +43,48 @@ pub enum DuplicateKeyStrategy {
 }
 
 /// Configuration options for YAML deserialization.
+///
+/// Default values correspond to `DeserializerOptions::default()` and are noted below.
+///
+/// # Examples
+///
+/// Using custom options with `Deserializer::from_str_with_options` (here we disable
+/// pathology detection to exercise deeper parser errors):
+///
+/// ```
+/// use serde::Deserialize;
+/// use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
+///
+/// fn main() -> Result<(), serde_yaml_bw::Error> {
+///     let yaml = "a: 1\n";
+///
+///     // Start from defaults and tweak as needed.
+///     let mut opts = DeserializerOptions::default();
+///     // For example, turn off pathology screening for tiny inputs in tests.
+///     opts.pathology = None;
+///
+///     // Build a deserializer with the custom options.
+///     let de = Deserializer::from_str_with_options(yaml, &opts);
+///
+///     // Deserialize into a Value (or any Deserialize type).
+///     let v = Value::deserialize(de)?;
+///     assert_eq!(v["a"].as_i64(), Some(1));
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct DeserializerOptions {
     /// Maximum depth allowed during deserialization before reporting
-    /// [`RecursionLimitExceeded`]. A value of 0 disables the check.
+    /// [`RecursionLimitExceeded`]. A value of 0 disables the check. Default: 128.
     pub recursion_limit: u8,
     /// Maximum number of alias expansions allowed before reporting
     /// [`RepetitionLimitExceeded`]. A value of 0 preserves the default limit
-    /// based on the input size.
+    /// based on the input size. Default: 0 (auto = 100 × event count).
     pub alias_limit: usize,
-    /// Strategy to handle duplicate keys in mappings.
+    /// Strategy to handle duplicate keys in mappings. Default: `DuplicateKeyStrategy::Error`.
     pub duplicate_key: DuplicateKeyStrategy,
+    /// Detect pathological YAML. Default: `Some(PathologyCfg::default())`.
+    pub pathology: Option<PathologyCfg>
 }
 
 impl Default for DeserializerOptions {
@@ -61,6 +93,7 @@ impl Default for DeserializerOptions {
             recursion_limit: DEFAULT_RECURSION_LIMIT,
             alias_limit: 0,
             duplicate_key: DuplicateKeyStrategy::Error,
+            pathology: Some(PathologyCfg::default())
         }
     }
 }
@@ -214,7 +247,7 @@ impl<'de> Deserializer<'de> {
             _ => {}
         }
 
-        let mut loader = Loader::new(self.progress)?;
+        let mut loader = Loader::new(self.progress, &self.options)?;
         let Some(document) = loader.next_document() else {
             return Err(error::new(ErrorImpl::EndOfStream));
         };
@@ -282,7 +315,7 @@ impl Iterator for Deserializer<'_> {
         }
 
         let input = mem::take(&mut self.progress);
-        match Loader::new(input) {
+        match Loader::new(input, &self.options) {
             Ok(loader) => {
                 self.progress = Progress::Iterable(loader);
                 self.next()

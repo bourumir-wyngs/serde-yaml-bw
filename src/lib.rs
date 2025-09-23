@@ -293,6 +293,7 @@ mod number;
 mod path;
 mod ser;
 pub mod value;
+pub mod pathology;
 
 pub use crate::number::unexpected;
 

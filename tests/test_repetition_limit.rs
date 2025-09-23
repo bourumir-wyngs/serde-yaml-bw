@@ -1,23 +1,10 @@
 use serde::de::{Deserialize, SeqAccess, Visitor};
-use serde_yaml_bw::Deserializer;
 use std::collections::BTreeMap;
 use std::fmt;
 
-fn test_error<'de, T>(yaml: &'de str, expected: &str)
-where
-    T: serde::de::Deserialize<'de> + fmt::Debug,
-{
-    let result = T::deserialize(Deserializer::from_str(yaml));
-    assert_eq!(expected, result.unwrap_err().to_string());
-
-    let mut deserializer = Deserializer::from_str(yaml);
-    if let Some(first_document) = deserializer.next() {
-        if deserializer.next().is_none() {
-            let result = T::deserialize(first_document);
-            assert_eq!(expected, result.unwrap_err().to_string());
-        }
-    }
-}
+#[path = "utils.rs"]
+mod utils;
+use utils::test_error;
 
 #[cfg(not(miri))]
 #[test]

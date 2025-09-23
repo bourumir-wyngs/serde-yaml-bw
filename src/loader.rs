@@ -2,6 +2,7 @@ use crate::de::{Event, MappingStartEvent, Progress, ScalarEvent, SequenceStartEv
 use crate::error::{self, ErrorImpl, Result};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
+use crate::pathology::{looks_pathological};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,10 +26,25 @@ pub(crate) struct Document<'input> {
 }
 
 impl<'input> Loader<'input> {
-    pub fn new(progress: Progress<'input>) -> Result<Self> {
+    pub fn new(
+        progress: Progress<'input>,
+        options: &crate::de::DeserializerOptions,
+    ) -> Result<Self> {
         let parser = match progress {
-            Progress::Str(s) => Parser::new(Cow::Borrowed(s.as_bytes()))?,
-            Progress::Slice(bytes) => Parser::new(Cow::Borrowed(bytes))?,
+            Progress::Str(s) => {
+                let bytes = s.as_bytes();
+                if let Some(py) = looks_pathological(bytes, &options.pathology) {
+                    return Err(error::new(ErrorImpl::PathologicalYaml(py)));
+                }
+                Parser::new(Cow::Borrowed(bytes))?
+            }
+            Progress::Slice(bytes) => {
+                if let Some(py) = looks_pathological(bytes, &options.pathology) {
+                    return Err(error::new(ErrorImpl::PathologicalYaml(py)));
+                }
+
+                Parser::new(Cow::Borrowed(bytes))?
+            }
             Progress::Read(rdr) => Parser::from_reader(rdr)?,
             Progress::Iterable(_) | Progress::Document(_) => {
                 return Err(error::new(ErrorImpl::MoreThanOneDocument));
@@ -157,7 +173,11 @@ mod tests {
     #[test]
     fn anchored_scalar_event_keeps_anchor() {
         let yaml = "a: &id 1\nb: *id\n";
-        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let mut loader = Loader::new(
+            Progress::Str(yaml),
+            &crate::de::DeserializerOptions::default(),
+        )
+        .unwrap();
         let document = loader.next_document().unwrap();
         let mut found = false;
         for (event, _) in &document.events {
@@ -174,7 +194,11 @@ mod tests {
     #[test]
     fn anchored_sequence_event_keeps_anchor() {
         let yaml = "a: &id [1, 2]\nb: *id\n";
-        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let mut loader = Loader::new(
+            Progress::Str(yaml),
+            &crate::de::DeserializerOptions::default(),
+        )
+        .unwrap();
         let document = loader.next_document().unwrap();
         let mut found = false;
         for (event, _) in &document.events {
@@ -191,7 +215,11 @@ mod tests {
     #[test]
     fn anchored_mapping_event_keeps_anchor() {
         let yaml = "a: &id {b: 1}\nc: *id\n";
-        let mut loader = Loader::new(Progress::Str(yaml)).unwrap();
+        let mut loader = Loader::new(
+            Progress::Str(yaml),
+            &crate::de::DeserializerOptions::default(),
+        )
+        .unwrap();
         let document = loader.next_document().unwrap();
         let mut found = false;
         for (event, _) in &document.events {
@@ -204,5 +232,4 @@ mod tests {
         }
         assert!(found, "anchored mapping not found");
     }
-
 }
