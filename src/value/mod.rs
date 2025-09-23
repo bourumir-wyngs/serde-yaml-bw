@@ -871,12 +871,6 @@ mod tests {
     use indoc::indoc;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Node {
-        b: i32,
-        next: Option<Box<Node>>,
-    }
-
     #[test]
     fn test_apply_merge_example() {
         let config = indoc! {r#"

@@ -6,28 +6,15 @@ use serde::de::{SeqAccess, Visitor};
 use serde::Deserialize;
 
 use serde_yaml_bw::{Deserializer, Value};
+#[path = "utils.rs"]
+mod utils;
+use utils::{test_error, deserializer_no_pathology};
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 #[cfg(not(miri))]
 use std::fmt;
 use std::fmt::Debug;
-
-fn test_error<'de, T>(yaml: &'de str, expected: &str)
-where
-    T: Deserialize<'de> + Debug,
-{
-    let result = T::deserialize(Deserializer::from_str(yaml));
-    assert_eq!(expected, result.unwrap_err().to_string());
-
-    let mut deserializer = Deserializer::from_str(yaml);
-    if let Some(first_document) = deserializer.next() {
-        if deserializer.next().is_none() {
-            let result = T::deserialize(first_document);
-            assert_eq!(expected, result.unwrap_err().to_string());
-        }
-    }
-}
 
 #[test]
 fn test_scan_error() {
@@ -693,7 +680,8 @@ b: *missing_anchor
 fn test_extreme_nesting_error_message() {
     // Construct YAML with extremely deep nesting to exceed the recursion limit.
     let yaml = "[".repeat(20_000) + &"]".repeat(20_000);
-    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let de = deserializer_no_pathology(&yaml);
+    let result: Result<Value, _> = Value::deserialize(de);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.starts_with("recursion limit exceeded"),
@@ -718,7 +706,8 @@ fn test_long_alias_chain_error() {
     }
     yaml.push_str(&format!("final: *a{}", 149));
 
-    let result: Result<Value, _> = serde_yaml_bw::from_str(&yaml);
+    let de = deserializer_no_pathology(&yaml);
+    let result: Result<Value, _> = Value::deserialize(de);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("recursion limit exceeded"),

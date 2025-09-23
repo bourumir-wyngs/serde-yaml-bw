@@ -6,7 +6,7 @@
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 [![Fuzz & Audit](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml/badge.svg)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml)
 
-This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. We use maintained [unsafe-libyaml-norway](https://crates.io/crates/unsafe-libyaml-norway) rather than [unsafe_libyaml](https://crates.io/crates/unsafe-libyaml).
+This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. The library rejects input [detected](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/pathology/struct.PathologyCfg.html) as very unlikely to be valid YAML and potentially unsafe to parse.
 
 Historically the project started as fork of **serde-yaml** but has seen notable development thereafter.
 
@@ -133,11 +133,13 @@ struct Data {
     block: Vec<u32>,
 }
 
-let yaml = to_string(&Data {
-    flow: FlowSeq(vec![1, 2, 3]),
-    block: vec![4, 5, 6],
-}).unwrap();
-assert_eq!(yaml, "flow: [1, 2, 3]\nblock:\n- 4\n- 5\n- 6\n");
+fn main() {
+    let yaml = to_string(&Data {
+        flow: FlowSeq(vec![1, 2, 3]),
+        block: vec![4, 5, 6],
+    }).unwrap();
+    assert_eq!(yaml, "flow: [1, 2, 3]\nblock:\n- 4\n- 5\n- 6\n");
+}
 ```
 
 ### Nested enums
@@ -269,21 +271,37 @@ To support this, the package now allows constructing abstract `Value` nodes that
 ```rust
 use serde_yaml_bw::{Mapping, Value};
 
-let mut mapping = Mapping::new();
-mapping.insert(
-    Value::String("a".to_string(), None),
-    Value::String("foo".to_string(), Some("anchor_referencing_foo".to_string())),
-);
-mapping.insert(
-    Value::String("b".to_string(), None),
-    Value::Alias("anchor_referencing_foo".to_string()),
-);
+fn main() {
+    let mut mapping = Mapping::new();
+    mapping.insert(
+        Value::String("a".to_string(), None),
+        Value::String("foo".to_string(), Some("anchor_referencing_foo".to_string())),
+    );
+    mapping.insert(
+        Value::String("b".to_string(), None),
+        Value::Alias("anchor_referencing_foo".to_string()),
+    );
 
-let value = Value::Mapping(mapping);
-let yaml = serde_yaml_bw::to_string(&value).unwrap();
-assert_eq!(yaml, "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n");
+    let value = Value::Mapping(mapping);
+    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    assert_eq!(yaml, "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n");
+}
 ```
 
 #### Preserving Anchors
 
 In addition, the public function [`from_str_value_preserve`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/fn.from_str_value_preserve.html) can be used to parse a YAML string into a [`Value`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html) **without resolving references or merge keys**. These can then be resolved later using [`Value::resolve_aliases`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.resolve_aliases) and [`Value::apply_merge`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.apply_merge) once you need to expand them.
+
+
+## Detecting "pathologic YAML"
+
+After we intensified fuzz testing, we discovered that certain kinds of long sequences can bring the
+underlying libyaml library to a grinding halt. It does not crash or permit exploits, but it may take a very long time
+and lots of RAM to process such input, creating room for denial-of-service attacks.
+
+To mitigate this, for sufficiently large inputs we run a fast sanity pre-check that can catch many malicious patterns
+without fully parsing or building a data tree. This protection is enabled by default above a size threshold (so small
+files are unaffected) and is fully configurable via
+[`PathologyCfg`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/pathology/struct.PathologyCfg.html) as part of
+[`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).
+The default settings are conservative. If you know the type of YAML you normally parse, they can be significantly tightened. Alternatively, if you are certain you only parse YAML you produce yourself, this protection can be disabled.

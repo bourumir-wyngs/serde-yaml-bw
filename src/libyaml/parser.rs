@@ -172,7 +172,6 @@ impl<'input> Parser<'input> {
             }
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
-                sys::yaml_event_delete(event);
                 if let Some(err) = (*self.pin.ptr).read_error.take() {
                     return Err(error::new(ErrorImpl::Io(err)));
                 }
@@ -273,10 +272,23 @@ unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Ancho
     // SAFETY: `ptr` is non-null and points to a valid NUL-terminated string from
     // libyaml.
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    cstr
-        .to_bytes()
-        .map(|bytes| Some(Anchor(Box::from(bytes))))
-        .map_err(|_| ErrorImpl::TagError)
+    match cstr.to_bytes() {
+        Ok(bytes) => {
+            // Enforce a maximum anchor length to avoid excessive memory/CPU usage.
+            const MAX_ANCHOR_LEN: usize = 65_536; // Keep in sync with tests/test_error.rs
+            if bytes.len() > MAX_ANCHOR_LEN {
+                return Err(ErrorImpl::Message(
+                    format!(
+                        "anchor too long: length {} exceeds maximum {}",
+                        bytes.len(), MAX_ANCHOR_LEN
+                    ),
+                    None,
+                ));
+            }
+            Ok(Some(Anchor(Box::from(bytes))))
+        }
+        Err(_) => Err(ErrorImpl::TagError),
+    }
 }
 
 // SAFETY: `tag` must be a valid pointer to a NUL-terminated string or null if
