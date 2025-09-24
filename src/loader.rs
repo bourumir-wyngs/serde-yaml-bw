@@ -1,5 +1,5 @@
 use crate::de::{Event, MappingStartEvent, Progress, ScalarEvent, SequenceStartEvent};
-use crate::error::{self, ErrorImpl, Result};
+use crate::error::{self, ErrorImpl, Result, ScanError as PreScanError};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
 use crate::budget::check_yaml_budget;
@@ -34,9 +34,15 @@ impl<'input> Loader<'input> {
             Progress::Str(s) => {
                 let bytes = s.as_bytes();
                 if let Some(b) = &options.budget {
-                    if let Ok(rep) = check_yaml_budget(s, b) {
-                        if let Some(breach) = rep.breached {
-                            return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                    match check_yaml_budget(s, b) {
+                        Ok(rep) => {
+                            if let Some(breach) = rep.breached {
+                                return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                            }
+                        }
+                        Err(se) => {
+                            let pse: PreScanError = (&se).into();
+                            return Err(error::new(ErrorImpl::PreScan(pse)));
                         }
                     }
                 }
@@ -45,9 +51,15 @@ impl<'input> Loader<'input> {
             Progress::Slice(bytes) => {
                 if let Some(b) = &options.budget {
                     if let Ok(s) = std::str::from_utf8(bytes) {
-                        if let Ok(rep) = check_yaml_budget(s, b) {
-                            if let Some(breach) = rep.breached {
-                                return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                        match check_yaml_budget(s, b) {
+                            Ok(rep) => {
+                                if let Some(breach) = rep.breached {
+                                    return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                                }
+                            }
+                            Err(se) => {
+                                let pse: PreScanError = (&se).into();
+                                return Err(error::new(ErrorImpl::PreScan(pse)));
                             }
                         }
                     }

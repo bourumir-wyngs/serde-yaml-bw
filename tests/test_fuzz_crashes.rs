@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+mod utils;
 
 fn collect_test_inputs(base: &Path) -> std::io::Result<Vec<PathBuf>> {
     let mut inputs = Vec::new();
@@ -37,11 +38,8 @@ fn parse_all_with_serde_yaml_from_bytes(input: &[u8]) -> anyhow::Result<Vec<serd
 
 fn parse_all_with_bw_from_bytes(input: &[u8]) -> serde_yaml_bw::Result<Vec<serde_yaml_bw::Value>> {
     use serde::Deserialize;
-    use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
-    let mut opts = DeserializerOptions::default();
-    // Disable Saphyr pre-scanner for this differential test to exercise
-    // the second line of defense (the main parser and validator).
-    opts.budget = None;
+    use serde_yaml_bw::{Deserializer, Value};
+    let opts = utils::opts_no_pathology();
     let mut out = Vec::new();
     let de = Deserializer::from_slice_with_options(input, &opts);
     for doc in de {

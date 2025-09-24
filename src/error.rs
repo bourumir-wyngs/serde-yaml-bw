@@ -31,6 +31,8 @@ pub(crate) enum ErrorImpl {
     RepetitionLimitExceeded,
     /// Input rejected due to exceeding YAML budget.
     BudgetExceeded(BudgetBreach),
+    /// Error reported by the Saphyr pre-scanner (budget pre-check) with location.
+    PreScan(ScanError),
     UnknownAnchor(libyaml::Mark, Anchor),
     ScalarInMerge,
     TaggedInMerge,
@@ -47,6 +49,32 @@ pub(crate) enum ErrorImpl {
     SerializedValueBeforeSerializeKey,
     /// Indicates that an invalid YAML tag was encountered during serialization.
     TagError,
+}
+
+#[derive(Debug)]
+pub struct ScanError {
+    /// Human-readable error message from the pre-scanner.
+    pub(crate) msg: String,
+    /// Byte index in the source where the error occurred.
+    pub(crate) index: usize,
+    /// 1-based line number.
+    pub(crate) line: usize,
+    /// 1-based column number.
+    pub(crate) column: usize,
+}
+
+impl ScanError {
+    pub(crate) fn new(msg: String, index: usize, line: usize, column: usize) -> Self {
+        Self { msg, index, line, column }
+    }
+}
+
+impl From<&saphyr_parser::ScanError> for ScanError {
+    fn from(e: &saphyr_parser::ScanError) -> Self {
+        let m = e.marker();
+        // saphyr's Display prints col + 1, so we do the same in stored column
+        ScanError::new(e.info().to_owned(), m.index(), m.line(), m.col() + 1)
+    }
 }
 
 #[derive(Debug)]
@@ -213,7 +241,10 @@ pub(crate) fn sanitize_anchor(anchor: &Anchor) -> String {
 
 impl ErrorImpl {
     fn location(&self) -> Option<Location> {
-        self.mark().map(Location::from_mark)
+        match self {
+            ErrorImpl::PreScan(se) => Some(Location { index: se.index, line: se.line, column: se.column }),
+            _ => self.mark().map(Location::from_mark),
+        }
     }
 
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
@@ -282,6 +313,11 @@ impl ErrorImpl {
             }
             ErrorImpl::TagError => f.write_str("unexpected tag error"),
             ErrorImpl::BudgetExceeded(b) => write!(f, "YAML budget exceeded: {:?}", b),
+            ErrorImpl::PreScan(se) => write!(
+                f,
+                "{} at byte {} line {} column {}",
+                se.msg, se.index, se.line, se.column
+            ),
         }
     }
 
