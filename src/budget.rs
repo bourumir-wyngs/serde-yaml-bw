@@ -176,7 +176,7 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
     let mut parser = Parser::new_from_str(input);
 
     let mut report = BudgetReport::default();
-    let mut depth: isize = 0;
+    let mut depth: usize = 0;
 
     // Track anchors that were actually defined (IDs from starts/scalars).
     // saphyr-parser attaches an "anchor id" (usize) to Scalar/SequenceStart/MappingStart.
@@ -249,8 +249,8 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                     breach!(BudgetBreach::Nodes { nodes: report.nodes });
                 }
                 depth += 1;
-                if depth as usize > report.max_depth {
-                    report.max_depth = depth as usize;
+                if depth > report.max_depth {
+                    report.max_depth = depth;
                 }
                 if report.max_depth > budget.max_depth {
                     breach!(BudgetBreach::Depth { depth: report.max_depth });
@@ -264,10 +264,11 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                 }
             }
             Event::SequenceEnd => {
-                if depth == 0 {
+                if let Some(new_depth) = depth.checked_sub(1) {
+                    depth = new_depth;
+                } else {
                     breach!(BudgetBreach::SequenceUnbalanced);
                 }
-                depth -= 1;
             }
 
             Event::MappingStart(anchor_id, _tag_opt) => {
@@ -276,8 +277,8 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                     breach!(BudgetBreach::Nodes { nodes: report.nodes });
                 }
                 depth += 1;
-                if depth as usize > report.max_depth {
-                    report.max_depth = depth as usize;
+                if depth > report.max_depth {
+                    report.max_depth = depth;
                 }
                 if report.max_depth > budget.max_depth {
                     breach!(BudgetBreach::Depth { depth: report.max_depth });
@@ -291,10 +292,11 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                 }
             }
             Event::MappingEnd => {
-                if depth == 0 {
+                if let Some(new_depth) = depth.checked_sub(1) {
+                    depth = new_depth;
+                } else {
                     breach!(BudgetBreach::SequenceUnbalanced);
                 }
-                depth -= 1;
             }
 
             Event::Nothing => {}
