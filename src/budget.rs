@@ -43,10 +43,24 @@ pub struct Budget {
     ///
     /// Default: 67,108,864 (64 MiB)
     pub max_total_scalar_bytes: usize,
-    /// If `true`, fail when aliases exceed 10× the number of defined anchors.
+    /// If `true`, enforce the alias/anchor heuristic.
+    ///
+    /// The heuristic flags inputs that use an excessive number of aliases
+    /// relative to the number of defined anchors.
     ///
     /// Default: true
     pub enforce_alias_anchor_ratio: bool,
+    /// Minimum number of aliases required before the alias/anchor ratio
+    /// heuristic is evaluated. This avoids tiny-input false positives.
+    ///
+    /// Default: 100
+    pub alias_anchor_min_aliases: usize,
+    /// Multiplier used for the alias/anchor ratio heuristic. A breach occurs
+    /// when `aliases > alias_anchor_ratio_multiplier * anchors` (after
+    /// scanning), once [`Budget::alias_anchor_min_aliases`] is met.
+    ///
+    /// Default: 10
+    pub alias_anchor_ratio_multiplier: usize,
 }
 
 impl Default for Budget {
@@ -60,6 +74,8 @@ impl Default for Budget {
             max_nodes: 250_000,                 // sequences + maps + scalars
             max_total_scalar_bytes: 64 * 1024 * 1024, // 64 MiB of scalar text
             enforce_alias_anchor_ratio: true,
+            alias_anchor_min_aliases: 100,
+            alias_anchor_ratio_multiplier: 10,
         }
     }
 }
@@ -116,8 +132,9 @@ pub enum BudgetBreach {
     /// The ratio of aliases to defined anchors is excessive.
     ///
     /// Triggered when [`Budget::enforce_alias_anchor_ratio`] is true and
-    /// `aliases > 10 × anchors` (after scanning), with a small floor to
-    /// avoid tiny-input false positives.
+    /// `aliases > alias_anchor_ratio_multiplier × anchors` (after scanning),
+    /// once `aliases >= alias_anchor_min_aliases` to avoid tiny-input
+    /// false positives.
     AliasAnchorRatio {
         /// Total alias events seen.
         aliases: usize,
@@ -305,9 +322,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
 
     report.anchors = defined_anchors.len();
 
-    if budget.enforce_alias_anchor_ratio && report.aliases > 100 {
+    if budget.enforce_alias_anchor_ratio && report.aliases >= budget.alias_anchor_min_aliases {
         // Heuristic: too many aliases compared to anchors hints at macro-like expansion.
-        if report.anchors == 0 || report.aliases > 10 * report.anchors {
+        if report.anchors == 0 || report.aliases > budget.alias_anchor_ratio_multiplier * report.anchors {
             breach!(BudgetBreach::AliasAnchorRatio {
                 aliases: report.aliases,
                 anchors: report.anchors,
