@@ -6,7 +6,8 @@
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 [![Fuzz & Audit](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml/badge.svg)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml)
 
-This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. The library rejects input [detected](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/pathology/struct.PathologyCfg.html) as very unlikely to be valid YAML and potentially unsafe to parse.
+This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. The library enforces configurable [budget constraints](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/budget/struct.Budget.html) to prevent resource exhaustion attacks.  
+
 
 Historically the project started as fork of **serde-yaml** but has seen notable development thereafter.
 
@@ -295,13 +296,18 @@ In addition, the public function [`from_str_value_preserve`](https://docs.rs/ser
 
 ## Detecting "pathologic YAML"
 
-After we intensified fuzz testing, we discovered that certain kinds of long sequences can bring the
-underlying libyaml library to a grinding halt. It does not crash or permit exploits, but it may take a very long time
-and lots of RAM to process such input, creating room for denial-of-service attacks.
+After we intensified fuzz testing, we found that certain long sequences can cause the underlying
+libyaml library to stall. While it neither crashes nor enables exploits, it may consume excessive time
+and memory to process such input, opening the door to denial-of-service attacks.
 
-To mitigate this, for sufficiently large inputs we run a fast sanity pre-check that can catch many malicious patterns
-without fully parsing or building a data tree. This protection is enabled by default above a size threshold (so small
-files are unaffected) and is fully configurable via
-[`PathologyCfg`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/pathology/struct.PathologyCfg.html) as part of
-[`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).
-The default settings are conservative. If you know the type of YAML you normally parse, they can be significantly tightened. Alternatively, if you are certain you only parse YAML you produce yourself, this protection can be disabled.
+To counter this, we apply a fast sanity pre-check. This mechanism is fully configurable via a
+[`Budget`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/budget/struct.Budget.html), available as
+part of [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).
+
+The budget check uses a separate [saphyr-parser](https://crates.io/crates/saphyr-parser), which operates
+without constructing a syntax tree and terminates immediately once any resource limit is exceeded. We plan 
+to migrate the main parser to it later anyway.
+
+The default budget values are conservative. If you know the structure of the YAML you typically parse,
+you can safely tighten them. Conversely, if you only process YAML you generate yourself, you may choose
+to disable the budget entirely.

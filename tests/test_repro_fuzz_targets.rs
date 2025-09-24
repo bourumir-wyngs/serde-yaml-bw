@@ -42,12 +42,14 @@ fn run_aliases_merges_on(data: &[u8]) -> bool {
         "base1: &B1 {{k: 1, v: {s}}}\nbase2: &B2 {{k: 2, w: {s}}}\nmerged: {{<<: [*B1, *B2], extra: 3}}\n"
     );
 
-    let cfg = Some(serde_yaml_bw::pathology::PathologyCfg::default());
-    let r1 = serde_yaml_bw::pathology::looks_pathological(yaml_alias.as_bytes(), &cfg);
-    let r2 = serde_yaml_bw::pathology::looks_pathological(yaml_merge.as_bytes(), &cfg);
-    let p1 = r1.is_some();
-    let p2 = r2.is_some();
-    p1 && p2
+    let budget = Budget::default();
+    if exceeds_yaml_budget(&yaml_alias, &budget).is_err() {
+        return true;
+    }
+    if exceeds_yaml_budget(&yaml_merge, &budget).is_err() {
+        return true;
+    }
+    false
 }
 
 // ===== duplicate_keys =====
@@ -59,19 +61,15 @@ fn run_duplicate_keys_on(data: &[u8]) -> bool {
 
     let yaml_top = format!("a: 1\na: 2\nkey: {s}\nkey: {s}\n");
     let yaml_nested = format!("outer:\n  inner: {{x: 1, x: 2}}\n  arr: [{{k: {s}}}, {{k: {s}}}]\n");
+    let budget = Budget::default();
+    if exceeds_yaml_budget(&yaml_top, &budget).is_err() {
+        return true;
+    }
+    if exceeds_yaml_budget(&yaml_nested, &budget).is_err() {
+        return true;
+    }
+    return false;
 
-    let cfg = Some(serde_yaml_bw::pathology::PathologyCfg::default());
-    let r1 = serde_yaml_bw::pathology::looks_pathological(yaml_top.as_bytes(), &cfg);
-    let r2 = serde_yaml_bw::pathology::looks_pathological(yaml_nested.as_bytes(), &cfg);
-
-    let yaml_flow = format!("{{'{s}': 1, '{s}': 2}}\n");
-    let r3 = serde_yaml_bw::pathology::looks_pathological(yaml_flow.as_bytes(), &cfg);
-
-    let p1 = r1.is_some();
-    let p2 = r2.is_some();
-    let p3 = r3.is_some();
-
-    p1 && p2 && p3
 }
 
 // ===== flow_collections =====
@@ -85,17 +83,17 @@ fn run_flow_collections_on(data: &[u8]) -> bool {
     let yaml_map = format!("{{{s}}}");
     let yaml_doc = format!("root: {{{s}}}\narray: [{s}]\n");
 
-    let cfg = Some(serde_yaml_bw::pathology::PathologyCfg::default());
-    let r1 = serde_yaml_bw::pathology::looks_pathological(yaml_seq.as_bytes(), &cfg);
-    //if let Some(ref py) = r1 { eprintln!("flow_collections (seq): {}", py); }
-    let r2 = serde_yaml_bw::pathology::looks_pathological(yaml_map.as_bytes(), &cfg);
-    //if let Some(ref py) = r2 { eprintln!("flow_collections (map): {}", py); }
-    let r3 = serde_yaml_bw::pathology::looks_pathological(yaml_doc.as_bytes(), &cfg);
-    //if let Some(ref py) = r3 { eprintln!("flow_collections (doc): {}", py); }
-    let p1 = r1.is_some();
-    let p2 = r2.is_some();
-    let p3 = r3.is_some();
-    p1 && p2 && p3
+    let budget = Budget::default();
+    if exceeds_yaml_budget(&yaml_seq, &budget).is_err() {
+        return true;
+    }
+    if exceeds_yaml_budget(&yaml_map, &budget).is_err() {
+        return true;
+    }
+    if exceeds_yaml_budget(&yaml_doc, &budget).is_err() {
+        return true;
+    }
+    false
 }
 
 // ===== large_scalars =====
@@ -116,13 +114,16 @@ fn run_large_scalars_on(data: &[u8]) -> bool {
 
     let yaml_plain = format!("{plain}\n");
     let yaml_block = format!("|\n  {plain}\n  {plain}\n");
+    let budget = Budget::default();
 
-    let cfg = Some(serde_yaml_bw::pathology::PathologyCfg::default());
-    let r1 = serde_yaml_bw::pathology::looks_pathological(yaml_plain.as_bytes(), &cfg);
-    let r2 = serde_yaml_bw::pathology::looks_pathological(yaml_block.as_bytes(), &cfg);
-    let p1 = r1.is_some();
-    let p2 = r2.is_some();
-    p1 && p2
+    if exceeds_yaml_budget(&yaml_plain, &budget).is_err() {
+        return true;
+    }
+
+    if exceeds_yaml_budget(&yaml_block, &budget).is_err() {
+        return true;
+    }
+    return false;
 }
 
 // Test 1: aliases/merges repro
@@ -145,7 +146,11 @@ fn repro_alias_merges_crashes() {
             }
         };
         let ok = run_aliases_merges_on(&data);
-        assert!(ok, "aliases/merges input from {} was not detected as pathological", f.display());
+        assert!(
+            ok,
+            "aliases/merges input from {} was not detected as pathological",
+            f.display()
+        );
     }
 }
 
@@ -169,7 +174,11 @@ fn repro_duplicate_keys_crashes() {
             }
         };
         let ok = run_duplicate_keys_on(&data);
-        assert!(ok, "duplicate_keys input from {} was not detected as pathological", f.display());
+        assert!(
+            ok,
+            "duplicate_keys input from {} was not detected as pathological",
+            f.display()
+        );
     }
 }
 
@@ -193,7 +202,11 @@ fn repro_flow_collections_crashes() {
             }
         };
         let ok = run_flow_collections_on(&data);
-        assert!(ok, "flow_collections input from {} was not detected as pathological", f.display());
+        assert!(
+            ok,
+            "flow_collections input from {} was not detected as pathological",
+            f.display()
+        );
     }
 }
 
@@ -217,7 +230,83 @@ fn repro_large_scalars_crashes() {
             }
         };
         let ok = run_large_scalars_on(&data);
-        assert!(ok, "large_scalars input from {} was not detected as pathological", f.display());
+        assert!(
+            ok,
+            "large_scalars input from {} was not detected as pathological",
+            f.display()
+        );
     }
 }
 
+use serde_yaml_bw::budget::{exceeds_yaml_budget, Budget};
+use std::str;
+
+/// Convert possibly non-UTF-8 bytes to a `String`, preserving valid UTF-8
+/// and marking invalid byte sequences as `/hex:..../`.
+///
+/// # Parameters
+/// - `bytes`: The raw byte slice that may contain invalid UTF-8.
+///
+/// # Returns
+/// - `String`: A string where valid UTF-8 is kept intact and each invalid
+///   byte sequence is replaced by a marker like `/hex:FF/` or `/hex:C3-28/`.
+pub fn bytes_to_marked_string(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len());
+    let mut i = 0;
+
+    while i < bytes.len() {
+        match str::from_utf8(&bytes[i..]) {
+            Ok(s) => {
+                // The remainder is valid UTF-8; append and finish.
+                out.push_str(s);
+                break;
+            }
+            Err(e) => {
+                // Append the valid UTF-8 prefix (if any).
+                let good_len = e.valid_up_to();
+                if good_len > 0 {
+                    // This slice is guaranteed valid UTF-8.
+                    out.push_str(unsafe { str::from_utf8_unchecked(&bytes[i..i + good_len]) });
+                    i += good_len;
+                }
+
+                // Determine how many bytes are in the invalid sequence.
+                // If `None`, treat as 1 trailing problematic byte.
+                let bad_len = e
+                    .error_len()
+                    .unwrap_or(1)
+                    .min(bytes.len().saturating_sub(i));
+                if bad_len == 0 {
+                    break;
+                }
+
+                // Emit the marker for the invalid bytes as lowercase hex pairs.
+                out.push_str("/hex:");
+                for (k, b) in bytes[i..i + bad_len].iter().enumerate() {
+                    if k > 0 {
+                        out.push('-');
+                    }
+                    // always two hex digits
+                    out.push(nibble_to_hex(b >> 4));
+                    out.push(nibble_to_hex(b & 0x0F));
+                }
+                out.push('/');
+
+                i += bad_len;
+            }
+        }
+    }
+
+    out
+}
+
+/// Map a 4-bit nibble to a lowercase hex char.
+fn nibble_to_hex(n: u8) -> char {
+    let n = (n & 0x0F) as u32;
+    char::from_u32(if n < 10 {
+        b'0' as u32 + n
+    } else {
+        b'a' as u32 + (n - 10)
+    })
+    .unwrap()
+}

@@ -24,7 +24,7 @@ use std::rc::Rc;
 use std::str;
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::pathology::PathologyCfg;
+use crate::budget::Budget;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -49,7 +49,7 @@ pub enum DuplicateKeyStrategy {
 /// # Examples
 ///
 /// Using custom options with `Deserializer::from_str_with_options` (here we disable
-/// pathology detection to exercise deeper parser errors):
+/// budget screening to exercise deeper parser errors):
 ///
 /// ```
 /// use serde::Deserialize;
@@ -60,8 +60,8 @@ pub enum DuplicateKeyStrategy {
 ///
 ///     // Start from defaults and tweak as needed.
 ///     let mut opts = DeserializerOptions::default();
-///     // For example, turn off pathology screening for tiny inputs in tests.
-///     opts.pathology = None;
+///     // For example, turn off budget screening for tiny inputs in tests.
+///     opts.budget = None;
 ///
 ///     // Build a deserializer with the custom options.
 ///     let de = Deserializer::from_str_with_options(yaml, &opts);
@@ -83,8 +83,8 @@ pub struct DeserializerOptions {
     pub alias_limit: usize,
     /// Strategy to handle duplicate keys in mappings. Default: `DuplicateKeyStrategy::Error`.
     pub duplicate_key: DuplicateKeyStrategy,
-    /// Detect pathological YAML. Default: `Some(PathologyCfg::default())`.
-    pub pathology: Option<PathologyCfg>
+    /// Budget screening configuration. Default: `Some(Budget::default())`.
+    pub budget: Option<Budget>
 }
 
 impl Default for DeserializerOptions {
@@ -93,7 +93,7 @@ impl Default for DeserializerOptions {
             recursion_limit: DEFAULT_RECURSION_LIMIT,
             alias_limit: 0,
             duplicate_key: DuplicateKeyStrategy::Error,
-            pathology: Some(PathologyCfg::default())
+            budget: Some(Budget::default())
         }
     }
 }

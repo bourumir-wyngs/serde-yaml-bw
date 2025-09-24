@@ -10,7 +10,7 @@ use serde_yaml_bw::{Deserializer, DeserializerOptions};
 /// Returns DeserializerOptions with pathology detection disabled.
 pub(crate) fn opts_no_pathology() -> DeserializerOptions {
     let mut opts = DeserializerOptions::default();
-    opts.pathology = None;
+    opts.budget = None;
     opts
 }
 

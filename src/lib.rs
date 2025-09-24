@@ -222,7 +222,7 @@
 //! assert_eq!(v["a"].as_i64(), v["b"].as_i64());
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/serde_yaml_bw/2.2.0")]
+#![doc(html_root_url = "https://docs.rs/serde_yaml_bw/2.4.0")]
 #![deny(missing_docs, unsafe_op_in_unsafe_fn)]
 // Suppressed clippy_pedantic lints
 #![allow(
@@ -293,7 +293,7 @@ mod number;
 mod path;
 mod ser;
 pub mod value;
-pub mod pathology;
+pub mod budget;
 
 pub use crate::number::unexpected;
 

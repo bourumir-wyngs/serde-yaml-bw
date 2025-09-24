@@ -11,6 +11,8 @@ use std::slice;
 use std::io::{self, Read};
 use unsafe_libyaml_norway as sys;
 
+pub (crate) const MAX_ANCHOR_LEN: usize = 65_536; // Keep in sync with tests/test_error.rs
+
 pub(crate) struct Parser<'input> {
     pin: Owned<ParserPinned<'input>>,
 }
@@ -275,7 +277,6 @@ unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Ancho
     match cstr.to_bytes() {
         Ok(bytes) => {
             // Enforce a maximum anchor length to avoid excessive memory/CPU usage.
-            const MAX_ANCHOR_LEN: usize = 65_536; // Keep in sync with tests/test_error.rs
             if bytes.len() > MAX_ANCHOR_LEN {
                 return Err(ErrorImpl::Message(
                     format!(

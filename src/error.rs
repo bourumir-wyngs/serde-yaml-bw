@@ -8,83 +8,8 @@ use std::io;
 use std::result;
 use std::string;
 use std::sync::Arc;
+use crate::budget::BudgetBreach;
 
-#[derive(Clone, Debug)]
-pub struct PathologicalYaml {
-    pub reason: PathologyReason,
-}
-
-#[derive(Clone, Debug)]
-pub enum PathologyReason {
-    MaxBytes { observed: usize, configured: usize },
-    MaxRunBytes { observed: usize, configured: usize },
-    MaxLineBytes { observed: usize, configured: usize },
-    MaxIndentChain { observed: usize, configured: usize },
-    MaxSimpleKeyBytes { observed: usize, configured: usize },
-    MaxDocuments { observed: usize, configured: usize },
-    MaxAliases { observed: usize, configured: usize },
-    AliasesPerKiB { observed_x1024: usize, configured_xlen: usize },
-    MaxAnchors { observed: usize, configured: usize },
-    AnchorsPerKiB { observed_x1024: usize, configured_xlen: usize },
-    LowEntropyPercent { observed: usize, configured: usize },
-    TinyAlphabet { observed: usize, configured: usize },
-    SingleSlab {
-        max_line_observed: usize,
-        min_long_line_bytes: usize,
-        newlines_observed: usize,
-        max_newlines_allowed: usize,
-    },
-    AliasAnchorRatio {
-        aliases_observed: usize,
-        anchors_observed: usize,
-        per_anchor_ratio: usize,
-        threshold_aliases: usize,
-    },
-    ForbidNul { observed: usize, configured: usize },
-}
-
-impl Display for PathologicalYaml {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.reason)
-    }
-}
-
-impl Display for PathologyReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PathologyReason::MaxBytes { observed, configured } =>
-                write!(f, "max bytes exceeded: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxRunBytes { observed, configured } =>
-                write!(f, "max run length exceeded: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxLineBytes { observed, configured } =>
-                write!(f, "max line length exceeded: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxIndentChain { observed, configured } =>
-                write!(f, "max indent chain exceeded: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxSimpleKeyBytes { observed, configured } =>
-                write!(f, "max simple-key length exceeded: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxDocuments { observed, configured } =>
-                write!(f, "too many documents: observed={}, configured={}", observed, configured),
-            PathologyReason::MaxAliases { observed, configured } =>
-                write!(f, "too many aliases: observed={}, configured={}", observed, configured),
-            PathologyReason::AliasesPerKiB { observed_x1024, configured_xlen } =>
-                write!(f, "alias density too high: aliases*1024={}, alias_per_kib*len={} (observed>configured)", observed_x1024, configured_xlen),
-            PathologyReason::MaxAnchors { observed, configured } =>
-                write!(f, "too many anchors: observed={}, configured={}", observed, configured),
-            PathologyReason::AnchorsPerKiB { observed_x1024, configured_xlen } =>
-                write!(f, "anchor density too high: anchors*1024={}, anchors_per_kib*len={} (observed>configured)", observed_x1024, configured_xlen),
-            PathologyReason::LowEntropyPercent { observed, configured } =>
-                write!(f, "low-entropy top-K: percent={} >= {}", observed, configured),
-            PathologyReason::TinyAlphabet { observed, configured } =>
-                write!(f, "tiny alphabet: unique={} <= {}", observed, configured),
-            PathologyReason::SingleSlab { max_line_observed, min_long_line_bytes, newlines_observed, max_newlines_allowed } =>
-                write!(f, "single slab: max_line={} >= {}, newlines={} <= {}", max_line_observed, min_long_line_bytes, newlines_observed, max_newlines_allowed),
-            PathologyReason::AliasAnchorRatio { aliases_observed, anchors_observed, per_anchor_ratio, threshold_aliases } =>
-                write!(f, "alias/anchor ratio: aliases={} > {}*anchors={} and aliases>{}", aliases_observed, per_anchor_ratio, anchors_observed, threshold_aliases),
-            PathologyReason::ForbidNul { observed, configured } =>
-                write!(f, "NUL byte forbidden: observed={}, configured max allowed={}", observed, configured),
-        }
-    }
-}
 
 /// An error that happened serializing or deserializing YAML data.
 pub struct Error(Box<ErrorImpl>);
@@ -104,8 +29,8 @@ pub(crate) enum ErrorImpl {
     MoreThanOneDocument,
     RecursionLimitExceeded(libyaml::Mark),
     RepetitionLimitExceeded,
-    /// Input rejected due to pathological YAML (heuristics or input limit).
-    PathologicalYaml(PathologicalYaml),
+    /// Input rejected due to exceeding YAML budget.
+    BudgetExceeded(BudgetBreach),
     UnknownAnchor(libyaml::Mark, Anchor),
     ScalarInMerge,
     TaggedInMerge,
@@ -214,20 +139,6 @@ impl Error {
         } else {
             Arc::from(self.0)
         }
-    }
-
-    /// Returns a reference to the underlying PathologicalYaml error if this
-    /// error was produced by the pathology detector.
-    pub fn as_pathological_yaml(&self) -> Option<&PathologicalYaml> {
-        match self.0.as_ref() {
-            ErrorImpl::PathologicalYaml(py) => Some(py),
-            _ => None,
-        }
-    }
-
-    /// Shortcut for retrieving the pathology reason when available.
-    pub fn pathology_reason(&self) -> Option<&PathologyReason> {
-        self.as_pathological_yaml().map(|p| &p.reason)
     }
 
     /// Returns true if this error is a simple message error.
@@ -370,7 +281,7 @@ impl ErrorImpl {
                 f.write_str("serialize_value called before serialize_key")
             }
             ErrorImpl::TagError => f.write_str("unexpected tag error"),
-            ErrorImpl::PathologicalYaml(py) => write!(f, "input rejected as pathological YAML: {}", py),
+            ErrorImpl::BudgetExceeded(b) => write!(f, "YAML budget exceeded: {:?}", b),
         }
     }
 

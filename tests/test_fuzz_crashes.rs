@@ -36,7 +36,19 @@ fn parse_all_with_serde_yaml_from_bytes(input: &[u8]) -> anyhow::Result<Vec<serd
 }
 
 fn parse_all_with_bw_from_bytes(input: &[u8]) -> serde_yaml_bw::Result<Vec<serde_yaml_bw::Value>> {
-    serde_yaml_bw::from_slice_multi::<serde_yaml_bw::Value>(input)
+    use serde::Deserialize;
+    use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
+    let mut opts = DeserializerOptions::default();
+    // Disable Saphyr pre-scanner for this differential test to exercise
+    // the second line of defense (the main parser and validator).
+    opts.budget = None;
+    let mut out = Vec::new();
+    let de = Deserializer::from_slice_with_options(input, &opts);
+    for doc in de {
+        let v = Value::deserialize(doc)?;
+        out.push(v);
+    }
+    Ok(out)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

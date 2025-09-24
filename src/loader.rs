@@ -2,7 +2,7 @@ use crate::de::{Event, MappingStartEvent, Progress, ScalarEvent, SequenceStartEv
 use crate::error::{self, ErrorImpl, Result};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
-use crate::pathology::{looks_pathological};
+use crate::budget::check_yaml_budget;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,16 +33,25 @@ impl<'input> Loader<'input> {
         let parser = match progress {
             Progress::Str(s) => {
                 let bytes = s.as_bytes();
-                if let Some(py) = looks_pathological(bytes, &options.pathology) {
-                    return Err(error::new(ErrorImpl::PathologicalYaml(py)));
+                if let Some(b) = &options.budget {
+                    if let Ok(rep) = check_yaml_budget(s, b) {
+                        if let Some(breach) = rep.breached {
+                            return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                        }
+                    }
                 }
                 Parser::new(Cow::Borrowed(bytes))?
             }
             Progress::Slice(bytes) => {
-                if let Some(py) = looks_pathological(bytes, &options.pathology) {
-                    return Err(error::new(ErrorImpl::PathologicalYaml(py)));
+                if let Some(b) = &options.budget {
+                    if let Ok(s) = std::str::from_utf8(bytes) {
+                        if let Ok(rep) = check_yaml_budget(s, b) {
+                            if let Some(breach) = rep.breached {
+                                return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
+                            }
+                        }
+                    }
                 }
-
                 Parser::new(Cow::Borrowed(bytes))?
             }
             Progress::Read(rdr) => Parser::from_reader(rdr)?,
