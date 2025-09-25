@@ -83,10 +83,11 @@ pub struct DeserializerOptions {
     pub alias_limit: usize,
     /// Strategy to handle duplicate keys in mappings. Default: `DuplicateKeyStrategy::Error`.
     pub duplicate_key: DuplicateKeyStrategy,
+
     /// Budget screening configuration used by the Saphyr pre-scanner.
-    ///
-    /// Default: `None` (disabled). Enable explicitly in contexts where
-    /// pre-scan budget screening is desired (e.g., fuzz repro tests).
+    /// If not explicitly set, this field is initialized to Some(..) with some reasonable conservative
+    /// defaults. Setting to None turns the budget limit (and all pre-check) off,
+    /// making parser faster but vulnerable to some bad-intention crafted YAML.
     pub budget: Option<Budget>
 }
 
