@@ -8,15 +8,19 @@ use serde_yaml_bw::{Deserializer, DeserializerOptions};
 // wants pathology on (e.g., in test_repro_fuzz_targets.rs).
 
 /// Returns DeserializerOptions with pathology detection disabled.
+#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn opts_no_pathology() -> DeserializerOptions {
-    let mut opts = DeserializerOptions::default();
-    opts.budget = None;
-    opts
+    DeserializerOptions {
+        budget: None,
+        ..DeserializerOptions::default()
+    }
 }
 
 /// Builds a Deserializer from &str with pathology detection disabled.
 /// This function is used.
 #[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn deserializer_no_pathology<'de>(yaml: &'de str) -> Deserializer<'de> {
     Deserializer::from_str_with_options(yaml, &opts_no_pathology())
 }
@@ -24,6 +28,7 @@ pub(crate) fn deserializer_no_pathology<'de>(yaml: &'de str) -> Deserializer<'de
 // Run test with pathological YAML detector disabled as we must check if the second line
 // of defense is still present. After all, pathology detector only activates for large
 // input (to focus on DOS)
+#[cfg(test)]
 pub(crate) fn test_error<'de, T>(yaml: &'de str, expected: &str)
 where
     T: Deserialize<'de> + Debug,
