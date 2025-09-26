@@ -268,32 +268,34 @@
 )]
 
 pub use crate::de::{
-    from_reader, from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi,
-    from_str_value, from_str_value_preserve, digits_but_not_number, parse_bool_casefold, parse_f64,
-    Deserializer, StreamDeserializer, DeserializerOptions
+    digits_but_not_number, from_multiple, from_multiple_with_options, from_reader,
+    from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi, from_str_value,
+    from_str_value_preserve, parse_bool_casefold, parse_f64, Deserializer, DeserializerOptions,
+    DuplicateKeyStrategy, MultiDocumentInput, StreamDeserializer,
 };
 pub use crate::error::{Error, Location, Result};
-pub use crate::ser::{
-    to_string, to_string_multi, to_writer, to_writer_multi, FlowSeq, FlowMap, Serializer, SerializerBuilder,
-};
 pub use crate::libyaml::emitter::SequenceStyle;
+pub use crate::ser::{
+    to_string, to_string_multi, to_writer, to_writer_multi, FlowMap, FlowSeq, Serializer,
+    SerializerBuilder,
+};
 #[doc(inline)]
 pub use crate::value::{from_value, to_value, Number, Sequence, Value};
 
 #[doc(inline)]
 pub use crate::mapping::Mapping;
 
+pub mod budget;
 mod de;
+mod duplicate_key;
 mod error;
 mod libyaml;
 mod loader;
 pub mod mapping;
-mod duplicate_key;
 mod number;
 mod path;
 mod ser;
 pub mod value;
-pub mod budget;
 
 pub use crate::number::unexpected;
 
@@ -306,4 +308,3 @@ mod private {
     impl Sealed for crate::Value {}
     impl<T> Sealed for &T where T: ?Sized + Sealed {}
 }
-

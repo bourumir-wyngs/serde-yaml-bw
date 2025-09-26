@@ -1,3 +1,4 @@
+use crate::budget::Budget;
 use crate::duplicate_key::DuplicateKeyError;
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml::error::Mark;
@@ -7,8 +8,8 @@ use crate::loader::{Document, Loader};
 use crate::number::Number;
 use crate::path::Path;
 use crate::value::{Mapping, Sequence, Value};
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use serde::de::value::StrDeserializer;
 use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny, Unexpected, Visitor,
@@ -24,7 +25,6 @@ use std::rc::Rc;
 use std::str;
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::budget::Budget;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -88,7 +88,7 @@ pub struct DeserializerOptions {
     /// If not explicitly set, this field is initialized to Some(..) with some reasonable conservative
     /// defaults. Setting to None turns the budget limit (and all pre-check) off,
     /// making parser faster but vulnerable to some bad-intention crafted YAML.
-    pub budget: Option<Budget>
+    pub budget: Option<Budget>,
 }
 
 impl Default for DeserializerOptions {
@@ -660,7 +660,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             Some(found) => {
                 *pos = *found;
                 Ok(DeserializerFromEvents {
-                                    duplicate_key_strategy: self.duplicate_key_strategy.clone(),
+                    duplicate_key_strategy: self.duplicate_key_strategy.clone(),
                     document: self.document,
                     pos,
                     jumpcount: self.jumpcount,
@@ -892,8 +892,15 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     let key = self.parse_value()?;
                     if let Some(ref marks) = first_marks {
                         if let Some(first_mark) = marks.get(&key).cloned() {
-                            let msg = DuplicateKeyError::from_value_with_marks(&key, first_mark, key_mark).to_string();
-                            return Err(error::fix_mark(error::new(ErrorImpl::Message(msg, None)), key_mark, self.path));
+                            let msg = DuplicateKeyError::from_value_with_marks(
+                                &key, first_mark, key_mark,
+                            )
+                            .to_string();
+                            return Err(error::fix_mark(
+                                error::new(ErrorImpl::Message(msg, None)),
+                                key_mark,
+                                self.path,
+                            ));
                         }
                     }
                     match strategy {
@@ -958,7 +965,7 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
             Event::SequenceEnd | Event::Void => Ok(None),
             _ => {
                 let mut element_de = DeserializerFromEvents {
-                                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
                     document: self.de.document,
                     pos: self.de.pos,
                     jumpcount: self.de.jumpcount,
@@ -1012,12 +1019,16 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
                         DuplicateKeyStrategy::Error | DuplicateKeyStrategy::FirstWins => {
                             if let Some(first_mark) = self.seen.get(&key_bytes).cloned() {
                                 if let DuplicateKeyStrategy::Error = strategy {
-                                    let err = de::Error::custom(DuplicateKeyError::from_scalar_with_marks(
-                                        &key_bytes,
-                                        first_mark,
+                                    let err = de::Error::custom(
+                                        DuplicateKeyError::from_scalar_with_marks(
+                                            &key_bytes, first_mark, dup_mark,
+                                        ),
+                                    );
+                                    return Err(crate::error::fix_mark(
+                                        err,
                                         dup_mark,
+                                        self.de.path,
                                     ));
-                                    return Err(crate::error::fix_mark(err, dup_mark, self.de.path));
                                 } else {
                                     // FirstWins: skip this duplicate pair (key and its value)
                                     // consume key
@@ -1049,7 +1060,7 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
         V: DeserializeSeed<'de>,
     {
         let mut value_de = DeserializerFromEvents {
-                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+            duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
@@ -1088,7 +1099,7 @@ impl<'de, 'variant> de::EnumAccess<'de> for EnumAccess<'de, '_, 'variant> {
         let variant = seed.deserialize(str_de)?;
         *self.de.enum_depth.borrow_mut() += 1;
         let visitor = DeserializerFromEvents {
-                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+            duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
@@ -2216,6 +2227,64 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     }
 }
 
+#[doc(hidden)]
+pub trait MultiDocumentInput<'de> {
+    fn into_multi_deserializer(self, options: &DeserializerOptions) -> Deserializer<'de>;
+}
+
+#[doc(hidden)]
+fn from_multiple_impl<'de, T>(de: Deserializer<'de>) -> Result<Vec<T>>
+where
+    T: DeserializeOwned,
+{
+    de.map(|doc| {
+        let mut value: Value = Value::deserialize(doc)?;
+        value.apply_merge()?;
+        crate::value::from_value(value)
+    })
+    .collect()
+}
+
+impl<'de> MultiDocumentInput<'de> for Deserializer<'de> {
+    fn into_multi_deserializer(self, _: &DeserializerOptions) -> Deserializer<'de> {
+        self
+    }
+}
+
+impl<'de> MultiDocumentInput<'de> for &'de str {
+    fn into_multi_deserializer(self, options: &DeserializerOptions) -> Deserializer<'de> {
+        Deserializer::from_str_with_options(self, options)
+    }
+}
+
+impl<'de> MultiDocumentInput<'de> for &'de [u8] {
+    fn into_multi_deserializer(self, options: &DeserializerOptions) -> Deserializer<'de> {
+        Deserializer::from_slice_with_options(self, options)
+    }
+}
+
+/// Deserialize multiple YAML documents into a `Vec<T>`.
+pub fn from_multiple<'de, S, T>(source: S) -> Result<Vec<T>>
+where
+    S: MultiDocumentInput<'de>,
+    T: DeserializeOwned,
+{
+    let options = DeserializerOptions::default();
+    from_multiple_impl(source.into_multi_deserializer(&options))
+}
+
+/// Deserialize multiple YAML documents into a `Vec<T>` using custom options.
+pub fn from_multiple_with_options<'de, S, T>(
+    source: S,
+    options: &DeserializerOptions,
+) -> Result<Vec<T>>
+where
+    S: MultiDocumentInput<'de>,
+    T: DeserializeOwned,
+{
+    from_multiple_impl(source.into_multi_deserializer(options))
+}
+
 /// Deserialize an instance of type `T` from a string of YAML text.
 ///
 /// YAML merge keys are resolved automatically before the deserialization into
@@ -2285,13 +2354,7 @@ pub fn from_str_multi<T>(s: &str) -> Result<Vec<T>>
 where
     T: DeserializeOwned,
 {
-    Deserializer::from_str(s)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    from_multiple(s)
 }
 
 /// Deserialize a list of `T` from multiple YAML documents provided in an IO stream.
@@ -2300,13 +2363,7 @@ where
     R: io::Read,
     T: DeserializeOwned,
 {
-    Deserializer::from_reader(rdr)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    from_multiple(Deserializer::from_reader(rdr))
 }
 
 /// Deserialize a list of `T` from multiple YAML documents provided in bytes.
@@ -2314,13 +2371,7 @@ pub fn from_slice_multi<T>(v: &[u8]) -> Result<Vec<T>>
 where
     T: DeserializeOwned,
 {
-    Deserializer::from_slice(v)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    from_multiple(v)
 }
 
 /// Deserialize a YAML string into a [`Value`] while **preserving anchors and aliases**.
