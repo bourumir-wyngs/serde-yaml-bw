@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml_bw"
-version = "2.4.0"
+version = "2.4.1"
 dependencies = [
  "base64",
  "indexmap",

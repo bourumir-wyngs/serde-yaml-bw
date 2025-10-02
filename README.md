@@ -6,8 +6,11 @@
 [![docs.rs](https://docs.rs/serde_yaml_bw/badge.svg)](https://docs.rs/serde_yaml_bw)
 [![Fuzz & Audit](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml/badge.svg)](https://github.com/bourumir-wyngs/serde-yaml-bw/actions/workflows/ci.yml)
 
-This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. The library enforces configurable [budget constraints](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/budget/struct.Budget.html) to prevent resource exhaustion attacks.  
+This is a strongly typed YAML serialization and deserialization library, designed to provide (mostly) panic-free operation. Specifically, it should not panic when encountering malformed YAML syntax. This makes the library suitable for safely parsing user-supplied YAML content. JSON can be parsed as well. The library is hardened against the Billion Laughs attack, infinite recursion from merge keys and anchors (the limits are configurable) and duplicate keys. As the library only deserializes into explicitly defined types (no dynamic object instantiation), the usual YAML-based code execution [exploits](https://www.arp242.net/yaml-config.html) don’t apply. The library enforces configurable [budget constraints](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/budget/struct.Budget.html) to prevent resource exhaustion attacks.
 
+The library is currently feature-complete and well-hardened, but not among the fastest.  At its core, it still relies on [unsafe-libyaml](https://crates.io/crates/saphyr/unsafe-libyaml) (as do many other packages that originated as forks of `serde-yaml`). For example, [serde-yaml-ng](https://crates.io/crates/serde-yaml-ng) and `serde_norway`  (just using a maintained fork of it) also depend on this library.
+
+Because `unsafe-libyaml` is auto-translated from C, it contains many `unsafe` constructs. If you only need a parser, we recommend [serde-saphyr](https://crates.io/crates/serde-saphyr), which is both faster and provides memory safety through idiomatic Rust.
 
 Historically the project started as fork of **serde-yaml** but has seen notable development thereafter.
 
@@ -254,6 +257,7 @@ fn read_records() -> std::io::Result<()> {
 
 [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html)
 can be adjusted to control recursion or alias expansion limits. The formatting of emitted YAML can be configured using [`SerializerBuilder`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.SerializerBuilder.html) that is useful for a human-intended output. Here you can also re-enable duplicate keys if needed for legacy configurations, choosing between LastWins and FirstWins.
+
 ### Rust struct as schema
 
 This reader uses the passed Rust struct as a YAML schema. Knowing that our parsing target is a String or a boolean field allows us to assign correctly values that would result in an error if parsed without this background knowledge:
@@ -293,7 +297,6 @@ fn main() {
 
 In addition, the public function [`from_str_value_preserve`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/fn.from_str_value_preserve.html) can be used to parse a YAML string into a [`Value`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html) **without resolving references or merge keys**. These can then be resolved later using [`Value::resolve_aliases`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.resolve_aliases) and [`Value::apply_merge`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/enum.Value.html#method.apply_merge) once you need to expand them.
 
-
 ## Detecting "pathologic YAML"
 
 After we intensified fuzz testing, we found that certain long sequences can cause the underlying
@@ -304,10 +307,8 @@ To counter this, we apply a fast sanity pre-check. This mechanism is fully confi
 [`Budget`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/budget/struct.Budget.html), available as
 part of [`DeserializerOptions`](https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/struct.DeserializerOptions.html).
 
-The budget check uses a separate [saphyr-parser](https://crates.io/crates/saphyr-parser), which operates
-without constructing a syntax tree and terminates immediately once any resource limit is exceeded. We plan 
-to migrate the main parser to it later anyway.
+The budget check uses a separate [saphyr-parser](https://crates.io/crates/saphyr-parser),  which operates without constructing a syntax tree and terminates immediately once any resource limit is exceeded.
 
-The default budget values are conservative. If you know the structure of the YAML you typically parse,
-you can safely tighten them. Conversely, if you only process YAML you generate yourself, you may choose
-to disable the budget entirely.
+This does **not** double the processing time and appears to be a safe approach:  building a full data structure only to hit budget limits later still causes a resource spike and takes longer. The lightweight checker handles such input more elegantly. That said, the parser front-end does introduce some overhead, though this typically becomes noticeable only when your YAML files reach multiple megabytes in size (25 Mb - 600 ms on my workstation).
+
+The default budget values are conservative. If you know the structure of the YAML you typically parse, you can safely tighten them. Conversely, if you only process YAML you generate yourself, you may choose to disable the budget entirely.
