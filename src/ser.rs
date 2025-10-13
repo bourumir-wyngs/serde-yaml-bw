@@ -3,26 +3,265 @@
 //! This module provides YAML serialization with the type `Serializer`.
 
 use crate::error::{self, Error, ErrorImpl};
-use crate::{libyaml};
-use crate::libyaml::emitter::{Emitter, Event, Mapping, MappingStyle, Scalar, ScalarStyle, Sequence, SequenceStyle};
+use crate::libyaml;
+use crate::libyaml::emitter::{
+    Emitter, Event, Mapping, MappingStyle, Scalar, ScalarStyle, Sequence, SequenceStyle,
+};
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
+use serde::Deserialize;
 use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 use std::io;
 use std::mem;
 use std::num;
+use std::rc::{Rc, Weak as RcWeak};
 use std::str;
-use serde::Deserialize;
+use std::sync::Arc as SyncArc;
+use std::sync::{Arc, Weak as ArcWeak};
 
 pub(crate) const ALIAS_NEWTYPE: &str = "$serde_yaml::alias";
 pub(crate) const ANCHOR_NEWTYPE: &str = "$serde_yaml::anchor";
 pub(crate) const FLOW_SEQ_NEWTYPE: &str = "$serde_yaml::flow_seq";
 pub(crate) const FLOW_MAP_NEWTYPE: &str = "$serde_yaml::flow_map";
+
+/// Shared anchor name generator.
+pub type AnchorNameFn = SyncArc<dyn Fn(usize) -> String + Send + Sync>;
+
+/// Options influencing how the serializer behaves.
+#[derive(Clone)]
+pub struct SerializerOptions {
+    anchor_name_fn: AnchorNameFn,
+}
+
+impl fmt::Debug for SerializerOptions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SerializerOptions").finish_non_exhaustive()
+    }
+}
+
+impl Default for SerializerOptions {
+    fn default() -> Self {
+        Self {
+            anchor_name_fn: SyncArc::new(|index| format!("a{}", index + 1)),
+        }
+    }
+}
+
+impl SerializerOptions {
+    /// Override the function used to generate anchor names.
+    pub fn anchor_name_fn<F>(mut self, generator: F) -> Self
+    where
+        F: Fn(usize) -> String + Send + Sync + 'static,
+    {
+        self.anchor_name_fn = SyncArc::new(generator);
+        self
+    }
+
+    /// Mutably override the function used to generate anchor names.
+    pub fn set_anchor_name_fn<F>(&mut self, generator: F)
+    where
+        F: Fn(usize) -> String + Send + Sync + 'static,
+    {
+        self.anchor_name_fn = SyncArc::new(generator);
+    }
+}
+
+thread_local! {
+    static ANCHOR_REGISTRY: RefCell<Vec<AnchorRegistry>> = RefCell::new(Vec::new());
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum PointerKind {
+    Rc,
+    Arc,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct AnchorKey {
+    ptr: usize,
+    kind: PointerKind,
+}
+
+impl AnchorKey {
+    fn from_rc<T>(rc: &Rc<T>) -> Self {
+        Self {
+            ptr: Rc::as_ptr(rc) as *const T as usize,
+            kind: PointerKind::Rc,
+        }
+    }
+
+    fn from_arc<T>(arc: &Arc<T>) -> Self {
+        Self {
+            ptr: Arc::as_ptr(arc) as *const T as usize,
+            kind: PointerKind::Arc,
+        }
+    }
+}
+
+struct AnchorRegistry {
+    names: HashMap<AnchorKey, String>,
+    generator: AnchorNameFn,
+    counter: usize,
+}
+
+impl AnchorRegistry {
+    fn new(generator: AnchorNameFn) -> Self {
+        Self {
+            names: HashMap::new(),
+            generator,
+            counter: 0,
+        }
+    }
+}
+
+struct AnchorRegistryGuard {
+    active: bool,
+}
+
+impl AnchorRegistryGuard {
+    fn new(generator: AnchorNameFn) -> Self {
+        ANCHOR_REGISTRY.with(|stack| {
+            stack.borrow_mut().push(AnchorRegistry::new(generator));
+        });
+        Self { active: true }
+    }
+}
+
+impl Drop for AnchorRegistryGuard {
+    fn drop(&mut self) {
+        if self.active {
+            ANCHOR_REGISTRY.with(|stack| {
+                let mut stack = stack.borrow_mut();
+                let popped = stack.pop();
+                debug_assert!(popped.is_some());
+            });
+        }
+    }
+}
+
+enum AnchorAction {
+    Define(String),
+    Alias(String),
+    Passthrough,
+}
+
+fn anchor_action_for_key(key: AnchorKey) -> AnchorAction {
+    ANCHOR_REGISTRY.with(|stack| {
+        let mut stack = stack.borrow_mut();
+        if let Some(registry) = stack.last_mut() {
+            if let Some(existing) = registry.names.get(&key) {
+                AnchorAction::Alias(existing.clone())
+            } else {
+                let index = registry.counter;
+                registry.counter = registry.counter.saturating_add(1);
+                let anchor = (registry.generator.as_ref())(index);
+                registry.names.insert(key, anchor.clone());
+                AnchorAction::Define(anchor)
+            }
+        } else {
+            AnchorAction::Passthrough
+        }
+    })
+}
+
+fn serialize_anchor_value<S, T>(serializer: S, key: AnchorKey, value: &T) -> Result<S::Ok, S::Error>
+where
+    S: ser::Serializer,
+    T: ?Sized + ser::Serialize,
+{
+    match anchor_action_for_key(key) {
+        AnchorAction::Define(anchor) => {
+            let tuple = (anchor.as_str(), value);
+            serializer.serialize_newtype_struct(ANCHOR_NEWTYPE, &tuple)
+        }
+        AnchorAction::Alias(anchor) => {
+            serializer.serialize_newtype_struct(ALIAS_NEWTYPE, anchor.as_str())
+        }
+        AnchorAction::Passthrough => value.serialize(serializer),
+    }
+}
+
+/// Wrapper that associates an anchor with the first serialized occurrence of an [`Rc`]
+/// and emits aliases for subsequent clones.
+#[derive(Clone, Debug)]
+pub struct RcAnchor<T>(pub Rc<T>);
+
+impl<T> ser::Serialize for RcAnchor<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serialize_anchor_value(serializer, AnchorKey::from_rc(&self.0), self.0.as_ref())
+    }
+}
+
+/// Wrapper that associates an anchor with the first serialized occurrence of an [`Arc`]
+/// and emits aliases for subsequent clones.
+#[derive(Clone, Debug)]
+pub struct ArcAnchor<T>(pub Arc<T>);
+
+impl<T> ser::Serialize for ArcAnchor<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serialize_anchor_value(serializer, AnchorKey::from_arc(&self.0), self.0.as_ref())
+    }
+}
+
+/// Wrapper that serializes a [`Weak`](RcWeak) pointer as an alias if the strong pointer is
+/// still alive, otherwise it emits `null`.
+#[derive(Clone, Debug)]
+pub struct RcWeakAnchor<T>(pub RcWeak<T>);
+
+impl<T> ser::Serialize for RcWeakAnchor<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        match self.0.upgrade() {
+            Some(rc) => serialize_anchor_value(serializer, AnchorKey::from_rc(&rc), rc.as_ref()),
+            None => serializer.serialize_unit(),
+        }
+    }
+}
+
+/// Wrapper that serializes a [`Weak`](ArcWeak) pointer as an alias if the strong pointer is
+/// still alive, otherwise it emits `null`.
+#[derive(Clone, Debug)]
+pub struct ArcWeakAnchor<T>(pub ArcWeak<T>);
+
+impl<T> ser::Serialize for ArcWeakAnchor<T>
+where
+    T: ser::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        match self.0.upgrade() {
+            Some(arc) => {
+                serialize_anchor_value(serializer, AnchorKey::from_arc(&arc), arc.as_ref())
+            }
+            None => serializer.serialize_unit(),
+        }
+    }
+}
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -128,6 +367,7 @@ pub struct SerializerBuilder {
     scalar_style: ScalarStyle,
     /// If true, unresolved anchors are reported on write
     check_unresolved_anchors: bool,
+    options: SerializerOptions,
 }
 
 impl Default for SerializerBuilder {
@@ -137,6 +377,7 @@ impl Default for SerializerBuilder {
             indent: 2,
             scalar_style: ScalarStyle::Plain,
             check_unresolved_anchors: true,
+            options: SerializerOptions::default(),
         }
     }
 }
@@ -173,10 +414,34 @@ impl SerializerBuilder {
         self
     }
 
+    /// Apply serializer options.
+    pub fn options(mut self, options: SerializerOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Override the anchor name generator used by the serializer.
+    pub fn anchor_name_fn<F>(mut self, generator: F) -> Self
+    where
+        F: Fn(usize) -> String + Send + Sync + 'static,
+    {
+        self.options = self.options.anchor_name_fn(generator);
+        self
+    }
+
     /// Build a [`Serializer`] writing to the given writer.
     pub fn build<W: io::Write>(self, writer: W) -> Result<Serializer<W>> {
-        let mut emitter = Emitter::new(writer, self.width, self.indent)?;
+        let SerializerBuilder {
+            width,
+            indent,
+            scalar_style,
+            check_unresolved_anchors,
+            options,
+        } = self;
+
+        let mut emitter = Emitter::new(writer, width, indent)?;
         emitter.emit(Event::StreamStart)?;
+        let guard = AnchorRegistryGuard::new(options.anchor_name_fn.clone());
         Ok(Serializer {
             depth: 0,
             state: State::default(),
@@ -184,10 +449,11 @@ impl SerializerBuilder {
             pending_anchor: None,
             anchors: HashSet::new(),
             emitter,
-            default_scalar_style: self.scalar_style,
+            default_scalar_style: scalar_style,
             next_sequence_style: None,
             next_mapping_style: None,
-            check_missing_anchors: self.check_unresolved_anchors,
+            check_missing_anchors: check_unresolved_anchors,
+            _anchor_guard: guard,
         })
     }
 }
@@ -231,7 +497,8 @@ where
     default_scalar_style: ScalarStyle,
     next_sequence_style: Option<SequenceStyle>,
     next_mapping_style: Option<MappingStyle>,
-    check_missing_anchors: bool
+    check_missing_anchors: bool,
+    _anchor_guard: AnchorRegistryGuard,
 }
 
 enum State {
@@ -258,6 +525,13 @@ where
     /// Creates a new YAML serializer.
     pub fn new(writer: W) -> Result<Self> {
         SerializerBuilder::new().build(writer)
+    }
+
+    /// Creates a new YAML serializer using the supplied options.
+    pub fn from_options(writer: W, options: &SerializerOptions) -> Result<Self> {
+        SerializerBuilder::new()
+            .options(options.clone())
+            .build(writer)
     }
 
     /// Calls [`.flush()`](io::Write::flush) on the underlying `io::Write`
@@ -298,10 +572,10 @@ where
         self.value_start()?;
         let tag = self.take_tag();
         let anchor = self.pending_anchor.take();
-       if let Some(ref a) = anchor {
-           self.anchors.insert(a.clone());
-       }
-       let style = self.next_sequence_style.take().unwrap_or(style);
+        if let Some(ref a) = anchor {
+            self.anchors.insert(a.clone());
+        }
+        let style = self.next_sequence_style.take().unwrap_or(style);
         let mut sequence = Sequence::with_style(style);
         sequence.anchor = anchor;
         sequence.tag = tag;
@@ -650,7 +924,9 @@ where
             let result = value.serialize(&mut *self);
             if self.next_sequence_style.is_some() {
                 self.next_sequence_style = None;
-                return Err(ser::Error::custom("flow sequence newtype must serialize a sequence"));
+                return Err(ser::Error::custom(
+                    "flow sequence newtype must serialize a sequence",
+                ));
             }
             result
         } else if name == FLOW_MAP_NEWTYPE {
@@ -658,7 +934,9 @@ where
             let result = value.serialize(&mut *self);
             if self.next_mapping_style.is_some() {
                 self.next_mapping_style = None;
-                return Err(ser::Error::custom("flow mapping newtype must serialize a map"));
+                return Err(ser::Error::custom(
+                    "flow mapping newtype must serialize a map",
+                ));
             }
             result
         } else {
@@ -1560,6 +1838,16 @@ where
     value.serialize(&mut serializer)
 }
 
+/// Serialize the given data structure using explicit serializer options.
+pub fn to_writer_with_options<W, T>(writer: W, value: &T, options: &SerializerOptions) -> Result<()>
+where
+    W: io::Write,
+    T: ?Sized + ser::Serialize,
+{
+    let mut serializer = Serializer::from_options(writer, options)?;
+    value.serialize(&mut serializer)
+}
+
 /// Serialize the given data structure as a String of YAML.
 ///
 /// Serialization can fail if `T`'s implementation of `Serialize` decides to
@@ -1570,6 +1858,16 @@ where
 {
     let mut vec = Vec::with_capacity(128);
     to_writer(&mut vec, value)?;
+    String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
+}
+
+/// Serialize the given data structure to a YAML string using explicit options.
+pub fn to_string_with_options<T>(value: &T, options: &SerializerOptions) -> Result<String>
+where
+    T: ?Sized + ser::Serialize,
+{
+    let mut vec = Vec::with_capacity(128);
+    to_writer_with_options(&mut vec, value, options)?;
     String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
 }
 
@@ -1586,6 +1884,23 @@ where
     Ok(())
 }
 
+/// Serialize the given array of data structures as multiple YAML documents using explicit options.
+pub fn to_writer_multi_with_options<W, T>(
+    writer: W,
+    values: &[T],
+    options: &SerializerOptions,
+) -> Result<()>
+where
+    W: io::Write,
+    T: ser::Serialize,
+{
+    let mut serializer = Serializer::from_options(writer, options)?;
+    for value in values {
+        value.serialize(&mut serializer)?;
+    }
+    Ok(())
+}
+
 /// Serialize the given array of data structures as a YAML multi-document string.
 pub fn to_string_multi<T>(values: &[T]) -> Result<String>
 where
@@ -1596,12 +1911,21 @@ where
     String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
 }
 
+/// Serialize the given array of data structures as a YAML multi-document string using explicit options.
+pub fn to_string_multi_with_options<T>(values: &[T], options: &SerializerOptions) -> Result<String>
+where
+    T: ser::Serialize,
+{
+    let mut vec = Vec::with_capacity(128);
+    to_writer_multi_with_options(&mut vec, values, options)?;
+    String::from_utf8(vec).map_err(|error| error::new(ErrorImpl::FromUtf8(error)))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::Serialize;
     use crate::Value;
+    use serde::Serialize;
 
     // Ensure that serializing an Alias with check_unresolved_anchors(true)
     // produces an UnknownAnchor error when the anchor has not been defined.
@@ -1614,7 +1938,9 @@ mod tests {
             .expect("failed to build serializer");
 
         let alias = Value::Alias("missing".to_string());
-        let err = alias.serialize(&mut ser).expect_err("expected error for unresolved alias");
+        let err = alias
+            .serialize(&mut ser)
+            .expect_err("expected error for unresolved alias");
         let msg = err.to_string();
         assert!(
             msg.starts_with("reference to non existing anchor [missing]"),
