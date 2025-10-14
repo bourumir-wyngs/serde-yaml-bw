@@ -29,6 +29,7 @@ pub(crate) fn deserializer_no_pathology<'de>(yaml: &'de str) -> Deserializer<'de
 // of defense is still present. After all, pathology detector only activates for large
 // input (to focus on DOS)
 #[cfg(test)]
+#[allow(dead_code)]
 pub(crate) fn test_error<'de, T>(yaml: &'de str, expected: &str)
 where
     T: Deserialize<'de> + Debug,
