@@ -3,7 +3,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Weak as ArcWeak};
 
 use serde_yaml_bw::{
-    to_string, ArcAnchor, ArcWeakAnchor, RcAnchor, RcWeakAnchor, SerializerBuilder, SerializerOptions,
+    to_string, to_string_multi, ArcAnchor, ArcWeakAnchor, RcAnchor, RcWeakAnchor, SerializerBuilder,
+    SerializerOptions,
 };
 
 #[test]
@@ -102,4 +103,22 @@ fn arc_weak_anchor_aliases_existing_anchor() {
     })
     .expect("serialization should succeed");
     assert_eq!(yaml, "strong: &a1\n  id: 1\nweak: *a1\n");
+}
+
+#[test]
+fn multi_document_helpers_reset_anchor_state() {
+    #[derive(Serialize)]
+    struct Node {
+        label: &'static str,
+    }
+
+    let shared = Rc::new(Node { label: "shared" });
+    let docs = vec![
+        vec![RcAnchor(shared.clone()), RcAnchor(shared.clone())],
+        vec![RcAnchor(shared.clone()), RcAnchor(shared.clone())],
+    ];
+
+    let yaml = to_string_multi(&docs).expect("serialization should succeed");
+    let expected = "- &a1\n  label: shared\n- *a1\n---\n- &a1\n  label: shared\n- *a1\n";
+    assert_eq!(yaml, expected);
 }

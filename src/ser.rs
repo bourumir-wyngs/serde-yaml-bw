@@ -118,6 +118,11 @@ impl AnchorRegistry {
             counter: 0,
         }
     }
+
+    fn reset(&mut self) {
+        self.names.clear();
+        self.counter = 0;
+    }
 }
 
 struct AnchorRegistryGuard {
@@ -168,6 +173,14 @@ fn anchor_action_for_key(key: AnchorKey) -> AnchorAction {
             AnchorAction::Passthrough
         }
     })
+}
+
+fn reset_anchor_registry() {
+    ANCHOR_REGISTRY.with(|stack| {
+        if let Some(registry) = stack.borrow_mut().last_mut() {
+            registry.reset();
+        }
+    });
 }
 
 fn serialize_anchor_value<S, T>(serializer: S, key: AnchorKey, value: &T) -> Result<S::Ok, S::Error>
@@ -553,6 +566,11 @@ where
         Ok(writer)
     }
 
+    fn reset_document_state(&mut self) {
+        self.anchors.clear();
+        reset_anchor_registry();
+    }
+
     fn emit_scalar(&mut self, mut scalar: Scalar) -> Result<()> {
         self.flush_mapping_start()?;
         if let Some(tag) = self.take_tag() {
@@ -633,6 +651,7 @@ where
         self.depth -= 1;
         if self.depth == 0 {
             self.emitter.emit(Event::DocumentEnd)?;
+            self.reset_document_state();
         }
         Ok(())
     }
