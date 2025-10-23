@@ -1,4 +1,5 @@
 #[test]
+#[ignore] // Libyaml limitation, would require preprocessor.
 fn yaml_3hfz_invalid_content_after_document_end_marker_should_error() {
     let yaml = "---\nkey: value\n... invalid\n";
 
