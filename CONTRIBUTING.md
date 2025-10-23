@@ -34,7 +34,7 @@ Contributions are welcome, whether they are bug fixes, improvements, documentati
 
 ## AI Usage
 
-AI-generated contributions are **welcome** and will be reviewed by the **same standards** as any other code.
+AI-assisted (not vibe-coded!) contributions are acceptable and will be reviewed by the **same standards** as any other code. AI itself is less a problem, what matters is "low effort content".
 
 A submission may be rejected if it includes any of the following:
 
