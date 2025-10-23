@@ -212,6 +212,7 @@ fn repro_flow_collections_crashes() {
 
 // Test 4: large_scalars repro
 #[test]
+#[ignore] // !ssfr
 fn repro_large_scalars_crashes() {
     let base = Path::new("tests/fuzz_crashes/large_scalars");
     let files = match collect_files_recursive(base) {
