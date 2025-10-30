@@ -5,6 +5,7 @@ mod debug;
 mod from;
 mod index;
 mod partial_eq;
+mod identity;
 mod resolve_aliases;
 mod ser;
 pub mod tagged;
@@ -18,6 +19,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub use self::index::Index;
 pub use self::ser::Serializer;
+pub use self::identity::{AnchorNode, AnchorTagged, AnchorValue};
 pub use self::tagged::{Tag, TaggedValue};
 #[doc(inline)]
 pub use crate::mapping::Mapping;

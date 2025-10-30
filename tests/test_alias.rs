@@ -1,7 +1,14 @@
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
-    use serde_yaml_bw::{from_str_value_preserve, Mapping, Sequence, Value};
+    use serde_yaml_bw::{
+        from_str_value_preserve,
+        value::AnchorValue,
+        Mapping,
+        Sequence,
+        Value,
+    };
+    use std::rc::Rc;
 
     /// A simple struct we can deserialize into, to verify that alias resolution
     /// produces independent (cloned) values with identical content.
@@ -193,5 +200,52 @@ subvector:
   bs: *anchor_referencing_foos
 "#;
         assert_eq!(yaml, expected);
+    }
+
+    #[test]
+    fn anchor_graph_preserves_identity() {
+        let yaml = r#"
+anchor: &A
+  id: 1
+  name: gizmo
+first: *A
+second: *A
+"#;
+
+        let value: Value = from_str_value_preserve(yaml).expect("parse YAML");
+        let graph = value
+            .to_anchor_graph()
+            .expect("build identity-preserving graph");
+
+        let entries = match graph.as_ref() {
+            AnchorValue::Mapping(entries) => entries,
+            other => panic!("expected mapping at root, got {other:?}"),
+        };
+
+        let mut anchor_node: Option<Rc<_>> = None;
+        let mut first: Option<Rc<_>> = None;
+        let mut second: Option<Rc<_>> = None;
+
+        for (key, value) in entries {
+            match key.as_ref() {
+                AnchorValue::String(name) if name == "anchor" => {
+                    anchor_node = Some(value.clone());
+                }
+                AnchorValue::String(name) if name == "first" => {
+                    first = Some(value.clone());
+                }
+                AnchorValue::String(name) if name == "second" => {
+                    second = Some(value.clone());
+                }
+                _ => {}
+            }
+        }
+
+        let anchor_node = anchor_node.expect("missing anchor entry");
+        let first = first.expect("missing first entry");
+        let second = second.expect("missing second entry");
+
+        assert!(Rc::ptr_eq(&anchor_node, &first));
+        assert!(Rc::ptr_eq(&anchor_node, &second));
     }
 }
