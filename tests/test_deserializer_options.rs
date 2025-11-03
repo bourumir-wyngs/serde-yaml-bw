@@ -18,6 +18,17 @@ fn custom_recursion_limit_exceeded() {
 }
 
 #[test]
+fn custom_recursion_limit_disabled() -> anyhow::Result<()>{
+    let depth = 3;
+    let yaml = "[".repeat(depth) + &"]".repeat(depth);
+    let mut opts = utils::opts_no_pathology();
+    opts.recursion_limit = 0; // disabled
+    Value::deserialize(Deserializer::from_str_with_options(&yaml, &opts))?;
+    Ok(())
+}
+
+
+#[test]
 fn custom_alias_limit_exceeded() {
     let yaml = indoc! {
         "

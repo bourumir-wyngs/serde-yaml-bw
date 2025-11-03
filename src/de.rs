@@ -234,12 +234,16 @@ impl<'de> Deserializer<'de> {
                     self.options.alias_limit
                 };
                 let t = f(&mut DeserializerFromEvents {
-                    duplicate_key_strategy: self.options.duplicate_key.clone(),
+                    duplicate_key_strategy: self.options.duplicate_key,
                     document: &document,
                     pos: &mut pos,
                     jumpcount: &mut jumpcount,
                     path: Path::Root,
-                    remaining_depth: self.options.recursion_limit,
+                    remaining_depth: if self.options.recursion_limit == 0 {
+                        None
+                    } else {
+                        Some(self.options.recursion_limit)
+                    },
                     enum_depth: Rc::clone(&enum_depth),
                     alias_limit,
                 })?;
@@ -265,12 +269,16 @@ impl<'de> Deserializer<'de> {
             self.options.alias_limit
         };
         let t = f(&mut DeserializerFromEvents {
-            duplicate_key_strategy: self.options.duplicate_key.clone(),
+            duplicate_key_strategy: self.options.duplicate_key,
             document: &document,
             pos: &mut pos,
             jumpcount: &mut jumpcount,
             path: Path::Root,
-            remaining_depth: self.options.recursion_limit,
+            remaining_depth: if self.options.recursion_limit == 0 {
+                None
+            } else {
+                Some(self.options.recursion_limit)
+            },
             enum_depth: Rc::clone(&enum_depth),
             alias_limit,
         })?;
@@ -607,7 +615,7 @@ struct DeserializerFromEvents<'de, 'document> {
     pos: &'document mut usize,
     jumpcount: &'document mut usize,
     path: Path<'document>,
-    remaining_depth: u8,
+    remaining_depth: Option<u8>,
     enum_depth: Rc<RefCell<usize>>,
     alias_limit: usize,
     duplicate_key_strategy: DuplicateKeyStrategy,
@@ -839,13 +847,13 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         mark: Mark,
         f: F,
     ) -> Result<T> {
-        let previous_depth = self.remaining_depth;
-        self.remaining_depth = match previous_depth.checked_sub(1) {
-            Some(depth) => depth,
-            None => return Err(error::new(ErrorImpl::RecursionLimitExceeded(mark))),
-        };
+        if let Some(previous_depth) = self.remaining_depth {
+            self.remaining_depth = match previous_depth.checked_sub(1) {
+                Some(depth) => Some(depth),
+                None => return Err(error::new(ErrorImpl::RecursionLimitExceeded(mark))),
+            };
+        }
         let result = f(self);
-        self.remaining_depth = previous_depth;
         result
     }
 
