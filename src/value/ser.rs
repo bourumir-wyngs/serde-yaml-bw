@@ -181,13 +181,15 @@ impl ser::Serializer for Serializer {
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Value> {
-        let vec = value
-            .iter()
-            .map(|&b| Value::Number(Number::from(b), None))
-            .collect();
+        // Avoid iterator adapters to reduce overhead in tight loops.
+        // Preallocate the exact capacity and push elements directly.
+        let mut elements = Vec::with_capacity(value.len());
+        for &b in value {
+            elements.push(Value::Number(Number::from(b), None));
+        }
         Ok(Value::Sequence(Sequence {
             anchor: None,
-            elements: vec,
+            elements,
         }))
     }
 
@@ -281,16 +283,20 @@ impl ser::Serializer for Serializer {
         if len == Some(1) {
             Ok(SerializeMap::CheckForTag)
         } else {
+            let mapping = match len {
+                Some(n) => Mapping::with_capacity(n),
+                None => Mapping::new(),
+            };
             Ok(SerializeMap::Untagged {
-                mapping: Mapping::new(),
+                mapping,
                 next_key: None,
             })
         }
     }
 
-    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<SerializeStruct> {
+    fn serialize_struct(self, _name: &'static str, len: usize) -> Result<SerializeStruct> {
         Ok(SerializeStruct {
-            mapping: Mapping::new(),
+            mapping: Mapping::with_capacity(len),
         })
     }
 
@@ -299,14 +305,14 @@ impl ser::Serializer for Serializer {
         _enum: &'static str,
         _idx: u32,
         variant: &'static str,
-        _len: usize,
+        len: usize,
     ) -> Result<SerializeStructVariant> {
         if variant.is_empty() {
             return Err(error::new(ErrorImpl::EmptyTag));
         }
         Ok(SerializeStructVariant {
             tag: variant,
-            mapping: Mapping::new(),
+            mapping: Mapping::with_capacity(len),
         })
     }
 }
