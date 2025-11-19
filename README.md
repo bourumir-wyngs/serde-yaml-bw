@@ -10,7 +10,7 @@ This is a strongly typed YAML serialization and deserialization library, designe
 
 The library is currently feature-complete and well-hardened, but not among the fastest.  At its core, it still relies on [unsafe-libyaml](https://crates.io/crates/saphyr/unsafe-libyaml) (as do many other packages that originated as forks of `serde-yaml`). For example, [serde-yaml-ng](https://crates.io/crates/serde-yaml-ng) and `serde_norway`  (just using a maintained fork of it) also depend on this library. Historically the project started as fork of **serde-yaml** but has seen notable development thereafter.
 
-Because `unsafe-libyaml` is auto-translated from C, it contains many `unsafe` constructs. We recommend [serde-saphyr](https://crates.io/crates/serde-saphyr), which is both faster and provides memory safety through idiomatic Rust. serde-saphyr supports merge keys, nested and variable enums and other advanced features, being also faster.
+Because `unsafe-libyaml` is auto-translated from C, it contains many `unsafe` constructs. We recommend [serde-saphyr](https://crates.io/crates/serde-saphyr), which is both faster and provides memory safety through idiomatic Rust. serde-saphyr supports merge keys, nested and variable enums and other advanced features, being also faster. Exception may be if you still need very deep compatibility with serde-yaml, including even cases where it deviates from YAML standard.
 
 Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
 
