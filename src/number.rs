@@ -183,7 +183,7 @@ impl Display for Number {
                     formatter.write_str(".inf")
                 }
             }
-            N::Float(f) => formatter.write_str(ryu::Buffer::new().format_finite(f)),
+            N::Float(f) => formatter.write_str(zmij::Buffer::new().format_finite(f)),
         }
     }
 }

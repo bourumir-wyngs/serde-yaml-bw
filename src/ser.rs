@@ -793,7 +793,7 @@ where
     }
 
     fn serialize_f32(self, v: f32) -> Result<()> {
-        let mut buffer = ryu::Buffer::new();
+        let mut buffer = zmij::Buffer::new();
         self.emit_scalar(Scalar {
             anchor: None,
             tag: None,
@@ -808,7 +808,7 @@ where
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
-        let mut buffer = ryu::Buffer::new();
+        let mut buffer = zmij::Buffer::new();
         self.emit_scalar(Scalar {
             anchor: None,
             tag: None,

@@ -355,7 +355,6 @@ dependencies = [
  "indoc",
  "itoa",
  "regex",
- "ryu",
  "saphyr-parser",
  "serde",
  "serde_bytes",
@@ -363,6 +362,7 @@ dependencies = [
  "serde_repr",
  "serde_yaml",
  "unsafe-libyaml-norway",
+ "zmij",
 ]
 
 [[package]]
@@ -516,3 +516,9 @@ checksum = "56e6c93f3a0c3b36176cb1327a4958a0353d5d166c2a35cb268ace15e91d3b57"
 dependencies = [
  "windows-link",
 ]
+
+[[package]]
+name = "zmij"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcb2c125bd7365735bebeb420ccb880265ed2d2bddcbcd49f597fdfe6bd5e577"
