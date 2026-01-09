@@ -9,7 +9,7 @@ struct BinDoc {
 }
 
 #[test]
-#[ignore] // libyaml/decoder limitation: strict base64 parsing of !!binary canonical form across wrapped lines not supported in this mode
+#[ignore]
 fn yaml_565n_construct_binary() {
     let y = concat!(
         "canonical: !!binary \"\

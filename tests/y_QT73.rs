@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn y_qt73() {
     // YAML under test is just a comment and a document-end marker ("...")
     // This represents an empty stream (no documents). from_str::<Value>()
@@ -11,7 +11,14 @@ fn y_qt73() {
 
     let res: Result<Value, _> = serde_yaml_bw::from_str(yaml);
     match res {
-        Ok(val) => assert_eq!(val, Value::Null, "Empty stream should deserialize into JSON null"),
-        Err(e) => panic!("Expected Ok(Value::Null) for empty stream, got error: {}", e),
+        Ok(val) => assert_eq!(
+            val,
+            Value::Null,
+            "Empty stream should deserialize into JSON null"
+        ),
+        Err(e) => panic!(
+            "Expected Ok(Value::Null) for empty stream, got error: {}",
+            e
+        ),
     }
 }

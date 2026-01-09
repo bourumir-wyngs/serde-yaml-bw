@@ -7,5 +7,8 @@ key: value
 "#;
 
     let res: Result<serde_json::Value, serde_yaml_bw::Error> = serde_yaml_bw::from_str(yaml);
-    assert!(res.is_err(), "Expected parse error for invalid YAML directive placement");
+    assert!(
+        res.is_err(),
+        "Expected parse error for invalid YAML directive placement"
+    );
 }

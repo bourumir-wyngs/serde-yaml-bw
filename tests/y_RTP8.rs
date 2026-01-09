@@ -6,6 +6,7 @@ Document
 ... # Suffix
 "#;
 
-    let v: String = serde_yaml_bw::from_str(yaml).expect("parse inner YAML with directive and markers");
+    let v: String =
+        serde_yaml_bw::from_str(yaml).expect("parse inner YAML with directive and markers");
     assert_eq!(v, "Document");
 }

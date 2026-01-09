@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 // NJ66: Multiline plain flow mapping key
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn yaml_nj66_multiline_plain_flow_mapping_key() {
     let y = r#"---
 - { single line: value}

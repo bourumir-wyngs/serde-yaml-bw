@@ -2400,3 +2400,36 @@ where
         }))
     }
 }
+
+/// Deserialize multiple YAML documents from a single string into a vector of `T`.
+/// Completely empty documents are ignored and not included into returned vector.
+///
+/// Example: read two `Config` documents separated by `---`.
+///
+/// ```rust
+/// use serde::Deserialize;
+///
+/// #[derive(Debug, Deserialize, PartialEq)]
+/// struct Config {
+///     name: String,
+///     enabled: bool,
+///     retries: i32,
+/// }
+///
+/// let yaml = r#"
+/// name: First
+/// enabled: true
+/// retries: 1
+/// ---
+/// name: Second
+/// enabled: false
+/// retries: 2
+/// "#;
+///
+/// let cfgs: Vec<Config> = serde_yaml_bw::from_multiple(yaml).unwrap();
+/// assert_eq!(cfgs.len(), 2);
+/// assert_eq!(cfgs[0].name, "First");
+/// ```
+pub fn from_multiple<T: DeserializeOwned>(input: &str) -> Result<Vec<T>, Error> {
+    from_str_multi(input).map_err(Into::into)
+}

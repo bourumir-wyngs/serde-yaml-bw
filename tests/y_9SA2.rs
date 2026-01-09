@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 // 9SA2: Multiline double quoted flow mapping key
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn yaml_9sa2_multiline_double_quoted_flow_mapping_key() {
     let y = "---\n- { \"single line\": value}\n- { \"multi\n  line\": value}\n";
     let v: Vec<HashMap<String, String>> = serde_yaml_bw::from_str(y).expect("failed to parse 9SA2");

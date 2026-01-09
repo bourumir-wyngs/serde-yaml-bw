@@ -1,6 +1,6 @@
 // 3RLN: Leading tabs in double quoted
 // The YAML test file shows multiple variants. Some use explicit \t escape,
-// others display special glyphs (———» etc.) that are typographical markers in the
+// others display special glyphs (<tab-glyph> etc.) that are typographical markers in the
 // YAML test suite documents. Since those glyphs are not actual tab escapes in plain
 // Rust string literals, we only test the variants that unambiguously map to tabs or
 // spaces per the provided JSON expectations.

@@ -2,7 +2,7 @@
 // Expect two non-empty documents: "Bare document" and a block scalar with one line
 
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn yaml_m7a3_bare_documents() {
     let y = r#"Bare
 document
@@ -13,7 +13,7 @@ document
 %!PS-Adobe-2.0 # Not the first line
 "#;
 
-    let docs: Vec<String> = serde_yaml_bw::from_str_multi(y).expect("failed to parse M7A3");
+    let docs: Vec<String> = serde_yaml_bw::from_multiple(y).expect("failed to parse M7A3");
     assert_eq!(docs.len(), 2);
     assert_eq!(docs[0].as_str(), "Bare document");
     assert_eq!(docs[1].as_str(), "%!PS-Adobe-2.0 # Not the first line\n");

@@ -270,7 +270,7 @@
 pub use crate::de::{
     Deserializer, DeserializerOptions, StreamDeserializer, digits_but_not_number, from_reader,
     from_reader_multi, from_slice, from_slice_multi, from_str, from_str_multi, from_str_value,
-    from_str_value_preserve, parse_bool_casefold, parse_f64,
+    from_str_value_preserve, parse_bool_casefold, parse_f64, from_multiple
 };
 pub use crate::error::{Error, Location, Result};
 pub use crate::libyaml::emitter::SequenceStyle;

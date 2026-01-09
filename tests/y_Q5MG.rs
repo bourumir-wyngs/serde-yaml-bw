@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 // Q5MG: Tab at beginning of line followed by a flow mapping
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn yaml_q5mg_tab_followed_by_flow_mapping() {
     let y = "\t{}\n";
     let m: BTreeMap<String, String> = serde_yaml_bw::from_str(&y)

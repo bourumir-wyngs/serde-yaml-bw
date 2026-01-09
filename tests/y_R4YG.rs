@@ -2,7 +2,7 @@ use serde_json::Value;
 
 /// # YAML 1.2 Example 8.2 – Block Indentation Indicator (Test R4YG)
 #[test]
-#[ignore] // !ssfr
+#[ignore]
 fn y_r4yg() {
     let yaml = r#"
 ---

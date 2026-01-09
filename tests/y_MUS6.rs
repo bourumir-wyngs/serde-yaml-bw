@@ -19,11 +19,14 @@ fn yaml_mus6_invalid_yaml_1_1_with_trailing() {
 
 // Case 2: two %YAML 1.2 directives in one stream → suite marks fail:true
 #[test]
-#[ignore] // libyaml vs spec nuance: repeated %YAML directives in the same stream are not consistently rejected by libyaml; keeping ignored until parser enforces this rule
+#[ignore]
 fn yaml_mus6_two_yaml_1_2_directives_should_fail() {
     let y = "%YAML 1.2\n---\n%YAML 1.2\n---\n";
-    let r: Result<Vec<serde::de::IgnoredAny>, _> = serde_yaml_bw::from_str_multi(y);
-    assert!(r.is_err(), "MUS6 case2 should fail to parse due to repeated directives");
+    let r: Result<Vec<serde::de::IgnoredAny>, _> = serde_yaml_bw::from_multiple(y);
+    assert!(
+        r.is_err(),
+        "MUS6 case2 should fail to parse due to repeated directives"
+    );
 }
 
 // Case 3: "%YAML  1.1" — extra space, then an empty doc. Expect None.
@@ -44,7 +47,7 @@ fn yaml_mus6_yaml_1_1_with_comment_then_empty_doc() {
 
 // Case 5: Reserved/unknown directives should be ignored by parser. Empty doc follows.
 #[test]
-#[ignore] // libyaml limitation: unknown/reserved directives are treated as errors by libyaml; ignoring until higher-level handling is introduced
+#[ignore]
 fn yaml_mus6_reserved_directive_yam_then_empty_doc() {
     let y = "%YAM 1.1\n---\n"; // reserved directive name
     let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case5 parse failed");
@@ -52,17 +55,15 @@ fn yaml_mus6_reserved_directive_yam_then_empty_doc() {
 }
 
 #[test]
-#[ignore] // libyaml limitation: unknown/reserved directives are treated as errors by libyaml; ignoring until higher-level handling is introduced
+#[ignore]
 fn yaml_mus6_reserved_directive_yamll_then_empty_doc() {
     let y = "%YAMLL 1.1\n---\n"; // reserved directive name
     let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case5b parse failed");
     assert_eq!(v, None);
 }
 
-// Case 6: "%YAML \t 1.1" — directive with TABs around the version. Some parsers reject
-// this spacing. If our parser cannot handle it consistently, mark ignored; keep assertion for future.
+// Case 6: "%YAML \t 1.1" — directive with TABs around the version.
 #[test]
-#[ignore]
 fn yaml_mus6_yaml_with_tab_between_name_and_version() {
     let y = "%YAML \t 1.1\n---\n";
     let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case6 parse failed");

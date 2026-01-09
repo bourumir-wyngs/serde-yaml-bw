@@ -3,7 +3,7 @@ use std::collections::HashMap;
 // 4MUZ: Flow mapping colon on line after key
 // The YAML file shows three variants that should all parse to {"foo": "bar"}.
 #[test]
-#[ignore] // libyaml issue, can only be fixed with YAML pre-processor, unsure if makes sense
+#[ignore]
 fn yaml_4muz_flow_mapping_colon_on_next_line() {
     let y1 = "{\"foo\"\n: \"bar\"}\n";
     let m1: HashMap<String, String> = serde_yaml_bw::from_str(y1).expect("4MUZ v1 parse");
