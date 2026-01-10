@@ -21,6 +21,7 @@ unsafe-libyaml-norway = "0.2"
 base64 = ">=0.21, <0.23"
 saphyr-parser = "0.0.6"
 regex = "1.12.2"
+num-traits = "0.2.19"
 
 [dev-dependencies]
 anyhow = "1.0" # All range tested

@@ -297,6 +297,7 @@ mod number;
 mod path;
 mod ser;
 pub mod value;
+mod zmij_format;
 
 pub use crate::number::unexpected;
 

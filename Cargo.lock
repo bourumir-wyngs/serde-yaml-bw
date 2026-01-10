@@ -354,6 +354,7 @@ dependencies = [
  "indexmap",
  "indoc",
  "itoa",
+ "num-traits",
  "regex",
  "saphyr-parser",
  "serde",

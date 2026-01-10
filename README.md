@@ -12,7 +12,7 @@ The library is currently feature-complete and well-hardened, but not among the f
 
 Because `unsafe-libyaml` is auto-translated from C, it contains many `unsafe` constructs. We recommend [serde-saphyr](https://crates.io/crates/serde-saphyr), which is both faster and provides memory safety through idiomatic Rust. serde-saphyr supports merge keys, nested and variable enums and other advanced features, being also faster. Exception may be if you still need very deep compatibility with serde-yaml, including even cases where it deviates from YAML standard.
 
-Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag.
+Our fork supports merge keys, which reduce redundancy and verbosity by specifying shared key-value pairs once and then reusing them across multiple mappings. It additionally supports nested enums for Rust-aligned parsing of polymorphic data, as well as the !!binary tag. Also, serialized floats are official YAML floats, both [1.1](https://yaml.org/type/float.html) and [1.2](https://yaml.org/spec/1.2.2/), for example `3.0e+18` and not `3e+18` or `3e18`. Some parsers (such as PyYAML, go-yaml, and Psych) do not see `3e18` as a number.
 
 The library also uses Rust structure that is a parsing target as kind of schema. This schema allows to parse properly both "true" and "1.2" into String even without quotes. It can also handle standard YAML 1.1 boolean values when parsed into boolean (y, yes, on, n, no, off and the like).
 

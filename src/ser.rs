@@ -9,6 +9,7 @@ use crate::libyaml::emitter::{
 };
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
+use crate::zmij_format;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use serde::Deserialize;
@@ -19,7 +20,6 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 use std::io;
 use std::mem;
-use std::num;
 use std::rc::{Rc, Weak as RcWeak};
 use std::str;
 use std::sync::Arc as SyncArc;
@@ -793,31 +793,23 @@ where
     }
 
     fn serialize_f32(self, v: f32) -> Result<()> {
-        let mut buffer = zmij::Buffer::new();
+        let mut formatted = String::new();
+        zmij_format::push_float_string(&mut formatted, v);
         self.emit_scalar(Scalar {
             anchor: None,
             tag: None,
-            value: match v.classify() {
-                num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
-                num::FpCategory::Infinite => "-.inf",
-                num::FpCategory::Nan => ".nan",
-                _ => buffer.format_finite(v),
-            },
+            value: formatted.as_str(),
             style: self.default_scalar_style,
         })
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
-        let mut buffer = zmij::Buffer::new();
+        let mut formatted = String::new();
+        zmij_format::push_float_string(&mut formatted, v);
         self.emit_scalar(Scalar {
             anchor: None,
             tag: None,
-            value: match v.classify() {
-                num::FpCategory::Infinite if v.is_sign_positive() => ".inf",
-                num::FpCategory::Infinite => "-.inf",
-                num::FpCategory::Nan => ".nan",
-                _ => buffer.format_finite(v),
-            },
+            value: formatted.as_str(),
             style: self.default_scalar_style,
         })
     }

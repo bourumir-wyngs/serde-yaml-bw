@@ -1,4 +1,4 @@
-use crate::de;
+use crate::{de, zmij_format};
 use crate::error::{self, Error, ErrorImpl};
 use serde::de::{Unexpected, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize, Deserializer, Serialize, Serializer};
@@ -175,15 +175,7 @@ impl Display for Number {
         match self.n {
             N::PosInt(i) => formatter.write_str(itoa::Buffer::new().format(i)),
             N::NegInt(i) => formatter.write_str(itoa::Buffer::new().format(i)),
-            N::Float(f) if f.is_nan() => formatter.write_str(".nan"),
-            N::Float(f) if f.is_infinite() => {
-                if f.is_sign_negative() {
-                    formatter.write_str("-.inf")
-                } else {
-                    formatter.write_str(".inf")
-                }
-            }
-            N::Float(f) => formatter.write_str(zmij::Buffer::new().format_finite(f)),
+            N::Float(f) => zmij_format::write_float_string(formatter, f),
         }
     }
 }
