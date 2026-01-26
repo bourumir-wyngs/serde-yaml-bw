@@ -9,8 +9,8 @@ documentation = "https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/"
 edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
 license = "MIT OR Apache-2.0"
-
 repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
+exclude = ["Cargo.lock"]
 
 [dependencies]
 indexmap = ">=2.0, <2.14"# All range tested
