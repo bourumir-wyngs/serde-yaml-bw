@@ -1,7 +1,8 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use serde_yaml_bw::Number;
+use serde_yaml::Number;
 
 #[test]
 fn hash_distinguishes_floats() {

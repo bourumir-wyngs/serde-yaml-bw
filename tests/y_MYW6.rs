@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // MYW6: Block Scalar Strip (|-)
 #[test]
 fn yaml_myw6_block_scalar_strip() {
@@ -7,6 +8,6 @@ fn yaml_myw6_block_scalar_strip() {
  
 ...
 "#;
-    let s: String = serde_yaml_bw::from_str(y).expect("failed to parse MYW6");
+    let s: String = serde_yaml::from_str(y).expect("failed to parse MYW6");
     assert_eq!(s.as_str(), "ab");
 }

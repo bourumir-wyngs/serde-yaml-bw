@@ -1,4 +1,5 @@
-use serde_yaml_bw::value::tagged::{check_for_tag, MaybeTag};
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::value::tagged::{check_for_tag, MaybeTag};
 use std::fmt::{self, Display};
 
 #[test]

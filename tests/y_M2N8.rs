@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::hash::{Hash, Hasher};
 
@@ -181,7 +182,7 @@ fn yaml_m2n8_case1_sequence_with_explicit_empty_key_parses() {
 
     // Concretely assert the parsed structure: map key should be None (empty/null scalar) and value "x".
     type Item = std::collections::HashMap<Option<String>, String>;
-    let docs: Vec<Item> = serde_yaml_bw::from_str(y1).expect("M2N8 case1 should parse");
+    let docs: Vec<Item> = serde_yaml::from_str(y1).expect("M2N8 case1 should parse");
 
     assert_eq!(docs.len(), 1, "expected one sequence element");
     let map = &docs[0];
@@ -199,7 +200,7 @@ fn yaml_m2n8_case2_mapping_with_complex_key_shape() {
     let y2 = "? []: x\n:\n";
 
     use std::collections::HashMap;
-    let doc: HashMap<Canon, Canon> = serde_yaml_bw::from_str(y2).expect("M2N8 case2 should parse");
+    let doc: HashMap<Canon, Canon> = serde_yaml::from_str(y2).expect("M2N8 case2 should parse");
 
     // Build the expected complex key: a mapping with one pair: [] -> "x"
     let complex_key = Canon::Map(vec![(Canon::Seq(vec![]), Canon::String("x".to_string()))]);

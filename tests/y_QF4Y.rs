@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 // QF4Y: Spec Example 7.19. Single Pair Flow Mappings
@@ -10,7 +11,7 @@ foo: bar
 ]"#;
 
     let docs: Vec<BTreeMap<String, String>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse QF4Y");
+        serde_yaml::from_str(y).expect("failed to parse QF4Y");
     assert_eq!(docs.len(), 1);
     let m = &docs[0];
     assert_eq!(m.get("foo").map(String::as_str), Some("bar"));

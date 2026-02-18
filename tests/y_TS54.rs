@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // TS54: Folded Block Scalar
 // YAML '>' folding with blank lines preserved.
 // Source: tests/yaml-test-suite/src/TS54.yaml
@@ -8,7 +9,7 @@ fn yaml_ts54_folded_block_scalar() {
 
     // Expect folded content: spaces/newlines per TS54.json
     // Expected string: "ab cd\nef\n\ngh\n"
-    let s: String = serde_yaml_bw::from_str(y).expect("failed to parse TS54");
+    let s: String = serde_yaml::from_str(y).expect("failed to parse TS54");
 
     assert_eq!(s, "ab cd\nef\n\ngh\n");
 }

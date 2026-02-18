@@ -1,11 +1,11 @@
 use crate::{mapping, private, Value};
 use std::ops;
 
-/// A type that can be used to index into a `serde_yaml_bw::Value`. 
+/// A type that can be used to index into a `serde_yaml_gtc::Value`. 
 /// See the `get` methods of `Value`.
 ///
 /// This trait is sealed and cannot be implemented for types outside of
-/// `serde_yaml_bw`.
+/// `serde_yaml_gtc`.
 pub trait Index: private::Sealed {
     /// Return None if the key is not already in the sequence or object.
     #[doc(hidden)]
@@ -84,7 +84,7 @@ where
 {
     type Output = Value;
 
-    /// Index into a `serde_yaml_bw::Value` using the syntax `value[0]` or
+    /// Index into a `serde_yaml_gtc::Value` using the syntax `value[0]` or
     /// `value["k"]`.
     ///
     /// Returns `Value::Null` if the type of `self` does not match the type of
@@ -98,16 +98,16 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use serde_yaml_bw::Value;
+    /// # use serde_yaml_gtc::Value;
     /// #
-    /// # fn main() -> serde_yaml_bw::Result<()> {
-    /// let data: serde_yaml_bw::Value = serde_yaml_bw::from_str(r#"{ x: { y: [z, zz] } }"#)?;
+    /// # fn main() -> serde_yaml_gtc::Result<()> {
+    /// let data: serde_yaml_gtc::Value = serde_yaml_gtc::from_str(r#"{ x: { y: [z, zz] } }"#)?;
     ///
-    /// assert_eq!(data["x"]["y"], serde_yaml_bw::from_str::<Value>(r#"["z", "zz"]"#).unwrap());
-    /// assert_eq!(data["x"]["y"][0], serde_yaml_bw::from_str::<Value>(r#""z""#).unwrap());
+    /// assert_eq!(data["x"]["y"], serde_yaml_gtc::from_str::<Value>(r#"["z", "zz"]"#).unwrap());
+    /// assert_eq!(data["x"]["y"][0], serde_yaml_gtc::from_str::<Value>(r#""z""#).unwrap());
     ///
-    /// assert_eq!(data["a"], serde_yaml_bw::from_str::<Value>(r#"null"#).unwrap()); // returns null for undefined values
-    /// assert_eq!(data["a"]["b"], serde_yaml_bw::from_str::<Value>(r#"null"#).unwrap()); // does not panic
+    /// assert_eq!(data["a"], serde_yaml_gtc::from_str::<Value>(r#"null"#).unwrap()); // returns null for undefined values
+    /// assert_eq!(data["a"]["b"], serde_yaml_gtc::from_str::<Value>(r#"null"#).unwrap()); // does not panic
     /// # Ok(())
     /// # }
     /// ```

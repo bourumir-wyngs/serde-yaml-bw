@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 // S3PD: Implicit Block Mapping Entries
@@ -9,7 +10,7 @@ use serde_json::Value;
 fn yaml_s3pd_implicit_block_mapping_entries() {
     let y = "plain key: in-line value\n\"\": \n\"quoted key\":\n- entry\n";
 
-    let v: Value = serde_yaml_bw::from_str(y).unwrap();
+    let v: Value = serde_yaml::from_str(y).unwrap();
     let m = v.as_object().expect("root is not mapping");
 
     assert_eq!(

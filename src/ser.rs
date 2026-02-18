@@ -284,7 +284,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 ///
 /// ```
 /// use serde::Serialize;
-/// use serde_yaml_bw::{to_string, FlowSeq};
+/// use serde_yaml_gtc::{to_string, FlowSeq};
 ///
 /// #[derive(Serialize)]
 /// struct Data {
@@ -315,7 +315,7 @@ where
 ///
 /// ```
 /// use serde::Serialize;
-/// use serde_yaml_bw::{to_string, FlowMap};
+/// use serde_yaml_gtc::{to_string, FlowMap};
 /// use std::collections::BTreeMap;
 ///
 /// #[derive(Serialize)]
@@ -347,7 +347,7 @@ where
 /// Builder to configure [`Serializer`].
 /// ```
 /// use serde::Serialize;
-/// use serde_yaml_bw::{SerializerBuilder, Value};
+/// use serde_yaml_gtc::{SerializerBuilder, Value};
 ///
 /// #[derive(Serialize)]
 /// struct Data { value: u32 }
@@ -482,7 +482,7 @@ impl SerializerBuilder {
 ///
 /// fn main() -> Result<()> {
 ///     let mut buffer = Vec::new();
-///     let mut ser = serde_yaml_bw::Serializer::new(&mut buffer)?;
+///     let mut ser = serde_yaml_gtc::Serializer::new(&mut buffer)?;
 ///
 ///     let mut object = BTreeMap::new();
 ///     object.insert("k", 107);

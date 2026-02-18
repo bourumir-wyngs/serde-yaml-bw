@@ -1,10 +1,11 @@
+use serde_yaml_gtc as serde_yaml;
 // CML9: Missing comma in flow — marked fail: true
 // Expect parsing to return an error (no panic).
 #[test]
 fn yaml_cml9_missing_comma_in_flow_should_fail() {
     let y = "key: [ word1\n#  xxx\n  word2 ]\n";
     let result: Result<std::collections::HashMap<String, Vec<String>>, _> =
-        serde_yaml_bw::from_str(y);
+        serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "CML9 should fail to parse due to missing comma in flow sequence"

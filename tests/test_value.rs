@@ -4,18 +4,19 @@
     clippy::uninlined_format_args
 )]
 
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::de::IntoDeserializer;
 use serde::Deserialize;
-use serde_yaml_bw::{Number, Value};
+use serde_yaml::{Number, Value};
 
 #[test]
 fn test_nan() {
-    let pos_nan = serde_yaml_bw::from_str::<Value>(".nan").unwrap();
+    let pos_nan = serde_yaml::from_str::<Value>(".nan").unwrap();
     assert!(pos_nan.is_f64());
     assert_eq!(pos_nan, pos_nan);
 
-    let neg_fake_nan = serde_yaml_bw::from_str::<Value>("-.nan").unwrap();
+    let neg_fake_nan = serde_yaml::from_str::<Value>("-.nan").unwrap();
     assert!(neg_fake_nan.is_string());
 
     let significand_mask = 0xF_FFFF_FFFF_FFFF;
@@ -26,7 +27,7 @@ fn test_nan() {
 
 #[test]
 fn test_digits() {
-    let num_string = serde_yaml_bw::from_str::<Value>("01").unwrap();
+    let num_string = serde_yaml::from_str::<Value>("01").unwrap();
     assert!(num_string.is_string());
 }
 
@@ -38,15 +39,15 @@ fn test_into_deserializer() {
         second: u32,
     }
 
-    let value = serde_yaml_bw::from_str::<Value>("xyz").unwrap();
+    let value = serde_yaml::from_str::<Value>("xyz").unwrap();
     let s = String::deserialize(value.into_deserializer()).unwrap();
     assert_eq!(s, "xyz");
 
-    let value = serde_yaml_bw::from_str::<Value>("- first\n- second\n- third").unwrap();
+    let value = serde_yaml::from_str::<Value>("- first\n- second\n- third").unwrap();
     let arr = Vec::<String>::deserialize(value.into_deserializer()).unwrap();
     assert_eq!(arr, &["first", "second", "third"]);
 
-    let value = serde_yaml_bw::from_str::<Value>("first: abc\nsecond: 99").unwrap();
+    let value = serde_yaml::from_str::<Value>("first: abc\nsecond: 99").unwrap();
     let test = Test::deserialize(value.into_deserializer()).unwrap();
     assert_eq!(
         test,
@@ -71,7 +72,7 @@ fn test_debug() {
         Tagged: !tag true
     "};
 
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
     let debug = format!("{:#?}", value);
 
     let expected = indoc! {r#"
@@ -94,4 +95,3 @@ fn test_debug() {
 
     assert_eq!(debug, expected);
 }
-

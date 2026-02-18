@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // EW3V: Wrong indentation in mapping (invalid YAML). The snippet is expected to fail.
@@ -12,7 +13,7 @@ fn yaml_ew3v_wrong_indentation_should_fail() {
     let y = r#"k1: v1
  k2: v2
 "#;
-    let result: Result<Dummy, _> = serde_yaml_bw::from_str(y);
+    let result: Result<Dummy, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "EW3V should fail to parse due to wrong indentation"

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -18,7 +19,7 @@ enum Doc {
 fn yaml_ut92_explicit_documents() {
     let y = indoc::indoc!("---\n{ matches\n% : 20 }\n...\n---\n# Empty\n...\n");
 
-    let docs: Vec<Doc> = serde_yaml_bw::from_multiple(y).expect("failed to parse UT92");
+    let docs: Vec<Doc> = serde_yaml::from_multiple(y).expect("failed to parse UT92");
 
     // from_multiple() may skip empty docs; accept either 1 (only mapping) or 2 (mapping + Null)
     assert!(

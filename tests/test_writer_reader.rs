@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -13,7 +14,7 @@ fn test_write_then_read_struct() {
     let point = Point { x: 1, y: 2 };
     let mut buf = Vec::new();
     {
-        let mut ser = serde_yaml_bw::Serializer::new(&mut buf).unwrap();
+        let mut ser = serde_yaml::Serializer::new(&mut buf).unwrap();
         point.serialize(&mut ser).unwrap();
     }
     let s = String::from_utf8(buf).unwrap();
@@ -24,7 +25,7 @@ fn test_write_then_read_struct() {
 fn test_reader_deserialize() {
     let yaml = "x: 3\ny: 4\n";
     let reader = std::io::Cursor::new(yaml.as_bytes());
-    let de = serde_yaml_bw::Deserializer::from_reader(reader);
+    let de = serde_yaml::Deserializer::from_reader(reader);
     let p = Point::deserialize(de).unwrap();
     assert_eq!(p, Point { x: 3, y: 4 });
 }
@@ -39,9 +40,9 @@ fn test_large_reader_input() {
     }
 
     let reader = std::io::Cursor::new(yaml.as_bytes());
-    let value: serde_yaml_bw::Value = serde_yaml_bw::from_reader(reader).unwrap();
+    let value: serde_yaml::Value = serde_yaml::from_reader(reader).unwrap();
 
-    if let serde_yaml_bw::Value::Mapping(map) = value {
+    if let serde_yaml::Value::Mapping(map) = value {
         assert!(map.len() > 0);
     } else {
         panic!("Expected mapping");
@@ -51,14 +52,14 @@ fn test_large_reader_input() {
 #[test]
 fn test_from_slice_map() {
     let yaml = b"x: 1\ny: 2\n";
-    let m: HashMap<String, i32> = serde_yaml_bw::from_slice(yaml).unwrap();
+    let m: HashMap<String, i32> = serde_yaml::from_slice(yaml).unwrap();
     assert_eq!(m.get("x"), Some(&1));
 }
 
 #[test]
 fn test_from_slice_multi_map() {
     let yaml = b"---\nx: 1\n---\nx: 2\n";
-    let vals: Vec<HashMap<String, i32>> = serde_yaml_bw::from_slice_multi(yaml).unwrap();
+    let vals: Vec<HashMap<String, i32>> = serde_yaml::from_slice_multi(yaml).unwrap();
     assert_eq!(vals.len(), 2);
     assert_eq!(vals[0].get("x"), Some(&1));
     assert_eq!(vals[1].get("x"), Some(&2));

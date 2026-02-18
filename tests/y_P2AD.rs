@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // P2AD: Block Scalar Header variants
 #[test]
 fn yaml_p2ad_block_scalar_header_variants() {
@@ -11,7 +12,7 @@ fn yaml_p2ad_block_scalar_header_variants() {
 - >1- # Both indicators
   strip
 "#;
-    let v: Vec<String> = serde_yaml_bw::from_str(y).expect("failed to parse P2AD");
+    let v: Vec<String> = serde_yaml::from_str(y).expect("failed to parse P2AD");
     assert_eq!(v.len(), 4);
     assert_eq!(v[0].as_str(), "literal\n");
     assert_eq!(v[1].as_str(), " folded\n");

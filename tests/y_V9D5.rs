@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -25,7 +26,7 @@ fn yaml_v9d5_compact_block_mappings() {
       : moon: white
     "#;
 
-    let v: Vec<Item> = serde_yaml_bw::from_str(y).expect("failed to parse V9D5");
+    let v: Vec<Item> = serde_yaml::from_str(y).expect("failed to parse V9D5");
 
     // Still two sequence elements
     assert_eq!(v.len(), 2);

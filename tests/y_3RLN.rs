@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // 3RLN: Leading tabs in double quoted
 // The YAML test file shows multiple variants. Some use explicit \t escape,
 // others display special glyphs (<tab-glyph> etc.) that are typographical markers in the
@@ -9,7 +10,7 @@
 fn yaml_3rln_leading_tabs_in_double_quoted() {
     // Variant 1: explicit \t escape
     let y1 = "\"1 leading\n    \t\ttab\"\n";
-    let s1: String = serde_yaml_bw::from_str(y1).expect("parse 3RLN v1");
+    let s1: String = serde_yaml::from_str(y1).expect("parse 3RLN v1");
     // Our parser currently normalizes indentation and may fold a tab that appears at the beginning
     // of the continued line into a single space. The YAML test-suite expects a literal tab here.
     // Per instructions, do not change parser now; accept either outcome and document.
@@ -19,17 +20,17 @@ fn yaml_3rln_leading_tabs_in_double_quoted() {
     let y3 = "\"3 leading\n        ————»tab\"\n"; // The file uses glyphs; parser should treat them verbatim.
     // Depending on the parser, these glyphs may be preserved as-is. We avoid asserting exact
     // content for this ambiguous case. Instead, we check parsing succeeds.
-    let _s3: String = serde_yaml_bw::from_str(y3).expect("parse 3RLN v3 should succeed");
+    let _s3: String = serde_yaml::from_str(y3).expect("parse 3RLN v3 should succeed");
 
     // Variant 4: explicit \t followed by two spaces
     let y4 = "\"4 leading\n    \t  tab\"\n";
-    let s4: String = serde_yaml_bw::from_str(y4).expect("parse 3RLN v4");
+    let s4: String = serde_yaml::from_str(y4).expect("parse 3RLN v4");
     // Similar to v1, parser may fold a leading tab into a space.
     assert!(s4 == "4 leading \t  tab" || s4 == "4 leading tab", "unexpected value: {:?}", s4);
 
     // Variant 6: no tab (per JSON: "6 leading tab"). Similar ambiguity due to glyphs; ensure parse ok.
     let y6 = "\"6 leading\n        ————»  tab\"\n";
-    let _s6: String = serde_yaml_bw::from_str(y6).expect("parse 3RLN v6 should succeed");
+    let _s6: String = serde_yaml::from_str(y6).expect("parse 3RLN v6 should succeed");
 
     // Note: Variants 2 and 5 in the YAML suite use display glyphs to represent tabs within
     // the double-quoted scalar (\\———»), which are not conventional escapes. Our parser

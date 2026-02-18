@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 /// # YAML 1.2 Example 8.2 – Block Indentation Indicator (Test R4YG)
@@ -27,7 +28,7 @@ fn y_r4yg() {
         "\ndetected\n  \n",
     ];
 
-    let parsed: Vec<Value> = serde_yaml_bw::from_str(yaml).unwrap();
+    let parsed: Vec<Value> = serde_yaml::from_str(yaml).unwrap();
 
     // Compare parsed YAML scalars to expected
     assert_eq!(parsed.len(), expected.len());

@@ -10,7 +10,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 
-/// A YAML mapping in which the keys and values are both `serde_yaml_bw::Value`.
+/// A YAML mapping in which the keys and values are both `serde_yaml_gtc::Value`.
 pub struct Mapping {
     /// Optional anchor associated with this mapping.
     pub anchor: Option<String>,
@@ -293,7 +293,7 @@ impl Mapping {
     }
 }
 
-/// A type that can be used to index into a `serde_yaml_bw::Mapping`. See the
+/// A type that can be used to index into a `serde_yaml_gtc::Mapping`. See the
 /// methods `get`, `get_mut`, `contains_key`, and `remove` of `Value`.
 ///
 /// This trait is sealed and cannot be implemented for types outside of
@@ -600,7 +600,7 @@ macro_rules! delegate_iterator {
     }
 }
 
-/// Iterator over `&serde_yaml_bw::Mapping`.
+/// Iterator over `&serde_yaml_gtc::Mapping`.
 pub struct Iter<'a> {
     iter: indexmap::map::Iter<'a, Value, Value>,
 }
@@ -618,7 +618,7 @@ impl<'a> IntoIterator for &'a Mapping {
     }
 }
 
-/// Iterator over `&mut serde_yaml_bw::Mapping`.
+/// Iterator over `&mut serde_yaml_gtc::Mapping`.
 pub struct IterMut<'a> {
     iter: indexmap::map::IterMut<'a, Value, Value>,
 }
@@ -636,7 +636,7 @@ impl<'a> IntoIterator for &'a mut Mapping {
     }
 }
 
-/// Iterator over `serde_yaml_bw::Mapping` by value.
+/// Iterator over `serde_yaml_gtc::Mapping` by value.
 pub struct IntoIter {
     iter: indexmap::map::IntoIter<Value, Value>,
 }
@@ -654,35 +654,35 @@ impl IntoIterator for Mapping {
     }
 }
 
-/// Iterator of the keys of a `&serde_yaml_bw::Mapping`.
+/// Iterator of the keys of a `&serde_yaml_gtc::Mapping`.
 pub struct Keys<'a> {
     iter: indexmap::map::Keys<'a, Value, Value>,
 }
 
 delegate_iterator!((Keys<'a>) => &'a Value);
 
-/// Iterator of the keys of a `serde_yaml_bw::Mapping`.
+/// Iterator of the keys of a `serde_yaml_gtc::Mapping`.
 pub struct IntoKeys {
     iter: indexmap::map::IntoKeys<Value, Value>,
 }
 
 delegate_iterator!((IntoKeys) => Value);
 
-/// Iterator of the values of a `&serde_yaml_bw::Mapping`.
+/// Iterator of the values of a `&serde_yaml_gtc::Mapping`.
 pub struct Values<'a> {
     iter: indexmap::map::Values<'a, Value, Value>,
 }
 
 delegate_iterator!((Values<'a>) => &'a Value);
 
-/// Iterator of the values of a `&mut serde_yaml_bw::Mapping`.
+/// Iterator of the values of a `&mut serde_yaml_gtc::Mapping`.
 pub struct ValuesMut<'a> {
     iter: indexmap::map::ValuesMut<'a, Value, Value>,
 }
 
 delegate_iterator!((ValuesMut<'a>) => &'a mut Value);
 
-/// Iterator of the values of a `serde_yaml_bw::Mapping`.
+/// Iterator of the values of a `serde_yaml_gtc::Mapping`.
 pub struct IntoValues {
     iter: indexmap::map::IntoValues<Value, Value>,
 }

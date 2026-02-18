@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -18,7 +19,7 @@ block: |
   }
 "#;
 
-    let v: Program = serde_yaml_bw::from_str(y).expect("failed to parse J3BT");
+    let v: Program = serde_yaml::from_str(y).expect("failed to parse J3BT");
 
     // Quoted scalar: YAML interprets \t as a TAB character
     assert_eq!(v.quoted, "Quoted \t");

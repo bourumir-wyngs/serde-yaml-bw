@@ -7,7 +7,7 @@ impl Value {
     /// values referenced by their anchors.
     ///
     /// ```
-    /// use serde_yaml_bw::{Value, from_str_value};
+    /// use serde_yaml_gtc::{Value, from_str_value};
     ///
     /// let yaml = "a: &anchor 1\nb: *anchor";
     /// let value: Value = from_str_value(yaml).unwrap();

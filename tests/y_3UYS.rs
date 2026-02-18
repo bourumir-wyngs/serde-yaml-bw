@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 3UYS: Escaped slash in double quotes
@@ -5,7 +6,7 @@ use std::collections::HashMap;
 #[test]
 fn yaml_3uys_escaped_slash_in_double_quotes() {
     let y = "escaped slash: \"a\\/b\"\n";
-    let map: HashMap<String, String> = serde_yaml_bw::from_str(y).expect("failed to parse 3UYS");
+    let map: HashMap<String, String> = serde_yaml::from_str(y).expect("failed to parse 3UYS");
     assert_eq!(map.get("escaped slash").map(String::as_str), Some("a/b"));
     assert_eq!(map.len(), 1);
 }

@@ -1,11 +1,12 @@
 #![allow(clippy::zero_sized_map_values)]
+use serde_yaml_gtc as serde_yaml;
 
 use indoc::indoc;
 #[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
 use serde::Deserialize;
 
-use serde_yaml_bw::{Deserializer, Value};
+use serde_yaml::{Deserializer, Value};
 #[path = "utils/mod.rs"]
 mod utils;
 use utils::{test_error, deserializer_no_pathology};
@@ -109,7 +110,7 @@ fn test_ignored_unknown_anchor() {
 #[test]
 fn test_invalid_anchor_reference_message() {
     let yaml = "*invalid_anchor";
-    let result: Result<Value, _> = serde_yaml_bw::from_str(yaml);
+    let result: Result<Value, _> = serde_yaml::from_str(yaml);
     match result {
         Ok(_) => panic!("Expected error for invalid anchor"),
         Err(e) => {
@@ -124,7 +125,7 @@ fn test_invalid_anchor_reference_message() {
 #[test]
 fn test_bytes() {
     let yaml = "- 1\n- 2\n- 3\n";
-    let bytes: Vec<u8> = serde_yaml_bw::from_str(yaml).unwrap();
+    let bytes: Vec<u8> = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(bytes, vec![1, 2, 3]);
 }
 
@@ -268,7 +269,7 @@ fn test_enum_mapping_has_no_keys() {
         y: 2.0
         "
     };
-    let result: Result<Point, _> = serde_yaml_bw::from_str(yaml);
+    let result: Result<Point, _> = serde_yaml::from_str(yaml);
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
@@ -292,9 +293,9 @@ fn test_enum_mapping_has_no_keys_from_value() {
         y: 2.0
         "
     };
-    let value: serde_yaml_bw::Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: serde_yaml::Value = serde_yaml::from_str(yaml).unwrap();
 
-    let result: Result<Point, _> = serde_yaml_bw::from_value(value.clone());
+    let result: Result<Point, _> = serde_yaml::from_value(value.clone());
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("invalid type: map, expected a leaf for empty enum, otherwise map naming the fields for enum"),
@@ -313,7 +314,7 @@ fn test_enum_mapping_has_no_keys_from_value() {
 
 #[test]
 fn test_anchor_too_long() {
-    use serde_yaml_bw::Value;
+    use serde_yaml::Value;
     const MAX: usize = 65_536;
     let long = "a".repeat(MAX + 1);
     let yaml = format!("&{long} 1\n");
@@ -598,7 +599,7 @@ fn test_duplicate_key_error_message() {
     }
 
     let yaml_no_dups = "data:\n  key1: 1\n  key2: 2";
-    match serde_yaml_bw::from_str::<Data>(yaml_no_dups) {
+    match serde_yaml::from_str::<Data>(yaml_no_dups) {
         Ok(data) => {
             assert_eq!(2, data.data.len());
             assert_eq!(1, *data.data.get("key1").unwrap());
@@ -608,7 +609,7 @@ fn test_duplicate_key_error_message() {
     }
 
     let yaml_dups = "data:\n  key: 1\n  key: 2";
-    match serde_yaml_bw::from_str::<Data>(yaml_dups) {
+    match serde_yaml::from_str::<Data>(yaml_dups) {
         Ok(data) => panic!("Takes duplicate keys and returns {data:?}"),
         Err(err) => assert_eq!(
             format!("{}", err),
@@ -626,7 +627,7 @@ struct TooLongTuple {
 #[test]
 fn test_unexpected_end_of_sequence() {
     let input = "a: [1, 2, 3]";
-    let result: Result<TooLongTuple, _> = serde_yaml_bw::from_str(input);
+    let result: Result<TooLongTuple, _> = serde_yaml::from_str(input);
 
     match result {
         Ok(data) => panic!(
@@ -656,7 +657,7 @@ a: \"hello\"
 b: *missing_anchor
 ";
 
-    let result: Result<AliasTest, _> = serde_yaml_bw::from_str(input);
+    let result: Result<AliasTest, _> = serde_yaml::from_str(input);
 
     match result {
         Ok(data) => panic!(
@@ -718,7 +719,7 @@ fn test_long_alias_chain_error() {
 
 #[test]
 fn test_error_location() {
-    let result = serde_yaml_bw::from_str::<Value>("@invalid_yaml");
+    let result = serde_yaml::from_str::<Value>("@invalid_yaml");
     let loc = result.unwrap_err().location().expect("location");
     assert_eq!(1, loc.line());
     assert_eq!(1, loc.column());
@@ -735,7 +736,7 @@ nested:
 valid_after_error: true
 "#;
 
-    let result = serde_yaml_bw::from_str::<Value>(yaml_input);
+    let result = serde_yaml::from_str::<Value>(yaml_input);
     let err = result.unwrap_err();
     let loc = err.location().expect("location should be provided");
 
@@ -747,7 +748,7 @@ valid_after_error: true
 #[test]
 fn test_error_filters_control_chars() {
     let yaml = "\x1b";
-    let err = serde_yaml_bw::from_str::<Value>(yaml).unwrap_err();
+    let err = serde_yaml::from_str::<Value>(yaml).unwrap_err();
     let msg = err.to_string();
     let has_ctrl = msg
         .bytes()
@@ -762,7 +763,7 @@ fn test_error_filters_control_chars() {
 #[test]
 fn test_from_str_value_duplicate_location() {
     let yaml = "---\na: 1\na: 2\n";
-    let err = serde_yaml_bw::from_str_value(yaml).unwrap_err();
+    let err = serde_yaml::from_str_value(yaml).unwrap_err();
     let loc = err.location().expect("location");
     assert_eq!(3, loc.line());
     assert_eq!(1, loc.column());
@@ -770,7 +771,7 @@ fn test_from_str_value_duplicate_location() {
 
 #[test]
 fn test_from_str_value_unexpected_end_location() {
-    let err = serde_yaml_bw::from_str_value("]").unwrap_err();
+    let err = serde_yaml::from_str_value("]").unwrap_err();
     let loc = err.location().expect("location");
     assert_eq!(1, loc.line());
     assert_eq!(1, loc.column());

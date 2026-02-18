@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::time::Instant;
-use serde_yaml_bw::Error;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::Error;
 
 #[derive(Debug, Deserialize)]
 struct Document {
@@ -69,7 +70,7 @@ fn main() -> Result<(), Error> {
     );
 
     let start = Instant::now();
-    let document: Document = serde_yaml_bw::from_str(&yaml)?;
+    let document: Document = serde_yaml::from_str(&yaml)?;
     let elapsed = start.elapsed();
 
     let total_notes: usize = document

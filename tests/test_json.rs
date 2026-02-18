@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -12,7 +13,7 @@ fn test_read_json_struct() {
     let json = r#"{ "x": 1, "y": 2 }"#;
 
     // Parse JSON string using serde_yaml (JSON is valid YAML)
-    let point: Point = serde_yaml_bw::from_str(json).unwrap();
+    let point: Point = serde_yaml::from_str(json).unwrap();
 
     assert_eq!(point, Point { x: 1, y: 2 });
 }
@@ -23,7 +24,7 @@ fn test_read_json_array_of_structs() {
     let json = r#"[ { "x": 1, "y": 2 }, { "x": 3, "y": 4 } ]"#;
 
     // Parse JSON (valid YAML) into Vec<Point>
-    let points: Vec<Point> = serde_yaml_bw::from_str(json).unwrap();
+    let points: Vec<Point> = serde_yaml::from_str(json).unwrap();
 
     assert_eq!(
         points,
@@ -34,7 +35,7 @@ fn test_read_json_array_of_structs() {
     );
 
     // Serialize back to YAML
-    let s = serde_yaml_bw::to_string(&points).unwrap();
+    let s = serde_yaml::to_string(&points).unwrap();
 
     // YAML block style for arrays
     let expected = "\
@@ -68,7 +69,7 @@ fn test_read_json_nested_struct() {
     "#;
 
     // Parse JSON into Shape
-    let shape: Shape = serde_yaml_bw::from_str(json).unwrap();
+    let shape: Shape = serde_yaml::from_str(json).unwrap();
 
     assert_eq!(
         shape,

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // MUS6: Directive variants
@@ -13,7 +14,7 @@ struct Dummy(String);
 #[test]
 fn yaml_mus6_invalid_yaml_1_1_with_trailing() {
     let y = "%YAML 1.1#...\n---\n";
-    let r: Result<Dummy, _> = serde_yaml_bw::from_str(y);
+    let r: Result<Dummy, _> = serde_yaml::from_str(y);
     assert!(r.is_err(), "MUS6 case1 should fail to parse");
 }
 
@@ -22,7 +23,7 @@ fn yaml_mus6_invalid_yaml_1_1_with_trailing() {
 #[ignore]
 fn yaml_mus6_two_yaml_1_2_directives_should_fail() {
     let y = "%YAML 1.2\n---\n%YAML 1.2\n---\n";
-    let r: Result<Vec<serde::de::IgnoredAny>, _> = serde_yaml_bw::from_multiple(y);
+    let r: Result<Vec<serde::de::IgnoredAny>, _> = serde_yaml::from_multiple(y);
     assert!(
         r.is_err(),
         "MUS6 case2 should fail to parse due to repeated directives"
@@ -33,7 +34,7 @@ fn yaml_mus6_two_yaml_1_2_directives_should_fail() {
 #[test]
 fn yaml_mus6_yaml_with_double_space_then_empty_doc() {
     let y = "%YAML  1.1\n---\n";
-    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case3 parse failed");
+    let v: Option<String> = serde_yaml::from_str(y).expect("MUS6 case3 parse failed");
     assert_eq!(v, None);
 }
 
@@ -41,7 +42,7 @@ fn yaml_mus6_yaml_with_double_space_then_empty_doc() {
 #[test]
 fn yaml_mus6_yaml_1_1_with_comment_then_empty_doc() {
     let y = "%YAML 1.1  # comment\n---\n";
-    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case4 parse failed");
+    let v: Option<String> = serde_yaml::from_str(y).expect("MUS6 case4 parse failed");
     assert_eq!(v, None);
 }
 
@@ -50,7 +51,7 @@ fn yaml_mus6_yaml_1_1_with_comment_then_empty_doc() {
 #[ignore]
 fn yaml_mus6_reserved_directive_yam_then_empty_doc() {
     let y = "%YAM 1.1\n---\n"; // reserved directive name
-    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case5 parse failed");
+    let v: Option<String> = serde_yaml::from_str(y).expect("MUS6 case5 parse failed");
     assert_eq!(v, None);
 }
 
@@ -58,7 +59,7 @@ fn yaml_mus6_reserved_directive_yam_then_empty_doc() {
 #[ignore]
 fn yaml_mus6_reserved_directive_yamll_then_empty_doc() {
     let y = "%YAMLL 1.1\n---\n"; // reserved directive name
-    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case5b parse failed");
+    let v: Option<String> = serde_yaml::from_str(y).expect("MUS6 case5b parse failed");
     assert_eq!(v, None);
 }
 
@@ -66,7 +67,7 @@ fn yaml_mus6_reserved_directive_yamll_then_empty_doc() {
 #[test]
 fn yaml_mus6_yaml_with_tab_between_name_and_version() {
     let y = "%YAML \t 1.1\n---\n";
-    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case6 parse failed");
+    let v: Option<String> = serde_yaml::from_str(y).expect("MUS6 case6 parse failed");
     // Expect an empty document
     assert_eq!(v, None);
 }

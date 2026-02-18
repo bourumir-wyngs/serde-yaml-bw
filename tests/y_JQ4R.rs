@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // JQ4R: Block sequence where second element is a mapping { two: three }
@@ -21,7 +22,7 @@ fn yaml_jq4r_block_sequence() {
         M(HashMap<String, String>),
     }
 
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse JQ4R");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse JQ4R");
     assert_eq!(v.block_sequence.len(), 2);
     match &v.block_sequence[0] {
         Elem::S(s) => assert_eq!(s, "one"),

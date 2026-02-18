@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // C2DT: Flow Mapping Adjacent Values
@@ -11,7 +12,7 @@ fn yaml_c2dt_flow_mapping_adjacent_values() {
 }
 "#;
     let m: HashMap<String, Option<String>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse C2DT");
+        serde_yaml::from_str(y).expect("failed to parse C2DT");
     assert_eq!(
         m.get("adjacent").cloned().flatten().as_deref(),
         Some("value")

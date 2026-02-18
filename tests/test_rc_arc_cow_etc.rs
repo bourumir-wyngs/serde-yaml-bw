@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
-use serde_yaml_bw::{to_string, from_str};
+use serde_yaml::{to_string, from_str};
 use std::borrow::Cow;
 use std::rc::Rc;
 use std::sync::Arc;

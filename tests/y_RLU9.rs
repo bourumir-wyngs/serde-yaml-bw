@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -14,7 +15,7 @@ bar:
   - 44
 "#;
 
-    let v: Root = serde_yaml_bw::from_str(yaml).expect("parse inner YAML");
+    let v: Root = serde_yaml::from_str(yaml).expect("parse inner YAML");
     assert_eq!(v.foo, vec![42]);
     assert_eq!(v.bar, vec![44]);
 }

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // M29M: Literal Block Scalar in a mapping
@@ -17,6 +18,6 @@ fn yaml_m29m_literal_block_scalar_in_mapping() {
 
 ...
 "#;
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse M29M");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse M29M");
     assert_eq!(v.a.as_str(), "ab\n\ncd\nef\n");
 }

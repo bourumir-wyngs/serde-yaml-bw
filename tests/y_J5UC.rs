@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // J5UC: Multiple Pair Block Mapping
@@ -7,7 +8,7 @@ fn yaml_j5uc_multiple_pair_block_mapping() {
 bar: arrr
 baz: jazz
 "#;
-    let v: HashMap<String, String> = serde_yaml_bw::from_str(y).expect("failed to parse J5UC");
+    let v: HashMap<String, String> = serde_yaml::from_str(y).expect("failed to parse J5UC");
     assert_eq!(v.len(), 3);
     assert_eq!(v.get("foo").map(String::as_str), Some("blue"));
     assert_eq!(v.get("bar").map(String::as_str), Some("arrr"));

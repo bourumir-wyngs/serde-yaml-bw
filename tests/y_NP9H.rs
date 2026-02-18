@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // NP9H: Double Quoted Line Breaks — verify folding and escapes
 // Expected: "folded to a space,\nto a line feed, or \t \tnon-content"
 #[test]
@@ -15,6 +16,6 @@ fn yaml_np9h_double_quoted_line_breaks() {
  \t \tnon-content"
 "#;
 
-    let s: String = serde_yaml_bw::from_str(y).expect("failed to parse NP9H");
+    let s: String = serde_yaml::from_str(y).expect("failed to parse NP9H");
     assert_eq!(s, "folded to a space,\nto a line feed, or \t \tnon-content");
 }

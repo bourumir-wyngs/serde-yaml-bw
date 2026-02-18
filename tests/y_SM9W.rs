@@ -1,9 +1,10 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 #[test]
 fn y_sm9w_single_dash() {
     // Just dash followed by new line is a single entry list holding null.
     let y1 = "-\n";
-    let r1: Vec<Option<String>> = serde_yaml_bw::from_str(y1)
+    let r1: Vec<Option<String>> = serde_yaml::from_str(y1)
         .expect("Parser failed to handle single dash as a sequence entry");
 
     assert_eq!(1, r1.len());
@@ -16,7 +17,7 @@ fn y_sm9w_single_colon() {
     // Just colon followed by new line is the mapping of null key to null value
     let y2 = ":\n";
     let r2: HashMap<Option<String>, Option<String>> =
-        serde_yaml_bw::from_str(y2).expect("Parser failed to handle single colon");
+        serde_yaml::from_str(y2).expect("Parser failed to handle single colon");
 
     assert_eq!(r2.len(), 1);
     // key is None, value is None

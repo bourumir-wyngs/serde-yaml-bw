@@ -1,4 +1,4 @@
-use serde_yaml_bw as yaml;
+use serde_yaml_gtc as yaml;
 
 #[test]
 fn test_serialize_bytes() {

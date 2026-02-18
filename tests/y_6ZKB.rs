@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -21,7 +22,7 @@ fn yaml_6zkb_stream_multiple_documents() {
     // mixed document types (string, optional empty, mapping).
     let y = "Document\n---\n# Empty\n...\n%YAML 1.2\n---\nmatches %: 20\n";
     let docs: Vec<Doc> =
-        serde_yaml_bw::from_multiple(y).expect("failed to parse 6ZKB without directive");
+        serde_yaml::from_multiple(y).expect("failed to parse 6ZKB without directive");
 
     // Empty document may be skipped; accept 2 docs, or 3 if the empty doc surfaces.
     assert!(

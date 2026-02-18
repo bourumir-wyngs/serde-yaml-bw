@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -33,8 +34,8 @@ fn parse_all_with_serde_yaml(input: &str) -> anyhow::Result<Vec<serde_yaml::Valu
     Ok(docs)
 }
 
-fn parse_all_with_bw(input: &str) -> serde_yaml_bw::Result<Vec<serde_yaml_bw::Value>> {
-    serde_yaml_bw::from_str_multi::<serde_yaml_bw::Value>(input)
+fn parse_all_with_bw(input: &str) -> serde_yaml::Result<Vec<serde_yaml::Value>> {
+    serde_yaml::from_str_multi::<serde_yaml::Value>(input)
 }
 
 fn parse_all_with_serde_yaml_from_str(input: &str) -> anyhow::Result<Vec<serde_yaml::Value>> {
@@ -43,7 +44,7 @@ fn parse_all_with_serde_yaml_from_str(input: &str) -> anyhow::Result<Vec<serde_y
     parse_all_with_serde_yaml(input)
 }
 
-fn parse_all_with_bw_from_str(input: &str) -> serde_yaml_bw::Result<Vec<serde_yaml_bw::Value>> {
+fn parse_all_with_bw_from_str(input: &str) -> serde_yaml::Result<Vec<serde_yaml::Value>> {
     parse_all_with_bw(input)
 }
 
@@ -89,9 +90,9 @@ fn yaml_test_suite_differential() -> Result<()> {
         // Serialize our docs back to YAML using our serializer and compare by
         // re-parsing with serde_yaml into Values, then equality check.
         let bw_yaml = if bw_docs.len() == 1 {
-            serde_yaml_bw::to_string(&bw_docs[0])?
+            serde_yaml::to_string(&bw_docs[0])?
         } else {
-            serde_yaml_bw::to_string_multi(&bw_docs)?
+            serde_yaml::to_string_multi(&bw_docs)?
         };
 
         let reparsed_by_serde = parse_all_with_serde_yaml(&bw_yaml)?;
@@ -105,13 +106,13 @@ fn yaml_test_suite_differential() -> Result<()> {
         // and ensure our parser reads them back to an equivalent structure
         // (as judged again by serde_yaml).
         let ser_yaml_via_bw = if ser_docs.len() == 1 {
-            serde_yaml_bw::to_string(&ser_docs[0])?
+            serde_yaml::to_string(&ser_docs[0])?
         } else {
-            serde_yaml_bw::to_string_multi(&ser_docs)?
+            serde_yaml::to_string_multi(&ser_docs)?
         };
 
         let reparsed_bw = parse_all_with_bw(&ser_yaml_via_bw)?;
-        let reparsed_bw_via_serde = parse_all_with_serde_yaml(&serde_yaml_bw::to_string_multi(&reparsed_bw)?)?;
+        let reparsed_bw_via_serde = parse_all_with_serde_yaml(&serde_yaml::to_string_multi(&reparsed_bw)?)?;
         assert_eq!(
             reparsed_bw_via_serde, ser_docs,
             "Serializing serde_yaml Values with our serializer, then parsing with our parser, should be semantics-preserving.\nFile: {}\nInput:\n{}\nserde_yaml -> (our serializer) YAML:\n{}",

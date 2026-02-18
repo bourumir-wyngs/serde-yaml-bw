@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -73,7 +74,7 @@ comments:
     Billsmer @ 338-4338.
     "#;
 
-    let doc: InvoiceDoc = serde_yaml_bw::from_str(yaml)?;
+    let doc: InvoiceDoc = serde_yaml::from_str(yaml)?;
 
     // Basic header fields
     assert_eq!(doc.invoice, 34843);
@@ -109,8 +110,8 @@ comments:
     );
 
     // round trip
-    let yaml2 = serde_yaml_bw::to_string(&doc)?;
-    let doc2 = serde_yaml_bw::from_str(&yaml2)?;
+    let yaml2 = serde_yaml::to_string(&doc)?;
+    let doc2 = serde_yaml::from_str(&yaml2)?;
 
     assert_eq!(doc, doc2, "Round trip");
 

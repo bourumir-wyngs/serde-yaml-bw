@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // YJV2: Dash in flow sequence
@@ -13,7 +14,7 @@ fn yaml_yjv2_dash_in_flow_sequence_should_fail() {
     let y = r#"[-]
 "#;
 
-    let result: Result<Vec<String>, _> = serde_yaml_bw::from_str(y);
+    let result: Result<Vec<String>, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "YJV2 should be invalid YAML for this parser; it unexpectedly parsed as: {:?}",

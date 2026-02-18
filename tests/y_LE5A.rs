@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // LE5A: Spec Example 7.24. Flow Nodes
 // Sequence with tags, anchor and alias, and an explicit !!str with empty content.
 
@@ -9,7 +10,7 @@ fn yaml_le5a_flow_nodes_with_tags_and_alias() {
 - *anchor
 - !!str
 "#;
-    let v: Vec<String> = serde_yaml_bw::from_str(y).expect("failed to parse LE5A");
+    let v: Vec<String> = serde_yaml::from_str(y).expect("failed to parse LE5A");
     assert_eq!(
         v,
         vec![

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 4FJ6: Nested implicit complex keys
@@ -26,5 +27,5 @@ fn yaml_4fj6_nested_implicit_complex_keys() {
   [ a, [ [[b,c]]: d, e]]: 23
 ]
 "#;
-    let _result: Result<Vec<Vec<(Key, i32)>>, _> = serde_yaml_bw::from_str(y);
+    let _result: Result<Vec<Vec<(Key, i32)>>, _> = serde_yaml::from_str(y);
 }

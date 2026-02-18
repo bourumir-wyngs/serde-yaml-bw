@@ -1,6 +1,7 @@
+use serde_yaml_gtc as serde_yaml;
 use std::fmt::Debug;
 use serde::Deserialize;
-use serde_yaml_bw::{Deserializer, DeserializerOptions};
+use serde_yaml::{Deserializer, DeserializerOptions};
 
 // Common test utilities shared across integration tests.
 // All helpers in this module disable pathology detection by default, so tests

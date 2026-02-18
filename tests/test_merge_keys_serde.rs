@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 /// Configuration to parse into. Does not include "defaults"
@@ -32,7 +33,7 @@ production:
 "#;
 
     // Deserialize YAML with anchors, aliases and merge keys into the Config struct
-    let parsed: Config = serde_yaml_bw::from_str(yaml_input).expect("Failed to deserialize YAML");
+    let parsed: Config = serde_yaml::from_str(yaml_input).expect("Failed to deserialize YAML");
 
     // Define expected Config structure explicitly
     let expected = Config {
@@ -102,7 +103,7 @@ entries:
         entries: Vec<Entry>,
     }
 
-    let root: Root = serde_yaml_bw::from_str(yaml).unwrap();
+    let root: Root = serde_yaml::from_str(yaml).unwrap();
 
     // Check total entries (anchors are explicitly skipped)
     assert_eq!(root.entries.len(), 4);
@@ -145,7 +146,7 @@ fn test_merge_full_ancestor() {
 "#;
 
     // Deserialize YAML directly into a Vec<Entry> using Serde
-    let entries: Vec<Entry> = serde_yaml_bw::from_str(yaml).unwrap();
+    let entries: Vec<Entry> = serde_yaml::from_str(yaml).unwrap();
 
     // Check total entries (the first 4 YAML anchors are skipped as they do not match the Entry struct)
     assert_eq!(entries.len(), 8);

@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use serde_yaml_gtc as serde_yaml;
     use serde::{Deserialize, Serialize};
-    use serde_yaml_bw::{from_str_value_preserve, Mapping, Sequence, Value};
+    use serde_yaml::{from_str_value_preserve, Mapping, Sequence, Value};
 
     /// A simple struct we can deserialize into, to verify that alias resolution
     /// produces independent (cloned) values with identical content.
@@ -76,7 +77,7 @@ second: *A
         let key_first = Value::String("first".into(), None);
         if let Value::Mapping(root) = &mut doc {
             // Build a replacement mapping value: { id: 100, name: "different", tags: ["z"] }
-            let mut repl_map = serde_yaml_bw::Mapping::default();
+            let mut repl_map = serde_yaml::Mapping::default();
             repl_map.insert(
                 Value::String("id".into(), None),
                 Value::Number(100u64.into(), None),
@@ -85,7 +86,7 @@ second: *A
                 Value::String("name".into(), None),
                 Value::String("different".into(), None),
             );
-            let tags_seq = serde_yaml_bw::Sequence {
+            let tags_seq = serde_yaml::Sequence {
                 elements: vec![Value::String("z".into(), None)],
                 anchor: None,
             };
@@ -106,9 +107,9 @@ second: *A
         );
 
         // --- Optional: also ensure we can deserialize into typed structs and both are equal ---
-        // Note: `serde_yaml_bw::from_value` is commonly provided. If your crate uses
+        // Note: `serde_yaml::from_value` is commonly provided. If your crate uses
         // a different name, adjust accordingly.
-        let typed: Container = serde_yaml_bw::from_value(doc.clone()).expect("typed deserialize");
+        let typed: Container = serde_yaml::from_value(doc.clone()).expect("typed deserialize");
         assert_eq!(
             typed.first,
             Item {
@@ -143,7 +144,7 @@ second: *A
         );
 
         let value = Value::Mapping(mapping);
-        let yaml = serde_yaml_bw::to_string(&value).unwrap();
+        let yaml = serde_yaml::to_string(&value).unwrap();
         assert_eq!(
             yaml,
             "a: &anchor_referencing_foo foo\nb: *anchor_referencing_foo\n"
@@ -184,7 +185,7 @@ second: *A
 
         mapping.insert(Value::String("subvector".to_string(), None), sub_vector);
         let value = Value::Mapping(mapping);
-        let yaml = serde_yaml_bw::to_string(&value).unwrap();
+        let yaml = serde_yaml::to_string(&value).unwrap();
         let expected =
 r#"a: &anchor_referencing_foo foo
 b: *anchor_referencing_foo

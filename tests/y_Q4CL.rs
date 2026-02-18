@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // Q4CL: Trailing content after quoted value → should be a parse error
 #[test]
 fn yaml_q4cl_trailing_content_after_quoted_value_should_error() {
@@ -5,7 +6,7 @@ fn yaml_q4cl_trailing_content_after_quoted_value_should_error() {
 key2: "quoted2" trailing content
 key3: "quoted3"
 "#;
-    let res: Result<std::collections::BTreeMap<String, String>, _> = serde_yaml_bw::from_str(&y);
+    let res: Result<std::collections::BTreeMap<String, String>, _> = serde_yaml::from_str(&y);
     assert!(
         res.is_err(),
         "Q4CL must fail to parse due to trailing content after quoted scalar"

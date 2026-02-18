@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // M5C3: Block Scalar Nodes — literal with indent |2 and folded >1 with local tag
@@ -16,7 +17,7 @@ folded:
   >1
  value
 "#;
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse M5C3");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse M5C3");
     assert_eq!(v.literal, "value\n");
     assert_eq!(v.folded, "value\n");
 }

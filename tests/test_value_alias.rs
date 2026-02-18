@@ -1,10 +1,11 @@
-use serde_yaml_bw::{Sequence, Value};
-use serde_yaml_bw::Mapping;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{Sequence, Value};
+use serde_yaml::Mapping;
 
 #[test]
 fn test_alias_serialization_errors_without_anchor() {
     let value = Value::Alias("anchor".to_string());
-    let err = serde_yaml_bw::to_string(&value).unwrap_err();
+    let err = serde_yaml::to_string(&value).unwrap_err();
     assert_eq!(
         err.to_string(),
         "reference to non existing anchor [anchor]"
@@ -13,7 +14,7 @@ fn test_alias_serialization_errors_without_anchor() {
 
 #[test]
 fn test_alias_in_sequence_resolves() {
-    use serde_yaml_bw::value::Sequence;
+    use serde_yaml::value::Sequence;
 
     let value = Value::Sequence(Sequence {
         anchor: None,
@@ -23,7 +24,7 @@ fn test_alias_in_sequence_resolves() {
         ],
     });
 
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml, "- &id 1\n- *id\n");
 }
 
@@ -41,7 +42,7 @@ fn test_alias_in_mapping_branch() {
     );
 
     let value = Value::Mapping(mapping);
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml, "a: &id foo\nb: *id\n");
 }
 
@@ -71,14 +72,14 @@ fn test_alias_in_sequence_resolves_2() {
         elements: vec![referenced.clone(), Value::Mapping(map)],
     });
 
-    let yaml = serde_yaml_bw::to_string(&seq).unwrap();
+    let yaml = serde_yaml::to_string(&seq).unwrap();
     assert_eq!(
         yaml,
         "- &ref_value_anchor referenced\n- a: b\n  c: *ref_value_anchor\n",
     );
     println!("{}", yaml);
 
-    let parsed: Value = serde_yaml_bw::from_str_value(&yaml).unwrap();
+    let parsed: Value = serde_yaml::from_str_value(&yaml).unwrap();
     let parsed_seq = parsed.as_sequence().unwrap();
     assert_eq!(
         parsed_seq.elements[0],

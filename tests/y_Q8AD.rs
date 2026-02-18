@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // Q8AD: Double Quoted Line Breaks [1.3]
 #[test]
 fn yaml_q8ad_double_quoted_line_breaks() -> anyhow::Result<()> {
@@ -11,7 +12,7 @@ to a line feed, or \t\\\n\
 
     let expected: &str = "folded to a space,\nto a line feed, or \t \tnon-content";
 
-    let s: String = serde_yaml_bw::from_str(&yaml)?;
+    let s: String = serde_yaml::from_str(&yaml)?;
     assert_eq!(s, expected);
     Ok(())
 }

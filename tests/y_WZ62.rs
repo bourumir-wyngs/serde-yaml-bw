@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 // WZ62: Spec Example 7.2. Empty Content
@@ -12,7 +13,7 @@ fn yaml_wz62_empty_content_in_flow_mapping() {
 "#;
 
     // Use BTreeMap for deterministic iteration order if needed
-    let m: BTreeMap<String, String> = serde_yaml_bw::from_str(y).expect("failed to parse WZ62");
+    let m: BTreeMap<String, String> = serde_yaml::from_str(y).expect("failed to parse WZ62");
 
     assert_eq!(m.len(), 2);
     assert_eq!(m.get("foo").unwrap(), "");

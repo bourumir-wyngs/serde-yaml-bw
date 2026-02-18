@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -11,7 +12,7 @@ struct Doc {
 fn yaml_s9e8_block_structure_indicators() {
     let y = "sequence:\n- one\n- two\nmapping:\n  ? sky\n  : blue\n  sea : green\n";
 
-    let d: Doc = serde_yaml_bw::from_str(y).unwrap();
+    let d: Doc = serde_yaml::from_str(y).unwrap();
     assert_eq!(d.sequence, vec![String::from("one"), String::from("two")]);
     assert_eq!(d.mapping.get("sky").map(|s| s.as_str()), Some("blue"));
     assert_eq!(d.mapping.get("sea").map(|s| s.as_str()), Some("green"));

@@ -4,7 +4,7 @@ mod tests {
     use serde_json::{self, Value as JsonValue};
     use std::collections::BTreeMap;
 
-    use serde_yaml_bw as yaml;
+    use serde_yaml_gtc as yaml;
 
     /// Outer test case envelope.
     #[derive(Debug, Deserialize)]

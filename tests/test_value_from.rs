@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use std::borrow::Cow;
-use serde_yaml_bw::{Number, Sequence, Value};
+use serde_yaml::{Number, Sequence, Value};
 
 #[test]
 fn test_value_from_iter_integers() {
@@ -11,7 +12,7 @@ fn test_value_from_iter_integers() {
         Value::Number(Number::from(3), None),
     ];
     assert_eq!(value, Value::Sequence(expected));
-    assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "- 1\n- 2\n- 3\n");
+    assert_eq!(serde_yaml::to_string(&value).unwrap(), "- 1\n- 2\n- 3\n");
 }
 
 #[test]
@@ -25,7 +26,7 @@ fn test_value_from_iter_strings() {
         Value::String("c".into(), None),
     ];
     assert_eq!(value, Value::Sequence(expected));
-    assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "- a\n- b\n- c\n");
+    assert_eq!(serde_yaml::to_string(&value).unwrap(), "- a\n- b\n- c\n");
 }
 
 #[test]
@@ -39,7 +40,7 @@ fn test_value_from_slice() {
         Value::Number(Number::from(3), None),
     ];
     assert_eq!(value, Value::Sequence(expected));
-    assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "- 1\n- 2\n- 3\n");
+    assert_eq!(serde_yaml::to_string(&value).unwrap(), "- 1\n- 2\n- 3\n");
 }
 
 #[test]
@@ -47,7 +48,7 @@ fn test_value_from_cow_borrowed() {
     let cow: Cow<str> = Cow::Borrowed("hello");
     let value = Value::from(cow);
     assert_eq!(value, Value::String("hello".to_string(), None));
-    assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "hello\n");
+    assert_eq!(serde_yaml::to_string(&value).unwrap(), "hello\n");
 }
 
 #[test]
@@ -55,5 +56,5 @@ fn test_value_from_cow_owned() {
     let cow: Cow<str> = Cow::Owned("world".to_string());
     let value = Value::from(cow);
     assert_eq!(value, Value::String("world".to_string(), None));
-    assert_eq!(serde_yaml_bw::to_string(&value).unwrap(), "world\n");
+    assert_eq!(serde_yaml::to_string(&value).unwrap(), "world\n");
 }

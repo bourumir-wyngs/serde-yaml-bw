@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 9BXH: Multiline doublequoted flow mapping key without value
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 fn yaml_9bxh_multiline_doublequoted_flow_mapping_key_without_value() {
     let y = "---\n- { \"single line\", a: b}\n- { \"multi\n  line\", a: b}\n";
     let v: Vec<HashMap<String, Option<String>>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse 9BXH");
+        serde_yaml::from_str(y).expect("failed to parse 9BXH");
     assert_eq!(v.len(), 2);
     // First map
     let m0 = &v[0];

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // M7NX: Nested flow collections
@@ -25,7 +26,7 @@ fn yaml_m7nx_nested_flow_collections() {
  ]
 }
 "#;
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse M7NX");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse M7NX");
     assert_eq!(v.a.len(), 3);
     match &v.a[0] {
         Item::S(s) => assert_eq!(s, "b"),

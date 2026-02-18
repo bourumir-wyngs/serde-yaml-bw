@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // 6S55: Invalid scalar at the end of sequence — marked fail: true
 // Expect parsing to return an error (no panic).
 #[test]
@@ -8,7 +9,7 @@ fn yaml_6s55_invalid_scalar_at_end_of_sequence_should_fail() {
     struct Doc {
         key: Vec<String>,
     }
-    let result: Result<Doc, _> = serde_yaml_bw::from_str(y);
+    let result: Result<Doc, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "6S55 should fail to parse due to stray scalar after sequence"

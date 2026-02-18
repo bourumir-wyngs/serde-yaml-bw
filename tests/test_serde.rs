@@ -5,10 +5,11 @@
     clippy::shadow_unrelated
 )]
 
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
-use serde_yaml_bw::{Mapping, Number, Sequence, Value};
+use serde_yaml::{Mapping, Number, Sequence, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter;
@@ -17,24 +18,24 @@ fn test_serde<T>(thing: &T, yaml: &str)
 where
     T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + Debug,
 {
-    let serialized = serde_yaml_bw::to_string(&thing).unwrap();
+    let serialized = serde_yaml::to_string(&thing).unwrap();
     assert_eq!(yaml, serialized);
 
-    let value = serde_yaml_bw::to_value(thing).unwrap();
-    let serialized = serde_yaml_bw::to_string(&value).unwrap();
+    let value = serde_yaml::to_value(thing).unwrap();
+    let serialized = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml, serialized);
 
-    let deserialized: T = serde_yaml_bw::from_str(yaml).unwrap();
+    let deserialized: T = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(*thing, deserialized);
 
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
     let deserialized = T::deserialize(&value).unwrap();
     assert_eq!(*thing, deserialized);
 
-    let deserialized: T = serde_yaml_bw::from_value(value).unwrap();
+    let deserialized: T = serde_yaml::from_value(value).unwrap();
     assert_eq!(*thing, deserialized);
 
-    serde_yaml_bw::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
+    serde_yaml::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
 }
 
 #[test]
@@ -122,7 +123,7 @@ fn test_float() {
     "};
     test_serde(&thing, yaml);
 
-    let float: f64 = serde_yaml_bw::from_str(indoc! {"
+    let float: f64 = serde_yaml::from_str(indoc! {"
         .nan
     "})
     .unwrap();
@@ -149,7 +150,7 @@ fn test_float32() {
     "};
     test_serde(&thing, yaml);
 
-    let single_float: f32 = serde_yaml_bw::from_str(indoc! {"
+    let single_float: f32 = serde_yaml::from_str(indoc! {"
         .nan
     "})
     .unwrap();
@@ -162,19 +163,19 @@ fn test_char() {
     let yaml = indoc! {"
         '.'
     "};
-    assert_eq!(yaml, serde_yaml_bw::to_string(&ch).unwrap());
+    assert_eq!(yaml, serde_yaml::to_string(&ch).unwrap());
 
     let ch = '#';
     let yaml = indoc! {"
         '#'
     "};
-    assert_eq!(yaml, serde_yaml_bw::to_string(&ch).unwrap());
+    assert_eq!(yaml, serde_yaml::to_string(&ch).unwrap());
 
     let ch = '-';
     let yaml = indoc! {"
         '-'
     "};
-    assert_eq!(yaml, serde_yaml_bw::to_string(&ch).unwrap());
+    assert_eq!(yaml, serde_yaml::to_string(&ch).unwrap());
 }
 
 #[test]
@@ -220,7 +221,7 @@ fn test_map_key_value() {
     let yaml = indoc! {"
         k: v
     "};
-    assert_eq!(yaml, serde_yaml_bw::to_string(&Map).unwrap());
+    assert_eq!(yaml, serde_yaml::to_string(&Map).unwrap());
 }
 
 #[test]
@@ -485,7 +486,7 @@ fn test_serializer_into_vec() {
 
     let mut buffer = Vec::new();
     {
-        let mut ser = serde_yaml_bw::Serializer::new(&mut buffer).unwrap();
+        let mut ser = serde_yaml::Serializer::new(&mut buffer).unwrap();
         "hi".serialize(&mut ser).unwrap();
     }
     assert_eq!(buffer, b"hi\n");
@@ -501,10 +502,10 @@ fn test_struct() {
 
     let point = Point { x: 1.0, y: 2.0 };
 
-    let yaml = serde_yaml_bw::to_string(&point).unwrap();
+    let yaml = serde_yaml::to_string(&point).unwrap();
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
-    let deserialized_point: Point = serde_yaml_bw::from_str(&yaml).unwrap();
+    let deserialized_point: Point = serde_yaml::from_str(&yaml).unwrap();
     assert_eq!(point, deserialized_point);
 }
 
@@ -514,10 +515,10 @@ fn test_btree_map() {
     map.insert("x".to_string(), 1.0);
     map.insert("y".to_string(), 2.0);
 
-    let yaml = serde_yaml_bw::to_string(&map).unwrap();
+    let yaml = serde_yaml::to_string(&map).unwrap();
     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 
-    let deserialized_map: BTreeMap<String, f64> = serde_yaml_bw::from_str(&yaml).unwrap();
+    let deserialized_map: BTreeMap<String, f64> = serde_yaml::from_str(&yaml).unwrap();
     assert_eq!(map, deserialized_map);
 }
 
@@ -543,7 +544,7 @@ fn test_enum() {
              x: 1.0
              y: 2.0
          "};
-    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Newtype(1));
     assert_eq!(values[1], Enum::Tuple(0, 0, 0));
     assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
@@ -558,7 +559,7 @@ fn test_enum() {
              x: 1.0
              y: 2.0
          "};
-    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 
@@ -566,7 +567,7 @@ fn test_enum() {
     let yaml = "
              - Unit
          ";
-    let values: Vec<Enum> = serde_yaml_bw::from_str(yaml).unwrap();
+    let values: Vec<Enum> = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(values[0], Enum::Unit);
 }
 
@@ -583,6 +584,6 @@ fn test_leaf_enum() {
         A
         "
     };
-    let result: Simple = serde_yaml_bw::from_str(yaml).unwrap();
+    let result: Simple = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(result, Simple::A);
 }

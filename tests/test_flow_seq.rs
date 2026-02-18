@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
-use serde_yaml_bw::{to_string, FlowSeq};
+use serde_yaml::{to_string, FlowSeq};
 
 #[derive(Serialize)]
 struct Data {
@@ -23,8 +24,8 @@ fn test_flow_seq_round_trip() -> Result<(), Box<dyn std::error::Error>> {
     let f: FlowSeq<Vec<i32>> = FlowSeq(vec![1, 2, 3]);
 
     // Act: serialize to YAML, then deserialize back
-    let yaml = serde_yaml_bw::to_string(&f)?;
-    let from_yaml: FlowSeq<Vec<i32>> = serde_yaml_bw::from_str(&yaml)?;
+    let yaml = serde_yaml::to_string(&f)?;
+    let from_yaml: FlowSeq<Vec<i32>> = serde_yaml::from_str(&yaml)?;
 
     // Assert: round-trip equality
     assert_eq!(from_yaml, f, "Deserialized value should equal the original");

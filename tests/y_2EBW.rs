@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 2EBW: Allowed characters in keys
@@ -16,7 +17,7 @@ fn yaml_2ebw_allowed_chars_in_keys() {
     );
 
     let map: HashMap<String, String> =
-        serde_yaml_bw::from_str(yaml).expect("failed to parse 2EBW YAML");
+        serde_yaml::from_str(yaml).expect("failed to parse 2EBW YAML");
 
     assert_eq!(
         map.get("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"),

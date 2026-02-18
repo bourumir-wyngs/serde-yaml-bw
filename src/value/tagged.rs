@@ -26,7 +26,7 @@ pub struct Tag {
 /// A `Tag` + `Value` representing a tagged YAML scalar, sequence, or mapping.
 ///
 /// ```
-/// use serde_yaml_bw::value::TaggedValue;
+/// use serde_yaml_gtc::value::TaggedValue;
 /// use std::collections::BTreeMap;
 ///
 /// let yaml = "
@@ -39,7 +39,7 @@ pub struct Tag {
 ///       k: v
 /// ";
 ///
-/// let data: BTreeMap<String, TaggedValue> = serde_yaml_bw::from_str(yaml).unwrap();
+/// let data: BTreeMap<String, TaggedValue> = serde_yaml_gtc::from_str(yaml).unwrap();
 /// assert!(data["scalar"].tag == "Thing");
 /// assert!(data["sequence_flow"].tag == "Thing");
 /// assert!(data["sequence_block"].tag == "Thing");
@@ -64,7 +64,7 @@ impl Tag {
     /// have to be. The following are equivalent:
     ///
     /// ```
-    /// use serde_yaml_bw::value::Tag;
+    /// use serde_yaml_gtc::value::Tag;
     ///
     /// assert_eq!(Tag::new("!Thing").unwrap(), Tag::new("Thing").unwrap());
     ///

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -10,7 +11,7 @@ struct Doc {
 #[test]
 fn yaml_az63_sequence_same_indent_as_parent_mapping() {
     let y = "one:\n- 2\n- 3\nfour: 5\n";
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse AZ63");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse AZ63");
     assert_eq!(d.one, vec![2, 3]);
     assert_eq!(d.four, 5);
 }

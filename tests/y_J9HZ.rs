@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +18,7 @@ rbi:
   - Sammy Sosa
   - Ken Griffey
 "#;
-    let v: Stats = serde_yaml_bw::from_str(y).expect("failed to parse J9HZ");
+    let v: Stats = serde_yaml::from_str(y).expect("failed to parse J9HZ");
     assert_eq!(
         v.hr,
         vec!["Mark McGwire".to_string(), "Sammy Sosa".to_string()]

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // VJP3: Flow collections over many lines
@@ -20,6 +21,6 @@ fn yaml_vjp3_flow_collections_multiline_valid() {
     // Valid case (second in the YAML file)
     let y = indoc::indoc!("k: {\n k\n :\n v\n }\n");
 
-    let v: Outer = serde_yaml_bw::from_str(y).expect("failed to parse VJP3 valid case");
+    let v: Outer = serde_yaml::from_str(y).expect("failed to parse VJP3 valid case");
     assert_eq!(v.k.k, "v");
 }

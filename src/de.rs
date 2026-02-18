@@ -53,9 +53,9 @@ pub enum DuplicateKeyStrategy {
 ///
 /// ```
 /// use serde::Deserialize;
-/// use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
+/// use serde_yaml_gtc::{Deserializer, DeserializerOptions, Value};
 ///
-/// fn main() -> Result<(), serde_yaml_bw::Error> {
+/// fn main() -> Result<(), serde_yaml_gtc::Error> {
 ///     let yaml = "a: 1\n";
 ///
 ///     // Start from defaults and tweak as needed.
@@ -111,11 +111,11 @@ impl Default for DeserializerOptions {
 /// ```
 /// use anyhow::Result;
 /// use serde::Deserialize;
-/// use serde_yaml_bw::Value;
+/// use serde_yaml_gtc::Value;
 ///
 /// fn main() -> Result<()> {
 ///     let input = "k: 107\n";
-///     let de = serde_yaml_bw::Deserializer::from_str(input);
+///     let de = serde_yaml_gtc::Deserializer::from_str(input);
 ///     let value = Value::deserialize(de)?;
 ///     println!("{:?}", value);
 ///     Ok(())
@@ -127,12 +127,12 @@ impl Default for DeserializerOptions {
 /// ```
 /// use anyhow::Result;
 /// use serde::Deserialize;
-/// use serde_yaml_bw::Value;
+/// use serde_yaml_gtc::Value;
 ///
 /// fn main() -> Result<()> {
 ///     let input = "---\nk: 107\n...\n---\nj: 106\n";
 ///
-///     for document in serde_yaml_bw::Deserializer::from_str(input) {
+///     for document in serde_yaml_gtc::Deserializer::from_str(input) {
 ///         let value = Value::deserialize(document)?;
 ///         println!("{:?}", value);
 ///     }
@@ -2347,7 +2347,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use serde_yaml_bw::{from_str_value_preserve, Value};
+/// use serde_yaml_gtc::{from_str_value_preserve, Value};
 ///
 /// let yaml = "a: &A 1\nb: *A";
 /// let mut v: Value = from_str_value_preserve(yaml).unwrap();
@@ -2426,7 +2426,7 @@ where
 /// retries: 2
 /// "#;
 ///
-/// let cfgs: Vec<Config> = serde_yaml_bw::from_multiple(yaml).unwrap();
+/// let cfgs: Vec<Config> = serde_yaml_gtc::from_multiple(yaml).unwrap();
 /// assert_eq!(cfgs.len(), 2);
 /// assert_eq!(cfgs[0].name, "First");
 /// ```

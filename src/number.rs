@@ -102,7 +102,7 @@ impl Number {
     /// Returns true if this value is NaN and false otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::Number;
+    /// # use serde_yaml_gtc::Number;
     /// #
     /// assert!(!Number::from(256.0).is_nan());
     ///
@@ -126,7 +126,7 @@ impl Number {
     /// false otherwise.
     ///
     /// ```
-    /// # use serde_yaml_bw::Number;
+    /// # use serde_yaml_gtc::Number;
     /// #
     /// assert!(!Number::from(256.0).is_infinite());
     ///
@@ -149,7 +149,7 @@ impl Number {
     /// Returns true if this number is neither infinite nor NaN.
     ///
     /// ```
-    /// # use serde_yaml_bw::Number;
+    /// # use serde_yaml_gtc::Number;
     /// #
     /// assert!(Number::from(256.0).is_finite());
     ///

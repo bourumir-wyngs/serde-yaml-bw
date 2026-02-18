@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // NHX8: Empty Lines at End of Document — mapping with empty key ("") and empty value (null)
@@ -14,7 +15,7 @@ fn yaml_nhx8_empty_lines_at_end_of_document() {
 "#;
 
     let v: HashMap<String, Option<String>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse NHX8");
+        serde_yaml::from_str(y).expect("failed to parse NHX8");
 
     assert_eq!(v.len(), 1);
     assert!(v.contains_key(""));

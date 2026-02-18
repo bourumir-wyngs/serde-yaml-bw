@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -50,12 +51,12 @@ fn yaml_pw8x_anchors_on_empty_scalars() {
 "#;
 
     // First, parse the outer test-suite wrapper.
-    let cases: Vec<CaseEnvelope> = serde_yaml_bw::from_str(&yaml)
+    let cases: Vec<CaseEnvelope> = serde_yaml::from_str(&yaml)
         .unwrap_or_else(|e| panic!("failed to parse PW8X wrapper: {e}"));
     assert_eq!(cases.len(), 1, "expected exactly one case in the wrapper");
 
     // Now parse the inner YAML content into the intended structure.
-    let v: Vec<Item> = serde_yaml_bw::from_str(&cases[0].yaml)
+    let v: Vec<Item> = serde_yaml::from_str(&cases[0].yaml)
         .unwrap_or_else(|e| panic!("failed to parse PW8X inner YAML: {e}"));
 
     assert_eq!(v.len(), 6, "expected 6 elements");

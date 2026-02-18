@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // NB6Z: Multiline plain value with tabs on empty lines
@@ -7,6 +8,6 @@ use std::collections::HashMap;
 #[test]
 fn yaml_nb6z_multiline_plain_with_tab_only_line() {
     let y = "key:\n  value\n  with\n  \t\n  tabs\n";
-    let v: HashMap<String, String> = serde_yaml_bw::from_str(y).expect("failed to parse NB6Z");
+    let v: HashMap<String, String> = serde_yaml::from_str(y).expect("failed to parse NB6Z");
     assert_eq!(v.get("key").map(String::as_str), Some("value with\ntabs"));
 }

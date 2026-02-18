@@ -1,6 +1,7 @@
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
-use serde_yaml_bw::{Deserializer, Value};
+use serde_yaml::{Deserializer, Value};
 mod utils;
 
 #[test]

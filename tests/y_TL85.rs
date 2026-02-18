@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // TL85: Spec Example 6.8. Flow Folding (double-quoted scalar)
 // Expected parsed value: " foo\nbar\nbaz "
 
@@ -5,7 +6,7 @@
 fn y_tl85_flow_folding_double_quoted() -> anyhow::Result<()> {
     let y = "\"\n  foo \n \n  bar\n\n  baz \n\"\n";
 
-    let s: String = serde_yaml_bw::from_str(y)?;
+    let s: String = serde_yaml::from_str(y)?;
     assert_eq!(s, " foo\nbar\nbaz ");
     Ok(())
 }

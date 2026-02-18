@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // J7VC: Empty Lines Between Mapping Elements
@@ -8,7 +9,7 @@ fn yaml_j7vc_empty_lines_between_mapping_elements() {
 
 three: 4
 "#;
-    let v: HashMap<String, i32> = serde_yaml_bw::from_str(y).expect("failed to parse J7VC");
+    let v: HashMap<String, i32> = serde_yaml::from_str(y).expect("failed to parse J7VC");
     assert_eq!(v.len(), 2);
     assert_eq!(v.get("one"), Some(&2));
     assert_eq!(v.get("three"), Some(&4));

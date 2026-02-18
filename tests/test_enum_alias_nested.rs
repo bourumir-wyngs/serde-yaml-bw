@@ -1,6 +1,7 @@
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
-use serde_yaml_bw::{Deserializer};
+use serde_yaml::{Deserializer};
 use std::fmt::Debug;
 
 fn test_de<T>(yaml: &str, expected: &T)

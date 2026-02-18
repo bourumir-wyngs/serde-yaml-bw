@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // SKE5: Anchor before zero indented sequence
 // Expected to parse into a mapping with key "seq" -> ["a","b"].
 
@@ -8,7 +9,7 @@ fn y_ske5_parse_anchor_before_zero_indented_sequence() {
     struct Root {
         seq: Vec<String>,
     }
-    let r: Result<Root, _> = serde_yaml_bw::from_str(y);
+    let r: Result<Root, _> = serde_yaml::from_str(y);
     assert!(
         r.is_ok(),
         "Parser failed to handle anchor-before-seq layout: {:?}",

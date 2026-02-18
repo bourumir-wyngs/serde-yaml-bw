@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // W5VH: Allowed characters in alias
@@ -17,7 +18,7 @@ fn yaml_w5vh_alias_with_special_characters() {
 b: *:@*!$"<foo>:
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse W5VH");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse W5VH");
     assert_eq!(v.a, "scalar a");
     assert_eq!(v.b, "scalar a");
 }

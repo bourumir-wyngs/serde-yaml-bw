@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // ZL4Z: Invalid nested mapping
 // YAML:
 // ---\n// a: 'b': c
@@ -8,7 +9,7 @@ fn yaml_zl4z_invalid_nested_mapping() {
     let y = r#"---
  a: 'b': c
 "#;
-    let result = serde_yaml_bw::from_str::<std::collections::BTreeMap<String, String>>(y);
+    let result = serde_yaml::from_str::<std::collections::BTreeMap<String, String>>(y);
     assert!(
         result.is_err(),
         "ZL4Z should be invalid YAML (nested mapping in plain/single-quoted) but parser accepted it: {:?}",

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // 4HVU: Wrong indentation in Sequence — marked fail: true
 // Expect parsing to return an error (no panic).
 #[test]
@@ -8,7 +9,7 @@ fn yaml_4hvu_wrong_indentation_in_sequence_should_fail() {
     struct Doc {
         key: Vec<String>,
     }
-    let result: Result<Doc, _> = serde_yaml_bw::from_str(y);
+    let result: Result<Doc, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "4HVU should fail to parse due to wrong indentation in sequence"

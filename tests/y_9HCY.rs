@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 // 9HCY: Need document footer before directives
@@ -9,7 +10,7 @@ use serde_json::Value;
 fn yaml_9hcy_need_document_footer_before_directives() {
     let y = indoc::indoc!("!foo \"bar\"\n%TAG ! tag:example.com,2000:app/\n---\n!foo \"bar\"\n");
 
-    let result: Result<Vec<Value>, serde_yaml_bw::Error> = serde_yaml_bw::from_multiple(y);
+    let result: Result<Vec<Value>, serde_yaml::Error> = serde_yaml::from_multiple(y);
 
     assert!(
         result.is_err(),

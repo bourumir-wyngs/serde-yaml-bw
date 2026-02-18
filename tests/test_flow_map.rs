@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
-use serde_yaml_bw::{to_string, FlowMap};
+use serde_yaml::{to_string, FlowMap};
 use std::collections::BTreeMap;
 
 #[derive(Serialize)]
@@ -34,8 +35,8 @@ fn test_flow_map_round_trip() -> Result<(), Box<dyn std::error::Error>> {
     m.insert("y".to_string(), 20);
     let f: FlowMap<BTreeMap<String, i32>> = FlowMap(m);
 
-    let yaml = serde_yaml_bw::to_string(&f)?;
-    let from_yaml: FlowMap<BTreeMap<String, i32>> = serde_yaml_bw::from_str(&yaml)?;
+    let yaml = serde_yaml::to_string(&f)?;
+    let from_yaml: FlowMap<BTreeMap<String, i32>> = serde_yaml::from_str(&yaml)?;
 
     assert_eq!(from_yaml, f, "Deserialized value should equal the original");
 

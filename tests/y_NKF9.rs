@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // NKF9: Empty keys in block and flow mapping across four documents.
@@ -21,7 +22,7 @@ key: value
 "#;
 
     type Map = HashMap<Option<String>, Option<String>>;
-    let docs: Vec<Map> = serde_yaml_bw::from_multiple(y).expect("failed to parse NKF9");
+    let docs: Vec<Map> = serde_yaml::from_multiple(y).expect("failed to parse NKF9");
     assert_eq!(docs.len(), 4);
 
     // Doc 1: block mapping with one normal and one empty key

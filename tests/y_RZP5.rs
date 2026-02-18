@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -31,7 +32,7 @@ block: > # lala
     // We parse into a BTreeMap with a flexible Key that can be either a String or a sequence of strings,
     // and serde_json::Value for values (sufficient for verifying shapes and leaf scalars here).
     let map: BTreeMap<Key, serde_json::Value> =
-        serde_yaml_bw::from_str(yaml).expect("parse YAML with structured key");
+        serde_yaml::from_str(yaml).expect("parse YAML with structured key");
 
     // a: "double quotes"
     assert_eq!(

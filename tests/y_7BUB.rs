@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 7BUB: Node for "Sammy Sosa" appears twice via anchor/alias
@@ -10,7 +11,7 @@ struct Teams {
 #[test]
 fn yaml_7bub_alias_occurrence_twice() {
     let y = "---\nhr:\n  - Mark McGwire\n  # Following node labeled SS\n  - &SS Sammy Sosa\nrbi:\n  - *SS # Subsequent occurrence\n  - Ken Griffey\n";
-    let t: Teams = serde_yaml_bw::from_str(y).expect("failed to parse 7BUB");
+    let t: Teams = serde_yaml::from_str(y).expect("failed to parse 7BUB");
 
     assert_eq!(
         t.hr,

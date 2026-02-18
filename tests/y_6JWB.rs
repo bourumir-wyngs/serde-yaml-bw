@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -17,7 +18,7 @@ enum Entry {
 #[test]
 fn yaml_6jwb_tags_for_block_objects() {
     let y = "foo: !!seq\n  - !!str a\n  - !!map\n    key: !!str value\n";
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse 6JWB");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse 6JWB");
     assert_eq!(d.foo.len(), 2);
     match &d.foo[0] {
         Entry::S(s) => assert_eq!(s, "a"),

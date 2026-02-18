@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -9,7 +10,7 @@ struct UrlEntry {
 fn y_udm2_plain_url_in_flow_mapping() {
     let yaml = "- { url: http://example.org }\n";
 
-    let v: Vec<UrlEntry> = serde_yaml_bw::from_str(yaml).expect("failed to parse UDM2 YAML");
+    let v: Vec<UrlEntry> = serde_yaml::from_str(yaml).expect("failed to parse UDM2 YAML");
 
     assert_eq!(v.len(), 1);
     assert_eq!(v[0].url, "http://example.org");

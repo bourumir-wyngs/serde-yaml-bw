@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use chrono::{DateTime, Utc, TimeZone};
 use serde::{Serialize, Deserialize};
 
@@ -42,11 +43,11 @@ fn test_custom_date_serialization() {
     };
 
     // Serialize struct to JSON
-    let serialized = serde_yaml_bw::to_string(&original).expect("Serialization failed");
+    let serialized = serde_yaml::to_string(&original).expect("Serialization failed");
     assert_eq!(serialized, "timestamp: 2025-07-25 11:32:42\ntester: Bourumir\n");
 
     // Deserialize back from JSON
-    let deserialized: StructWithDate = serde_yaml_bw::from_str(&serialized).expect("Deserialization failed");
+    let deserialized: StructWithDate = serde_yaml::from_str(&serialized).expect("Deserialization failed");
 
     // Assert equality
     assert_eq!(original, deserialized);

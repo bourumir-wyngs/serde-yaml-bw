@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use anyhow::Result;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -59,7 +60,7 @@ global:
     get: 0
 "#;
 
-        let _res: Root = serde_yaml_bw::from_str(yaml)?;
+        let _res: Root = serde_yaml::from_str(yaml)?;
         Ok(())
     }
 }

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 6HB6: Indentation Spaces — nested mapping and a flow-style-like list in dump
@@ -19,7 +20,7 @@ struct Root {
 fn yaml_6hb6_indentation_spaces() {
     // Use the simplified dump representation from the suite to avoid glyphs.
     let y = "Not indented:\n  By one space: |\n    By four\n      spaces\n  Flow style:\n  - By two\n  - Also by two\n  - Still by two\n";
-    let d: Root = serde_yaml_bw::from_str(y).expect("failed to parse 6HB6");
+    let d: Root = serde_yaml::from_str(y).expect("failed to parse 6HB6");
     assert_eq!(d.not_indented.by_one_space, "By four\n  spaces\n");
     assert_eq!(
         d.not_indented.flow_style,

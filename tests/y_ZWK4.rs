@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // ZWK4: Key with anchor after missing explicit mapping value
@@ -23,7 +24,7 @@ fn yaml_zwk4_explicit_key_missing_value_and_anchor() {
  &anchor c: 3
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse ZWK4");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse ZWK4");
     assert_eq!(v.a, 1);
     assert_eq!(v.b, None);
     assert_eq!(v.c, 3);

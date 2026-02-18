@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // J7PZ: Spec Example 2.26. Ordered Mappings (!!omap)
@@ -11,7 +12,7 @@ fn yaml_j7pz_ordered_mappings_omap() {
 "#;
     // Our deserializer generally ignores unknown tags and parses the content structure.
     // Expect a Vec of HashMaps with single entries each.
-    let v: Vec<HashMap<String, i32>> = serde_yaml_bw::from_str(y).expect("failed to parse J7PZ");
+    let v: Vec<HashMap<String, i32>> = serde_yaml::from_str(y).expect("failed to parse J7PZ");
     assert_eq!(v.len(), 3);
     assert_eq!(v[0].get("Mark McGwire"), Some(&65));
     assert_eq!(v[1].get("Sammy Sosa"), Some(&63));

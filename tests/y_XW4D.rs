@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -44,7 +45,7 @@ block: > # lala
   abcde
 "#;
 
-    let doc: Doc = serde_yaml_bw::from_str(&yaml)?;
+    let doc: Doc = serde_yaml::from_str(&yaml)?;
 
     // Assert parsed values
     assert_eq!(doc.a, "double quotes");

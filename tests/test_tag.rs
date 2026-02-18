@@ -1,4 +1,5 @@
-use serde_yaml_bw::value::Tag;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::value::Tag;
 
 #[test]
 fn tag_new_empty_returns_err() {

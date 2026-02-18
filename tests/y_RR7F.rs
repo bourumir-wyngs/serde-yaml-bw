@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -13,7 +14,7 @@ fn y_rr7f() {
 : 23
 "#;
 
-    let v: Root = serde_yaml_bw::from_str(yaml).expect("parse inner YAML");
+    let v: Root = serde_yaml::from_str(yaml).expect("parse inner YAML");
     assert!((v.a - 4.2).abs() < 1e-12);
     assert_eq!(v.d, 23);
 }

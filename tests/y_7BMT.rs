@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -16,7 +17,7 @@ struct Root {
 #[test]
 fn yaml_7bmt_node_and_mapping_key_anchors() {
     let y = "---\ntop1: &node1\n  &k1 key1: one\ntop2: &node2 # comment\n  key2: two\ntop3:\n  &k3 key3: three\ntop4: &node4\n  &k4 key4: four\ntop5: &node5\n  key5: five\ntop6: &val6\n  six\ntop7:\n  &val7 seven\n";
-    let r: Root = serde_yaml_bw::from_str(y).expect("failed to parse 7BMT");
+    let r: Root = serde_yaml::from_str(y).expect("failed to parse 7BMT");
 
     assert_eq!(r.top1.get("key1").map(String::as_str), Some("one"));
     assert_eq!(r.top2.get("key2").map(String::as_str), Some("two"));

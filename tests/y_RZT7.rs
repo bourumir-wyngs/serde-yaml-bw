@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -27,7 +28,7 @@ struct LogDoc {
 fn yaml_rzt7_spec_example_log_file() {
     let y = "---\nTime: 2001-11-23 15:01:42 -5\nUser: ed\nWarning:\n  This is an error message\n  for the log file\n---\nTime: 2001-11-23 15:02:31 -5\nUser: ed\nWarning:\n  A slightly different error\n  message.\n---\nDate: 2001-11-23 15:03:17 -5\nUser: ed\nFatal:\n  Unknown variable \"bar\"\nStack:\n  - file: TopClass.py\n    line: 23\n    code: |\n      x = MoreObject(\"345\\n\")\n  - file: MoreClass.py\n    line: 58\n    code: |-\n      foo = bar\n";
 
-    let docs: Vec<LogDoc> = serde_yaml_bw::from_multiple(&y).expect("unexpected parse error");
+    let docs: Vec<LogDoc> = serde_yaml::from_multiple(&y).expect("unexpected parse error");
 
     assert_eq!(docs.len(), 3);
 

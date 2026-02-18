@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // X4QW: Comment without whitespace after block scalar indicator (invalid)
 // Suite marks this as fail: true. Our test should ensure parser returns an error.
 
@@ -8,5 +9,5 @@ fn yaml_x4qw_comment_immediately_after_folded_indicator_should_error() {
   scalar
 "#;
 
-    assert!(serde_yaml_bw::from_str::<std::collections::BTreeMap<String, String>>(y).is_err());
+    assert!(serde_yaml::from_str::<std::collections::BTreeMap<String, String>>(y).is_err());
 }

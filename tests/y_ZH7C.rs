@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // ZH7C: Anchors in Mapping
@@ -18,7 +19,7 @@ fn yaml_zh7c_anchors_in_mapping() {
 c: &d d
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse ZH7C");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse ZH7C");
     assert_eq!(v.a, "b");
     assert_eq!(v.c, "d");
 }

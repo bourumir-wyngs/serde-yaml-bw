@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 // S4JQ: Non-Specific Tags
@@ -10,7 +11,7 @@ use serde_json::Value;
 fn yaml_s4jq_non_specific_tags_types() {
     // The non-specific tag `!` must force scalar to be treated as string.
     let y = "- \"12\"\n- 12\n- ! 12\n";
-    let v: Value = serde_yaml_bw::from_str(y).unwrap();
+    let v: Value = serde_yaml::from_str(y).unwrap();
     let a = v.as_array().expect("root not a sequence");
     assert_eq!(a.len(), 3);
 

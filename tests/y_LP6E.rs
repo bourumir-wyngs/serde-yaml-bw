@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // LP6E: Whitespace After Scalars in Flow
@@ -22,11 +23,14 @@ fn yaml_lp6e_whitespace_after_scalars_in_flow() {
         M(HashMap<String, String>),
     }
 
-    let v: Vec<Elem> = serde_yaml_bw::from_str(y).expect("failed to parse LP6E");
+    let v: Vec<Elem> = serde_yaml::from_str(y).expect("failed to parse LP6E");
     assert_eq!(v.len(), 3);
 
     match &v[0] {
-        Elem::L(xs) => assert_eq!(xs, &vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+        Elem::L(xs) => {
+            let expected = ["a".to_string(), "b".to_string(), "c".to_string()];
+            assert_eq!(xs.as_slice(), expected.as_slice());
+        }
         _ => panic!("first not list"),
     }
     match &v[1] {

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -36,9 +37,9 @@ fn parse_all_with_serde_yaml_from_bytes(input: &[u8]) -> anyhow::Result<Vec<serd
     Ok(docs)
 }
 
-fn parse_all_with_bw_from_bytes(input: &[u8]) -> serde_yaml_bw::Result<Vec<serde_yaml_bw::Value>> {
+fn parse_all_with_bw_from_bytes(input: &[u8]) -> serde_yaml::Result<Vec<serde_yaml::Value>> {
     use serde::Deserialize;
-    use serde_yaml_bw::{Deserializer, Value};
+    use serde_yaml::{Deserializer, Value};
     let opts = utils::opts_no_pathology();
     let mut out = Vec::new();
     let de = Deserializer::from_slice_with_options(input, &opts);
@@ -72,7 +73,7 @@ fn classify_serde(input: &[u8]) -> (Status, Option<Vec<serde_yaml::Value>>) {
 
 // Same classifier for our parser, also protected with catch_unwind so we can
 // print a clean per-file summary even if our code panics on some inputs.
-fn classify_bw(input: &[u8]) -> (Status, Option<Vec<serde_yaml_bw::Value>>) {
+fn classify_bw(input: &[u8]) -> (Status, Option<Vec<serde_yaml::Value>>) {
     let res = catch_unwind(AssertUnwindSafe(|| parse_all_with_bw_from_bytes(input)));
     match res {
         Err(_) => (Status::Crash, None),
@@ -171,9 +172,9 @@ fn yaml_test_suite_differential() -> Result<()> {
         // Serialize our docs back to YAML using our serializer and compare by
         // re-parsing with serde_yaml into Values, then equality check.
         let bw_yaml = if bw_docs.len() == 1 {
-            serde_yaml_bw::to_string(&bw_docs[0])?
+            serde_yaml::to_string(&bw_docs[0])?
         } else {
-            serde_yaml_bw::to_string_multi(&bw_docs)?
+            serde_yaml::to_string_multi(&bw_docs)?
         };
 
         let reparsed_by_serde = parse_all_with_serde_yaml_from_bytes(bw_yaml.as_bytes())?;
@@ -187,14 +188,14 @@ fn yaml_test_suite_differential() -> Result<()> {
         // and ensure our parser reads them back to an equivalent structure
         // (as judged again by serde_yaml).
         let ser_yaml_via_bw = if ser_docs.len() == 1 {
-            serde_yaml_bw::to_string(&ser_docs[0])?
+            serde_yaml::to_string(&ser_docs[0])?
         } else {
-            serde_yaml_bw::to_string_multi(&ser_docs)?
+            serde_yaml::to_string_multi(&ser_docs)?
         };
 
         let reparsed_bw = parse_all_with_bw_from_bytes(ser_yaml_via_bw.as_bytes())?;
         let reparsed_bw_via_serde = parse_all_with_serde_yaml_from_bytes(
-            serde_yaml_bw::to_string_multi(&reparsed_bw)?.as_bytes(),
+            serde_yaml::to_string_multi(&reparsed_bw)?.as_bytes(),
         )?;
         assert_eq!(
             reparsed_bw_via_serde, ser_docs,

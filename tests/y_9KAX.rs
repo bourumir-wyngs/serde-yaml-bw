@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -40,7 +41,7 @@ a6: 1
 !!str &a11
 value11
 "#;
-    let docs: Vec<Doc> = serde_yaml_bw::from_multiple(y).expect("failed to parse 9KAX");
+    let docs: Vec<Doc> = serde_yaml::from_multiple(y).expect("failed to parse 9KAX");
     assert_eq!(docs.len(), 8);
 
     assert!(matches!(&docs[0], Doc::S(s) if s == "scalar1"));

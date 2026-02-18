@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // The YAML in tests/yaml-test-suite/src/2AUY.yaml under the `yaml:` key is a
@@ -13,7 +14,7 @@ struct TaggedSeq(String, String, i32, String);
 fn parse_tagged_sequence_with_explicit_scalar_tags() {
     let yaml = "- !!str a\n- b\n- !!int 42\n- d\n";
 
-    let v: TaggedSeq = serde_yaml_bw::from_str(yaml).expect("failed to parse tagged sequence");
+    let v: TaggedSeq = serde_yaml::from_str(yaml).expect("failed to parse tagged sequence");
 
     assert_eq!(v, TaggedSeq("a".into(), "b".into(), 42, "d".into()));
 }

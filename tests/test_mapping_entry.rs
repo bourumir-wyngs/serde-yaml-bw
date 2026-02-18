@@ -1,5 +1,6 @@
-use serde_yaml_bw::{Mapping, Value};
-use serde_yaml_bw::mapping::Entry;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{Mapping, Value};
+use serde_yaml::mapping::Entry;
 
 #[test]
 fn test_entry_and_modify() {

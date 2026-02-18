@@ -1,4 +1,5 @@
-use serde_yaml_bw::Value;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::Value;
 
 #[test]
 fn test_value_number_cross_type_ordering_equality() {
@@ -36,17 +37,17 @@ fn test_value_number_ordering_int_float() {
 #[test]
 fn test_special_floats_round_trip() {
     // NaN round-trip: cannot compare equality, but we can assert is_nan after deserialization.
-    let nan_yaml = serde_yaml_bw::to_string(&f64::NAN).expect("serialize NaN");
-    let nan_back: f64 = serde_yaml_bw::from_str(&nan_yaml).expect("deserialize NaN");
+    let nan_yaml = serde_yaml::to_string(&f64::NAN).expect("serialize NaN");
+    let nan_back: f64 = serde_yaml::from_str(&nan_yaml).expect("deserialize NaN");
     assert!(nan_back.is_nan(), "Expected NaN after round-trip, got {nan_back:?} (yaml: {nan_yaml})");
 
     // +Inf round-trip
-    let inf_yaml = serde_yaml_bw::to_string(&f64::INFINITY).expect("serialize +inf");
-    let inf_back: f64 = serde_yaml_bw::from_str(&inf_yaml).expect("deserialize +inf");
+    let inf_yaml = serde_yaml::to_string(&f64::INFINITY).expect("serialize +inf");
+    let inf_back: f64 = serde_yaml::from_str(&inf_yaml).expect("deserialize +inf");
     assert!(inf_back.is_infinite() && inf_back.is_sign_positive(), "Expected +inf after round-trip (yaml: {inf_yaml})");
 
     // -Inf round-trip
-    let ninf_yaml = serde_yaml_bw::to_string(&f64::NEG_INFINITY).expect("serialize -inf");
-    let ninf_back: f64 = serde_yaml_bw::from_str(&ninf_yaml).expect("deserialize -inf");
+    let ninf_yaml = serde_yaml::to_string(&f64::NEG_INFINITY).expect("serialize -inf");
+    let ninf_back: f64 = serde_yaml::from_str(&ninf_yaml).expect("deserialize -inf");
     assert!(ninf_back.is_infinite() && ninf_back.is_sign_negative(), "Expected -inf after round-trip (yaml: {ninf_yaml})");
 }

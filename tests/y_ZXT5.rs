@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // ZXT5: Implicit key followed by newline and adjacent value (invalid)
 // YAML:
 // [ "key"\n//   :value ]
@@ -8,7 +9,7 @@ fn yaml_zxt5_implicit_key_newline_adjacent_value_invalid() {
     let y = r#"[ "key"
   :value ]
 "#;
-    let result = serde_yaml_bw::from_str::<std::collections::BTreeMap<String, String>>(y);
+    let result = serde_yaml::from_str::<std::collections::BTreeMap<String, String>>(y);
     assert!(
         result.is_err(),
         "ZXT5 should be invalid YAML (implicit key followed by newline and adjacent value) but parser accepted it: {:?}",

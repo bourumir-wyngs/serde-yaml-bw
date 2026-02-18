@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // EX5H: Multiline scalar at top level (YAML 1.3 modified case)
 // Expected combined content: "a b c d\ne"
 
@@ -15,6 +16,6 @@ d
     // Here we embed two literal spaces after 'b' to match the intended content.
     let y = y.replace('\u{001a}', " "); // replace placeholders with spaces to keep file readable
 
-    let s: String = serde_yaml_bw::from_str(&y).expect("failed to parse EX5H");
+    let s: String = serde_yaml::from_str(&y).expect("failed to parse EX5H");
     assert_eq!(s, "a b c d\ne");
 }

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // L94M: Tags in Explicit Mapping
@@ -16,7 +17,7 @@ fn yaml_l94m_tags_in_explicit_mapping() {
 ? c
 : !!str d
 "#;
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse L94M");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse L94M");
     assert_eq!(
         v,
         Root {

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // ZYU8: Directive variants
 // The suite notes these are valid per 1.2 productions but "not usefully valid" and are skipped.
 // We'll implement the first case only: "%YAML1.1" followed by an empty document `---`.
@@ -10,7 +11,7 @@
 #[test]
 fn yaml_zyu8_directive_variant_yaml11_null_document() -> anyhow::Result<()> {
     let y = "%YAML1.1\n---\n";
-    let v: Option<i32> = serde_yaml_bw::from_str(y)?;
+    let v: Option<i32> = serde_yaml::from_str(y)?;
     assert!(v.is_none(), "Expected null document to deserialize to None");
     Ok(())
 }
@@ -19,7 +20,7 @@ fn yaml_zyu8_directive_variant_yaml11_null_document() -> anyhow::Result<()> {
 fn yaml_zyu8_directive_variant_spaced_yaml11_null_document() -> anyhow::Result<()> {
     // With space is fine.
     let y = "%YAML 1.1\n---\n";
-    let v: Option<i32> = serde_yaml_bw::from_str(y)?;
+    let v: Option<i32> = serde_yaml::from_str(y)?;
     assert!(v.is_none(), "Expected null document to deserialize to None");
     Ok(())
 }

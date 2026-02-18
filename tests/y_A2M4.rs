@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ enum Elem {
 #[test]
 fn yaml_a2m4_indentation_indicators() {
     let y = "? a\n: - b\n  -  - c\n     - d\n";
-    let m: HashMap<String, Vec<Elem>> = serde_yaml_bw::from_str(y).expect("failed to parse A2M4");
+    let m: HashMap<String, Vec<Elem>> = serde_yaml::from_str(y).expect("failed to parse A2M4");
     let v = m.get("a").expect("missing key 'a'");
     assert_eq!(v.len(), 2);
     match &v[0] {

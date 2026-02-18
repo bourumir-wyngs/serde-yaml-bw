@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // JR7V: Question marks in scalars and keys
@@ -21,7 +22,7 @@ fn yaml_jr7v_question_marks_in_scalars_and_keys() {
         M(HashMap<String, String>),
     }
 
-    let v: Vec<Elem> = serde_yaml_bw::from_str(y).expect("failed to parse JR7V");
+    let v: Vec<Elem> = serde_yaml::from_str(y).expect("failed to parse JR7V");
     assert_eq!(v.len(), 8);
 
     // 1: "a?string"

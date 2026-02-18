@@ -1,9 +1,10 @@
-use serde_yaml_bw::Value;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::Value;
 
 #[test]
 fn sequence_indexing() {
     let yaml = "- a\n- b";
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
 
     assert_eq!(value[0], Value::from("a"));
     assert_eq!(value[2], Value::Null(None));
@@ -12,7 +13,7 @@ fn sequence_indexing() {
 #[test]
 fn mapping_indexing() {
     let yaml = "k: v";
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
 
     assert_eq!(value["k"], Value::from("v"));
     assert_eq!(value["missing"], Value::Null(None));
@@ -22,7 +23,7 @@ fn mapping_indexing() {
 #[test]
 fn nested_indexing() {
     let yaml = "a:\n  - b\n  - c";
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
 
     assert_eq!(value["a"][0], Value::from("b"));
     assert_eq!(value["a"][5], Value::Null(None));

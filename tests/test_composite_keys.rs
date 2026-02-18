@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,7 +26,7 @@ fn test_deserialize_transform() {
     map.insert(Point { x: 1, y: 2 }, Point { x: 3, y: 4 });
     map.insert(Point { x: 5, y: 6 }, Point { x: 7, y: 8 });
     let expected = Transform { map };
-    let actual: Transform = serde_yaml_bw::from_str(yaml).unwrap();
+    let actual: Transform = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(actual, expected);
 }
 
@@ -35,7 +36,7 @@ fn test_serialize_transform() {
     map.insert(Point { x: 1, y: 2 }, Point { x: 3, y: 4 });
     map.insert(Point { x: 5, y: 6 }, Point { x: 7, y: 8 });
     let transform = Transform { map };
-    let yaml = serde_yaml_bw::to_string(&transform).unwrap();
+    let yaml = serde_yaml::to_string(&transform).unwrap();
     let expected_a = indoc! {
         "
         map:
@@ -74,9 +75,9 @@ fn readme_main() {
 "#;
 
     // Deserialize YAML into the Transform struct.
-    let transform: Transform = serde_yaml_bw::from_str(yaml).unwrap();
+    let transform: Transform = serde_yaml::from_str(yaml).unwrap();
 
     // Serializing will produce the same mapping (order may vary).
-    let serialized = serde_yaml_bw::to_string(&transform).unwrap();
+    let serialized = serde_yaml::to_string(&transform).unwrap();
     println!("{}", serialized);
 }

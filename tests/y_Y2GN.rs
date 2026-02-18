@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // Y2GN: Anchor with colon in the middle of the anchor name.
@@ -16,6 +17,6 @@ fn yaml_y2gn_anchor_with_colon_in_name() {
 key: &an:chor value
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse Y2GN");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse Y2GN");
     assert_eq!(v.key, "value");
 }

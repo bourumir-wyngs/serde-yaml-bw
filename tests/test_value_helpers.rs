@@ -1,4 +1,5 @@
-use serde_yaml_bw::{Mapping, Number, Sequence, Value};
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{Mapping, Number, Sequence, Value};
 
 #[test]
 fn test_value_accessors() {

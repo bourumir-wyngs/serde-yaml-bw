@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -8,7 +9,7 @@ struct Outer { inner: Inner }
 #[test]
 fn custom_indent() {
     let mut buf = Vec::new();
-    let mut ser = serde_yaml_bw::SerializerBuilder::new()
+    let mut ser = serde_yaml::SerializerBuilder::new()
         .indent(4)
         .build(&mut buf)
         .unwrap();
@@ -23,7 +24,7 @@ fn custom_width() {
     #[derive(Serialize)]
     struct Data { text: String }
     let mut buf = Vec::new();
-    let mut ser = serde_yaml_bw::SerializerBuilder::new()
+    let mut ser = serde_yaml::SerializerBuilder::new()
         .width(10)
         .build(&mut buf)
         .unwrap();

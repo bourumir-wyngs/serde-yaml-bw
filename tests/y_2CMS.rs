@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 2CMS: "Invalid mapping in plain multiline" — the snippet under the `yaml:` key
@@ -13,6 +14,6 @@ struct Dummy {
 fn yaml_2cms_invalid_mapping_in_plain_multiline_fails() {
     let yaml = "this\n is\n  invalid: x\n";
 
-    let result: Result<Dummy, _> = serde_yaml_bw::from_str(yaml);
+    let result: Result<Dummy, _> = serde_yaml::from_str(yaml);
     assert!(result.is_err(), "2CMS snippet should fail to parse, but it succeeded: {:?}", result);
 }

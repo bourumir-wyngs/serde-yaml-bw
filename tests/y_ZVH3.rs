@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // ZVH3: Wrong indented sequence item
 // YAML:
 // - key: value
@@ -9,7 +10,7 @@ fn yaml_zvh3_wrong_indented_sequence_item() {
     let y = r#"- key: value
  - item1
 "#;
-    let result = serde_yaml_bw::from_str::<std::collections::BTreeMap<String, String>>(y);
+    let result = serde_yaml::from_str::<std::collections::BTreeMap<String, String>>(y);
     assert!(
         result.is_err(),
         "ZVH3 should be invalid YAML (wrong indentation for sequence item) but parser accepted it: {:?}",

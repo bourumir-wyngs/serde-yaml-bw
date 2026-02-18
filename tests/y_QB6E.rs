@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // QB6E: Wrong indented multiline quoted scalar — this YAML is expected to fail to parse.
 // We attempt to parse into a simple struct; if the parser correctly rejects it, the test passes.
 use serde::Deserialize;
@@ -16,7 +17,7 @@ quoted: "a
 b
 c""#;
 
-    let r: Result<Doc, _> = serde_yaml_bw::from_str(y);
+    let r: Result<Doc, _> = serde_yaml::from_str(y);
     assert!(
         r.is_err(),
         "Parser accepted malformed multiline double-quoted scalar; per test-suite this should fail. If this keeps passing, mark as #[ignore] and note parser limitation."

@@ -1,4 +1,5 @@
-use serde_yaml_bw::{self as yaml, Value, Error};
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{self as yaml, Value, Error};
 
 #[test]
 fn prescan_reports_location_and_message() {

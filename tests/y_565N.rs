@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 565N: Construct Binary — test both !!binary inline and block forms decode to the same bytes
@@ -30,7 +31,7 @@ fn yaml_565n_construct_binary() {
         " The binary value above is a tiny arrow encoded as a gif image.\n",
     );
 
-    let d: BinDoc = serde_yaml_bw::from_str(y).expect("failed to parse 565N");
+    let d: BinDoc = serde_yaml::from_str(y).expect("failed to parse 565N");
     assert_eq!(d.canonical, d.generic);
     assert!(!d.canonical.is_empty());
     assert!(d.description.contains("tiny arrow"));

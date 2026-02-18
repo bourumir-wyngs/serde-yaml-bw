@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 // PUW8: Document start on last line — second document is empty
@@ -9,7 +10,7 @@ a: b
 ---
 "#;
     let docs: Vec<BTreeMap<String, String>> =
-        serde_yaml_bw::from_multiple(&y).expect("failed to parse PUW8 as multiple documents");
+        serde_yaml::from_multiple(&y).expect("failed to parse PUW8 as multiple documents");
     // Only the first document has content; the trailing '---' alone represents an empty doc which should be skipped.
     assert_eq!(
         docs.len(),

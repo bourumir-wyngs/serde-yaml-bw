@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // PRH3: Single quoted lines with folding
 #[test]
 fn yaml_prh3_single_quoted_lines() {
@@ -6,6 +7,6 @@ fn yaml_prh3_single_quoted_lines() {
   2nd non-empty 
 	3rd non-empty '
 "#;
-    let s: String = serde_yaml_bw::from_str(&y).expect("failed to parse PRH3");
+    let s: String = serde_yaml::from_str(&y).expect("failed to parse PRH3");
     assert_eq!(s, " 1st non-empty\n2nd non-empty 3rd non-empty ");
 }

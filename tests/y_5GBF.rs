@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
-use serde_yaml_bw::Error;
+use serde_yaml::Error;
 
 // 5GBF: Empty lines and chomping behaviors
 #[derive(Debug, Deserialize, PartialEq)]
@@ -25,7 +26,7 @@ chomping: |
 
 "#;
 
-    let _d: Error = serde_yaml_bw::from_str::<Doc>(y_wrong).expect_err("This should fail");
+    let _d: Error = serde_yaml::from_str::<Doc>(y_wrong).expect_err("This should fail");
 
     // Line break in quoted scalar must be folded in one space
     let y = r#"
@@ -42,7 +43,7 @@ chomping: |
 
 "#;
 
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse");
 
     // Expect: Folding becomes "Empty line\nas a line feed",
     assert_eq!(d.folding, "Empty line as a line feed");

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 // S7BG: Colon followed by comma
@@ -5,7 +6,7 @@ use serde_json::Value;
 #[test]
 fn yaml_s7bg_colon_followed_by_comma_scalar() {
     let y = "---\n- :,\n";
-    let v: Value = serde_yaml_bw::from_str(y).unwrap();
+    let v: Value = serde_yaml::from_str(y).unwrap();
     let a = v.as_array().expect("root not a sequence");
     assert_eq!(a.len(), 1);
     assert_eq!(a[0], Value::String(":,".into()));

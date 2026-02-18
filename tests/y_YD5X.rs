@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // YD5X: Spec Example 2.5. Sequence of Sequences
@@ -19,7 +20,7 @@ fn yaml_yd5x_sequence_of_sequences() {
 - [Sammy Sosa  , 63, 0.288]
 "#;
 
-    let rows: Vec<Vec<Cell>> = serde_yaml_bw::from_str(y).expect("failed to parse YD5X");
+    let rows: Vec<Vec<Cell>> = serde_yaml::from_str(y).expect("failed to parse YD5X");
     assert_eq!(
         rows,
         vec![

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -24,7 +25,7 @@ fn yaml_q9wf_complex_key_flow_mapping_as_key() {
    0.278
 "#;
 
-    let map: BTreeMap<PlayerKey, Stats> = serde_yaml_bw::from_str(&y)
+    let map: BTreeMap<PlayerKey, Stats> = serde_yaml::from_str(&y)
         .expect("Q9WF should parse: flow mapping used as map key with nested mapping value");
 
     assert_eq!(map.len(), 1);

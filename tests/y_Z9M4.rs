@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // Z9M4: Global Tag Prefix via %TAG directive and a shorthand tag on a scalar.
 // The value should deserialize as a plain string ignoring the tag semantics.
 // YAML:
@@ -12,7 +13,7 @@ fn yaml_z9m4_global_tag_prefix() -> anyhow::Result<()> {
 - !e!foo "bar"
 "#;
 
-    let v: Vec<String> = serde_yaml_bw::from_str(y)?;
+    let v: Vec<String> = serde_yaml::from_str(y)?;
     assert_eq!(v, vec!["bar".to_string()]);
     Ok(())
 }

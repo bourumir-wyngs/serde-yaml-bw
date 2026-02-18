@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // MZX3: Non-Specific Tags on Scalars — sequence of various scalar forms
 #[test]
 fn yaml_mzx3_non_specific_tags_on_scalars() {
@@ -9,7 +10,7 @@ fn yaml_mzx3_non_specific_tags_on_scalars() {
   block
 - plain again
 "#;
-    let v: Vec<String> = serde_yaml_bw::from_str(y).expect("failed to parse MZX3");
+    let v: Vec<String> = serde_yaml::from_str(y).expect("failed to parse MZX3");
     assert_eq!(
         v,
         vec![

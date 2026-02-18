@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 #[test]
@@ -9,7 +10,7 @@ fn y_qt73() {
     let yaml = r#"# comment
 ..."#;
 
-    let res: Result<Value, _> = serde_yaml_bw::from_str(yaml);
+    let res: Result<Value, _> = serde_yaml::from_str(yaml);
     match res {
         Ok(val) => assert_eq!(
             val,

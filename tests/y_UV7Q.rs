@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // UV7Q: Legal tab after indentation — multiline plain scalar folded into one value
@@ -15,6 +16,6 @@ fn yaml_uv7q_tab_after_indentation() {
     // the newline to a space => `"x x"`.
     let yaml = "x:\n - x\n   \tx\n";
 
-    let v: Doc = serde_yaml_bw::from_str(yaml).expect("failed to parse UV7Q");
+    let v: Doc = serde_yaml::from_str(yaml).expect("failed to parse UV7Q");
     assert_eq!(v.x, vec!["x x".to_string()]);
 }

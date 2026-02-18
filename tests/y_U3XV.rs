@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -37,7 +38,7 @@ fn yaml_u3xv_node_and_key_anchors() {
       &val7 seven
 "#;
 
-    let r: Root = serde_yaml_bw::from_str(y).expect("failed to parse U3XV");
+    let r: Root = serde_yaml::from_str(y).expect("failed to parse U3XV");
 
     assert_eq!(r.top1.get("key1").map(String::as_str), Some("one"));
     assert_eq!(r.top2.get("key2").map(String::as_str), Some("two"));

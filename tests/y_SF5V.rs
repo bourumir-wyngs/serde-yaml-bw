@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 
 // SF5V: Duplicate YAML directive
@@ -5,7 +6,7 @@ use serde_json::Value;
 #[test]
 fn yaml_sf5v_duplicate_yaml_directive_should_fail() {
     let y = "%YAML 1.2\n%YAML 1.2\n---\n";
-    let r: Result<Value, _> = serde_yaml_bw::from_str(y);
+    let r: Result<Value, _> = serde_yaml::from_str(y);
     assert!(
         r.is_err(),
         "Parser accepted duplicate %YAML directives: {:?}",

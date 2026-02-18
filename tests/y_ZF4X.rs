@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -19,7 +20,7 @@ Sammy Sosa: {
   }
 "#;
 
-    let v: BTreeMap<String, Player> = serde_yaml_bw::from_str(y).expect("failed to parse ZF4X");
+    let v: BTreeMap<String, Player> = serde_yaml::from_str(y).expect("failed to parse ZF4X");
     let mm = v.get("Mark McGwire").expect("missing Mark McGwire");
     assert_eq!(mm.hr, 65);
     assert!((mm.avg - 0.278).abs() < 1e-9);

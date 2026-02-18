@@ -1,9 +1,10 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
+use serde_yaml_gtc as serde_yaml;
 
 use std::collections::BTreeMap;
 use indoc::indoc;
 use serde::Deserialize;
-use serde_yaml_bw::Value;
+use serde_yaml::Value;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Scalars {
@@ -51,7 +52,7 @@ fn test_block_scalars() {
         literal_keep: "line1\nline2\n\n".to_owned(),
     };
 
-    let result: Scalars = serde_yaml_bw::from_str(yaml).unwrap();
+    let result: Scalars = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(expected, result);
 }
 
@@ -81,7 +82,7 @@ fn test_block_scalars_2() {
           bar
         "
     };
-    let data: BTreeMap<String, Value> = serde_yaml_bw::from_str(yaml).unwrap();
+    let data: BTreeMap<String, Value> = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(data.get("literal_clip").unwrap(), "foo\nbar\n");
     assert_eq!(data.get("literal_strip").unwrap(), "foo\nbar");
     assert_eq!(data.get("literal_keep").unwrap(), "foo\nbar\n\n");

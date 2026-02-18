@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // LQZ7: Double Quoted Implicit Keys
@@ -14,7 +15,7 @@ fn yaml_lqz7_double_quoted_implicit_keys() {
   "implicit flow key" : value,
  ]
 "#;
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse LQZ7");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse LQZ7");
     assert_eq!(v.block.len(), 1);
     let m = &v.block[0];
     assert_eq!(

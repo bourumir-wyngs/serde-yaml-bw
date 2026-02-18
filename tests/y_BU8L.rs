@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // BU8L: Node Anchor and Tag on Separate Lines — key maps to a tagged map {a: b}
@@ -7,7 +8,7 @@ fn yaml_bu8l_node_anchor_and_tag_on_separate_lines() {
     let y = "key: &anchor\n !!map\n  a: b\n";
     // Deserialize into mapping: key -> nested map
     let m: HashMap<String, HashMap<String, String>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse BU8L");
+        serde_yaml::from_str(y).expect("failed to parse BU8L");
 
     let inner = m.get("key").expect("missing 'key'");
     assert_eq!(inner.get("a").map(String::as_str), Some("b"));

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -238,7 +239,7 @@ fn repro_large_scalars_crashes() {
     }
 }
 
-use serde_yaml_bw::budget::{exceeds_yaml_budget, Budget};
+use serde_yaml::budget::{exceeds_yaml_budget, Budget};
 use std::str;
 
 /// Convert possibly non-UTF-8 bytes to a `String`, preserving valid UTF-8

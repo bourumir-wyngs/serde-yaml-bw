@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // EXG3: Three dashes and content without space (YAML 1.3 modified)
 // Expected combined string: "---word1 word2"
 
@@ -7,6 +8,6 @@ fn yaml_exg3_three_dashes_and_content_without_space() {
 ---word1
 word2
 "#;
-    let s: String = serde_yaml_bw::from_str(y).expect("failed to parse EXG3");
+    let s: String = serde_yaml::from_str(y).expect("failed to parse EXG3");
     assert_eq!(s, "---word1 word2");
 }

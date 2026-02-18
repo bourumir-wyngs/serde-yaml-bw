@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -20,7 +21,7 @@ fn y_r52l() {
 { top1: [item1, {key2: value2}, item3], top2: value2 }
 "#;
 
-    let v: Root = serde_yaml_bw::from_str(yaml).expect("parse inner YAML");
+    let v: Root = serde_yaml::from_str(yaml).expect("parse inner YAML");
 
     assert_eq!(v.top2, "value2");
     assert_eq!(v.top1.len(), 3);

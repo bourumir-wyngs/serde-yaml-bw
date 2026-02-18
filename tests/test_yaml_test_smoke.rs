@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::fs;
 use std::path::{Path, PathBuf};
 use anyhow::Context;
@@ -90,7 +91,7 @@ fn yaml_test_suite_smoke() -> anyhow::Result<()> {
 
     for file in files {
         let yaml = read_yaml(&file)?;
-        let result = serde_yaml_bw::from_str::<serde_yaml_bw::Value>(&yaml);
+        let result = serde_yaml::from_str::<serde_yaml::Value>(&yaml);
         let file_name = file
             .file_name()
             .and_then(|os_str| os_str.to_str())

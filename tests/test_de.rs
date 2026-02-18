@@ -6,9 +6,10 @@
     clippy::uninlined_format_args
 )]
 
+use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
-use serde_yaml_bw::{Deserializer, Number, Value};
+use serde_yaml::{Deserializer, Number, Value};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
@@ -19,14 +20,14 @@ where
     let deserialized: T = T::deserialize(Deserializer::from_str(yaml)).unwrap();
     assert_eq!(*expected, deserialized);
 
-    let value: Value = serde_yaml_bw::from_str(yaml).unwrap();
+    let value: Value = serde_yaml::from_str(yaml).unwrap();
     let deserialized = T::deserialize(&value).unwrap();
     assert_eq!(*expected, deserialized);
 
-    let deserialized: T = serde_yaml_bw::from_value(value).unwrap();
+    let deserialized: T = serde_yaml::from_value(value).unwrap();
     assert_eq!(*expected, deserialized);
 
-    serde_yaml_bw::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
+    serde_yaml::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
 
     let mut deserializer = Deserializer::from_str(yaml);
     let document = deserializer.next().unwrap();
@@ -72,8 +73,8 @@ where
     let deserialized: T = T::deserialize(Deserializer::from_str(yaml)).unwrap();
     assert_eq!(*expected, deserialized);
 
-    serde_yaml_bw::from_str::<serde_yaml_bw::Value>(yaml).unwrap();
-    serde_yaml_bw::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
+    serde_yaml::from_str::<serde_yaml::Value>(yaml).unwrap();
+    serde_yaml::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
 }
 
 fn test_de_seed<'de, T, S>(yaml: &'de str, seed: S, expected: &T)
@@ -84,8 +85,8 @@ where
     let deserialized: T = seed.deserialize(Deserializer::from_str(yaml)).unwrap();
     assert_eq!(*expected, deserialized);
 
-    serde_yaml_bw::from_str::<serde_yaml_bw::Value>(yaml).unwrap();
-    serde_yaml_bw::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
+    serde_yaml::from_str::<serde_yaml::Value>(yaml).unwrap();
+    serde_yaml::from_str::<serde::de::IgnoredAny>(yaml).unwrap();
 }
 
 #[test]
@@ -428,7 +429,7 @@ fn test_number_alias_as_string() {
 fn test_de_mapping() {
     #[derive(Debug, Deserialize, PartialEq)]
     struct Data {
-        pub substructure: serde_yaml_bw::Mapping,
+        pub substructure: serde_yaml::Mapping,
     }
     let yaml = indoc! {"
         substructure:
@@ -437,15 +438,15 @@ fn test_de_mapping() {
     "};
 
     let mut expected = Data {
-        substructure: serde_yaml_bw::Mapping::new(),
+        substructure: serde_yaml::Mapping::new(),
     };
     expected.substructure.insert(
-        serde_yaml_bw::Value::String("a".to_owned(), None),
-        serde_yaml_bw::Value::String("foo".to_owned(), None),
+        serde_yaml::Value::String("a".to_owned(), None),
+        serde_yaml::Value::String("foo".to_owned(), None),
     );
     expected.substructure.insert(
-        serde_yaml_bw::Value::String("b".to_owned(), None),
-        serde_yaml_bw::Value::String("bar".to_owned(), None),
+        serde_yaml::Value::String("b".to_owned(), None),
+        serde_yaml::Value::String("bar".to_owned(), None),
     );
 
     test_de(yaml, &expected);
@@ -534,7 +535,7 @@ fn test_numbers() {
         ("0.1", "0.1"),
     ];
     for &(yaml, expected) in &cases {
-        let value = serde_yaml_bw::from_str::<Value>(yaml).unwrap();
+        let value = serde_yaml::from_str::<Value>(yaml).unwrap();
         match value {
             Value::Number(number, _) => assert_eq!(number.to_string(), expected),
             _ => panic!("expected number. input={:?}, result={:?}", yaml, value),
@@ -547,7 +548,7 @@ fn test_numbers() {
         "0x-1", "-0x+1", "-0x-1", "++0x1", "+-0x1", "-+0x1", "--0x1",
     ];
     for yaml in &cases {
-        let value = serde_yaml_bw::from_str::<Value>(yaml).unwrap();
+        let value = serde_yaml::from_str::<Value>(yaml).unwrap();
         match value {
             Value::String(string, _) => assert_eq!(string, *yaml),
             _ => panic!("expected string. input={:?}, result={:?}", yaml, value),
@@ -559,12 +560,12 @@ fn test_numbers() {
 fn test_nan() {
     // There is no negative NaN in YAML.
     assert!(
-        serde_yaml_bw::from_str::<f32>(".nan")
+        serde_yaml::from_str::<f32>(".nan")
             .unwrap()
             .is_sign_positive()
     );
     assert!(
-        serde_yaml_bw::from_str::<f64>(".nan")
+        serde_yaml::from_str::<f64>(".nan")
             .unwrap()
             .is_sign_positive()
     );
@@ -666,23 +667,23 @@ fn test_no_required_fields() {
 
     for document in ["", "# comment\n"] {
         let expected = NoRequiredFields { optional: None };
-        let deserialized: NoRequiredFields = serde_yaml_bw::from_str(document).unwrap();
+        let deserialized: NoRequiredFields = serde_yaml::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
 
         let expected = Vec::<String>::new();
-        let deserialized: Vec<String> = serde_yaml_bw::from_str(document).unwrap();
+        let deserialized: Vec<String> = serde_yaml::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
 
         let expected = BTreeMap::new();
-        let deserialized: BTreeMap<char, usize> = serde_yaml_bw::from_str(document).unwrap();
+        let deserialized: BTreeMap<char, usize> = serde_yaml::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
 
         let expected = None;
-        let deserialized: Option<String> = serde_yaml_bw::from_str(document).unwrap();
+        let deserialized: Option<String> = serde_yaml::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
 
         let expected = Value::Null(None);
-        let deserialized: Value = serde_yaml_bw::from_str(document).unwrap();
+        let deserialized: Value = serde_yaml::from_str(document).unwrap();
         assert_eq!(expected, deserialized);
     }
 }
@@ -696,12 +697,12 @@ fn test_empty_scalar() {
 
     let yaml = "thing:\n";
     let expected = Struct {
-        thing: serde_yaml_bw::Sequence::new(),
+        thing: serde_yaml::Sequence::new(),
     };
     test_de(yaml, &expected);
 
     let expected = Struct {
-        thing: serde_yaml_bw::Mapping::new(),
+        thing: serde_yaml::Mapping::new(),
     };
     test_de(yaml, &expected);
 }
@@ -846,7 +847,7 @@ fn test_enum_untagged() {
     // A
     {
         let expected = UntaggedEnum::A { r#match: true };
-        let deserialized: UntaggedEnum = serde_yaml_bw::from_str("match: True").unwrap();
+        let deserialized: UntaggedEnum = serde_yaml::from_str("match: True").unwrap();
         assert_eq!(expected, deserialized);
     }
     // AB
@@ -854,19 +855,19 @@ fn test_enum_untagged() {
         let expected = UntaggedEnum::AB {
             r#match: "T".to_owned(),
         };
-        let deserialized: UntaggedEnum = serde_yaml_bw::from_str("match: T").unwrap();
+        let deserialized: UntaggedEnum = serde_yaml::from_str("match: T").unwrap();
         assert_eq!(expected, deserialized);
     }
     // B
     {
         let expected = UntaggedEnum::B { r#match: true };
-        let deserialized: UntaggedEnum = serde_yaml_bw::from_str("if: True").unwrap();
+        let deserialized: UntaggedEnum = serde_yaml::from_str("if: True").unwrap();
         assert_eq!(expected, deserialized);
     }
     // C
     {
         let expected = UntaggedEnum::C("match".to_owned());
-        let deserialized: UntaggedEnum = serde_yaml_bw::from_str("match").unwrap();
+        let deserialized: UntaggedEnum = serde_yaml::from_str("match").unwrap();
         assert_eq!(expected, deserialized);
     }
 }

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // M5DY: Mapping between Sequences — complex keys are sequences; values are sequences of dates
@@ -16,7 +17,7 @@ fn yaml_m5dy_mapping_between_sequences() {
 "#;
 
     let v: HashMap<Vec<String>, Vec<String>> =
-        serde_yaml_bw::from_str(y).expect("failed to parse M5DY");
+        serde_yaml::from_str(y).expect("failed to parse M5DY");
     assert_eq!(v.len(), 2);
 
     let k1 = vec!["Detroit Tigers".to_string(), "Chicago cubs".to_string()];

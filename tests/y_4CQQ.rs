@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 4CQQ: Multi-line Flow Scalars
@@ -17,7 +18,7 @@ plain:
 quoted: "So does this
   quoted scalar.\n"
 "#;
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse 4CQQ");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse 4CQQ");
     assert_eq!(d.plain, "This unquoted scalar spans many lines.");
     assert_eq!(d.quoted, "So does this quoted scalar.\n");
 }

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_yaml_bw as yaml;
+use serde_yaml_gtc as yaml;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Data {

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // 6VJK: Folded newlines preserved for more-indented and blank lines
 #[test]
 fn yaml_6vjk_folded_newlines_preserved() {
@@ -10,7 +11,7 @@ fn yaml_6vjk_folded_newlines_preserved() {
 
  What a year!
 ";
-    let s: String = serde_yaml_bw::from_str(y).expect("failed to parse 6VJK");
+    let s: String = serde_yaml::from_str(y).expect("failed to parse 6VJK");
     assert_eq!(
         s,
         "Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"

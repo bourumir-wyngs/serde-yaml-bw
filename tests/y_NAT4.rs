@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // NAT4: Various empty or newline-only quoted strings
@@ -36,7 +37,7 @@ g: '
 h: "\n\n"
 "#;
 
-    let v: Root = serde_yaml_bw::from_str(y).expect("failed to parse NAT4");
+    let v: Root = serde_yaml::from_str(y).expect("failed to parse NAT4");
 
     // Single- and double-quoted one-space
     assert_eq!(v.a, " ");

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 #[test]
 fn y_rtp8() {
     let yaml = r#"%YAML 1.2
@@ -7,6 +8,6 @@ Document
 "#;
 
     let v: String =
-        serde_yaml_bw::from_str(yaml).expect("parse inner YAML with directive and markers");
+        serde_yaml::from_str(yaml).expect("parse inner YAML with directive and markers");
     assert_eq!(v, "Document");
 }

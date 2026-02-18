@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // W42U: Spec Example 8.15. Block Sequence Entry Types
@@ -23,7 +24,7 @@ fn yaml_w42u_block_sequence_entry_types() {
 - one: two # Compact mapping
 "#;
 
-    let v: Vec<Entry> = serde_yaml_bw::from_str(y).expect("failed to parse W42U");
+    let v: Vec<Entry> = serde_yaml::from_str(y).expect("failed to parse W42U");
 
     assert_eq!(v.len(), 4);
     // 1) null

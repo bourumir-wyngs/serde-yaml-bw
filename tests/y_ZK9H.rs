@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // ZK9H: Nested top level flow mapping with multi-line nested sequences
@@ -16,7 +17,7 @@ fn yaml_zk9h_nested_top_level_flow_mapping() {
 }
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse ZK9H");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse ZK9H");
     assert_eq!(v.key.len(), 1);
     assert_eq!(v.key[0].len(), 1);
     assert_eq!(v.key[0][0], vec![String::from("value")]);

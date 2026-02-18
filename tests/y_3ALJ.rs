@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -11,7 +12,7 @@ enum Item {
 fn yaml_3alj_block_sequence_in_block_sequence() {
     let yaml = "- - s1_i1\n  - s1_i2\n- s2\n";
 
-    let v: Vec<Item> = serde_yaml_bw::from_str(yaml).expect("failed to parse 3ALJ");
+    let v: Vec<Item> = serde_yaml::from_str(yaml).expect("failed to parse 3ALJ");
     assert_eq!(v.len(), 2);
     match &v[0] {
         Item::Seq(inner) => assert_eq!(inner, &vec!["s1_i1".to_string(), "s1_i2".to_string()]),

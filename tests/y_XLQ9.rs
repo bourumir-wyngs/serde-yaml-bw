@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // XLQ9: Multiline scalar that looks like a YAML directive
 // Expect a single top-level plain scalar: "scalar %YAML 1.2"
 
@@ -8,6 +9,6 @@ scalar
 %YAML 1.2
 "#;
 
-    let s: String = serde_yaml_bw::from_str(y).expect("XLQ9 should parse top-level plain scalar");
+    let s: String = serde_yaml::from_str(y).expect("XLQ9 should parse top-level plain scalar");
     assert_eq!(s, "scalar %YAML 1.2");
 }

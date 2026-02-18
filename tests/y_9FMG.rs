@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 9FMG: Multi-level Mapping Indent
@@ -26,7 +27,7 @@ struct Root {
 #[test]
 fn yaml_9fmg_multi_level_mapping_indent() {
     let y = "a:\n  b:\n    c: d\n  e:\n    f: g\nh: i\n";
-    let r: Root = serde_yaml_bw::from_str(y).expect("failed to parse 9FMG");
+    let r: Root = serde_yaml::from_str(y).expect("failed to parse 9FMG");
     assert_eq!(r.a.b.c, "d");
     assert_eq!(r.a.e.f, "g");
     assert_eq!(r.h, "i");

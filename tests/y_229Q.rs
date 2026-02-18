@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // 229Q: Spec Example 2.4. Sequence of Mappings
@@ -19,7 +20,7 @@ fn yaml_229q_sequence_of_mappings() {
   hr:   63
   avg:  0.288
 "#;
-    let v: Vec<Player> = serde_yaml_bw::from_str(y).expect("failed to parse 229Q");
+    let v: Vec<Player> = serde_yaml::from_str(y).expect("failed to parse 229Q");
     assert_eq!(v.len(), 2);
     assert_eq!(v[0].name, "Mark McGwire");
     assert_eq!(v[0].hr, 65);

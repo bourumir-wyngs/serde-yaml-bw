@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // NJ66: Multiline plain flow mapping key
@@ -9,7 +10,7 @@ fn yaml_nj66_multiline_plain_flow_mapping_key() {
 - { multi
   line: value}
 "#;
-    let v: Vec<HashMap<String, String>> = serde_yaml_bw::from_str(y).expect("failed to parse NJ66");
+    let v: Vec<HashMap<String, String>> = serde_yaml::from_str(y).expect("failed to parse NJ66");
     assert_eq!(v.len(), 2);
     assert_eq!(v[0].get("single line").map(String::as_str), Some("value"));
     assert_eq!(v[1].get("multi line").map(String::as_str), Some("value"));

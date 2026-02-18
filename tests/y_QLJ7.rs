@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 // QLJ7: Tag shorthand used in documents but only defined in the first.
@@ -9,7 +10,7 @@ use std::collections::BTreeMap;
 fn yaml_qlj7_tag_shorthand_only_defined_in_first_doc_should_fail() {
     let y = "%TAG !prefix! tag:example.com,2011:\n--- !prefix!A\na: b\n--- !prefix!B\nc: d\n--- !prefix!C\ne: f\n";
 
-    let r: Result<Vec<BTreeMap<String, String>>, _> = serde_yaml_bw::from_multiple(y);
+    let r: Result<Vec<BTreeMap<String, String>>, _> = serde_yaml::from_multiple(y);
     assert!(
         r.is_err(),
         "Parser accepted tag handle usage in later docs without %TAG redefinition; per test-suite this should fail. If this keeps passing, mark as #[ignore] and note parser limitation."

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -13,7 +14,7 @@ enum One {
 #[test]
 fn yaml_cfd4_empty_implicit_key_in_single_pair_flow_sequences() {
     let y = "- [ \"\" : empty key ]\n- [ \"\" : another empty key]\n";
-    let v: Vec<Vec<One>> = serde_yaml_bw::from_str(y).expect("failed to parse CFD4");
+    let v: Vec<Vec<One>> = serde_yaml::from_str(y).expect("failed to parse CFD4");
     assert_eq!(v.len(), 2);
 
     // First

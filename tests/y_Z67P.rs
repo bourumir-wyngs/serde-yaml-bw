@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // Z67P: Block scalar nodes with explicit indent indicators and a local tag on folded
@@ -17,7 +18,7 @@ folded: !foo >1
  value
 "#;
 
-    let v: Doc = serde_yaml_bw::from_str(y).expect("failed to parse Z67P");
+    let v: Doc = serde_yaml::from_str(y).expect("failed to parse Z67P");
     assert_eq!(v.literal, "value\n");
     assert_eq!(v.folded, "value\n");
 }

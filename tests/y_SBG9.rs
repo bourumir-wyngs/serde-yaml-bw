@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 // SBG9: Flow Sequence in Flow Mapping
@@ -9,7 +10,7 @@ fn flow_sequence_in_flow_mapping() {
     }
 
     let y = "r: {[d, e]: f}\n";
-    let fm: Target = serde_yaml_bw::from_str(y).unwrap();
+    let fm: Target = serde_yaml::from_str(y).unwrap();
 
     // Assert the mapping has a single entry: key ["d", "e"] -> value "f"
     assert_eq!(fm.r.len(), 1);
@@ -25,7 +26,7 @@ fn flow_sequence_in_flow_value() {
     }
     let y = "r: {a: [b, c]}\n";
 
-    let fm: Target = serde_yaml_bw::from_str(y).unwrap();
+    let fm: Target = serde_yaml::from_str(y).unwrap();
 
     // Assert the mapping has a single entry: key "a" -> value ["b", "c"]
     assert_eq!(fm.r.len(), 1);

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -20,7 +21,7 @@ enum OnePairMap {
 #[test]
 fn yaml_9mmw_single_pair_implicit_entries() {
     let y = "- [ YAML : separate ]\n- [ \"JSON like\":adjacent ]\n- [ {JSON: like}:adjacent ]\n";
-    let v: Vec<Vec<OnePairMap>> = serde_yaml_bw::from_str(y).expect("failed to parse 9MMW");
+    let v: Vec<Vec<OnePairMap>> = serde_yaml::from_str(y).expect("failed to parse 9MMW");
     assert_eq!(v.len(), 3);
 
     match &v[0][0] {

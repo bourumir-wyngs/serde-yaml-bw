@@ -10,18 +10,18 @@
 //! ```
 //! use std::collections::BTreeMap;
 //!
-//! fn main() -> Result<(), serde_yaml_bw::Error> {
+//! fn main() -> Result<(), serde_yaml_gtc::Error> {
 //!     // You have some type.
 //!     let mut map = BTreeMap::new();
 //!     map.insert("x".to_string(), 1.0);
 //!     map.insert("y".to_string(), 2.0);
 //!
 //!     // Serialize it to a YAML string.
-//!     let yaml = serde_yaml_bw::to_string(&map)?;
+//!     let yaml = serde_yaml_gtc::to_string(&map)?;
 //!     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 //!
 //!     // Deserialize it back to a Rust type.
-//!     let deserialized_map: BTreeMap<String, f64> = serde_yaml_bw::from_str(&yaml)?;
+//!     let deserialized_map: BTreeMap<String, f64> = serde_yaml_gtc::from_str(&yaml)?;
 //!     assert_eq!(map, deserialized_map);
 //!     Ok(())
 //! }
@@ -49,13 +49,13 @@
 //!     y: f64,
 //! }
 //!
-//! fn main() -> Result<(), serde_yaml_bw::Error> {
+//! fn main() -> Result<(), serde_yaml_gtc::Error> {
 //!     let point = Point { x: 1.0, y: 2.0 };
 //!
-//!     let yaml = serde_yaml_bw::to_string(&point)?;
+//!     let yaml = serde_yaml_gtc::to_string(&point)?;
 //!     assert_eq!(yaml, "x: 1.0\ny: 2.0\n");
 //!
-//!     let deserialized_point: Point = serde_yaml_bw::from_str(&yaml)?;
+//!     let deserialized_point: Point = serde_yaml_gtc::from_str(&yaml)?;
 //!     assert_eq!(point, deserialized_point);
 //!     Ok(())
 //! }
@@ -74,7 +74,7 @@
 //!     Struct { x: f64, y: f64 },
 //! }
 //!
-//! fn main() -> Result<(), serde_yaml_bw::Error> {
+//! fn main() -> Result<(), serde_yaml_gtc::Error> {
 //!     let yaml = "
 //!         - Newtype: 1
 //!         - Tuple:
@@ -85,7 +85,7 @@
 //!             x: 1.0
 //!             y: 2.0
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
+//!     let values: Vec<Enum> = serde_yaml_gtc::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Newtype(1));
 //!     assert_eq!(values[1], Enum::Tuple(0, 0, 0));
 //!     assert_eq!(values[2], Enum::Struct { x: 1.0, y: 2.0 });
@@ -100,7 +100,7 @@
 //!             x: 1.0
 //!             y: 2.0
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
+//!     let values: Vec<Enum> = serde_yaml_gtc::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Tuple(0, 0, 0));
 //!     assert_eq!(values[1], Enum::Struct { x: 1.0, y: 2.0 });
 //!
@@ -108,7 +108,7 @@
 //!     let yaml = "
 //!         - Unit
 //!     ";
-//!     let values: Vec<Enum> = serde_yaml_bw::from_str(yaml)?;
+//!     let values: Vec<Enum> = serde_yaml_gtc::from_str(yaml)?;
 //!     assert_eq!(values[0], Enum::Unit);
 //!
 //!     Ok(())
@@ -124,7 +124,7 @@
 //! Basic construction examples:
 //!
 //! ```
-//! use serde_yaml_bw::{Mapping, Value};
+//! use serde_yaml_gtc::{Mapping, Value};
 //!
 //! // Scalars
 //! let n = Value::from(42);                // number
@@ -142,7 +142,7 @@
 //! let doc = Value::from(m);
 //!
 //! // Serialize to YAML
-//! let yaml = serde_yaml_bw::to_string(&doc).unwrap();
+//! let yaml = serde_yaml_gtc::to_string(&doc).unwrap();
 //! assert!(yaml.contains("name: app"));
 //! ```
 //!
@@ -154,7 +154,7 @@
 //! rejected by default.
 //!
 //! ```
-//! use serde_yaml_bw::{Mapping, Value};
+//! use serde_yaml_gtc::{Mapping, Value};
 //!
 //! // Create a scalar with an anchor "greet"
 //! let anchored = Value::String("Hello".to_string(), Some("greet".to_string()));
@@ -163,7 +163,7 @@
 //! let mut root = Mapping::new();
 //! root.set("first", anchored.clone());
 //! root.set("second", Value::Alias("greet".to_string()));
-//! let yaml = serde_yaml_bw::to_string(&Value::from(root)).unwrap();
+//! let yaml = serde_yaml_gtc::to_string(&Value::from(root)).unwrap();
 //!
 //! // The exact formatting may vary, but both an anchor and an alias are emitted
 //! assert!(yaml.contains("&greet"), "expected an anchor in: {yaml}");
@@ -173,7 +173,7 @@
 //! Anchors can be attached to complex nodes too:
 //!
 //! ```
-//! use serde_yaml_bw::{Mapping, Value};
+//! use serde_yaml_gtc::{Mapping, Value};
 //!
 //! // An anchored mapping
 //! let mut base = Mapping::with_anchor("base");
@@ -185,7 +185,7 @@
 //! root.set("anchor", Value::from(base));
 //! root.set("alias", Value::Alias("base".into()));
 //!
-//! let out = serde_yaml_bw::to_string(&Value::from(root)).unwrap();
+//! let out = serde_yaml_gtc::to_string(&Value::from(root)).unwrap();
 //! assert!(out.contains("&base"));
 //! assert!(out.contains("*base"));
 //! ```
@@ -197,7 +197,7 @@
 //!
 //! ```
 //! use serde::Serialize;
-//! use serde_yaml_bw::{SerializerBuilder, Value};
+//! use serde_yaml_gtc::{SerializerBuilder, Value};
 //!
 //! // Try to serialize a dangling alias and observe the error.
 //! let mut buf = Vec::new();
@@ -214,15 +214,15 @@
 //! can expand aliases after parsing:
 //!
 //! ```
-//! use serde_yaml_bw::Value;
+//! use serde_yaml_gtc::Value;
 //!
 //! let yaml = "a: &id 1\nb: *id\n";
-//! let mut v: Value = serde_yaml_bw::from_str_value_preserve(yaml).unwrap();
+//! let mut v: Value = serde_yaml_gtc::from_str_value_preserve(yaml).unwrap();
 //! v.resolve_aliases().unwrap();
 //! assert_eq!(v["a"].as_i64(), v["b"].as_i64());
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/serde_yaml_bw/2.4.0")]
+#![doc(html_root_url = "https://docs.rs/serde_yaml_gtc/2.4.0")]
 #![deny(missing_docs, unsafe_op_in_unsafe_fn)]
 // Suppressed clippy_pedantic lints
 #![allow(

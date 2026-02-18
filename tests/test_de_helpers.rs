@@ -1,4 +1,5 @@
-use serde_yaml_bw::{digits_but_not_number, parse_bool_casefold, parse_f64};
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{digits_but_not_number, parse_bool_casefold, parse_f64};
 
 #[test]
 fn test_digits_but_not_number() {

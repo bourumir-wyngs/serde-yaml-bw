@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // W4TN: Spec Example 9.5. Directives Documents
@@ -16,7 +17,7 @@ enum Doc {
 fn yaml_w4tn_directives_documents() {
     let y = indoc::indoc!("%YAML 1.2\n--- |\n%!PS-Adobe-2.0\n...\n%YAML 1.2\n---\n# Empty\n...\n");
 
-    let docs: Vec<Doc> = serde_yaml_bw::from_multiple(y).expect("failed to parse W4TN");
+    let docs: Vec<Doc> = serde_yaml::from_multiple(y).expect("failed to parse W4TN");
 
     // from_multiple may skip empty docs; so either 1 or 2 docs.
     assert!(

@@ -1,18 +1,18 @@
 #![allow(clippy::derive_partial_eq_without_eq)]
+use serde_yaml_gtc as serde_yaml;
 
 use indoc::indoc;
 use serde::{Deserialize, Serialize};
-use serde_yaml_bw;
 use std::fmt::Debug;
-use serde_yaml_bw::from_str;
+use serde_yaml::from_str;
 
 fn test_serde<T>(thing: &T, yaml: &str)
 where
     T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + Debug,
 {
-    let serialized = serde_yaml_bw::to_string(thing).unwrap();
+    let serialized = serde_yaml::to_string(thing).unwrap();
     assert_eq!(yaml, serialized);
-    let round_trip: T = T::deserialize(serde_yaml_bw::Deserializer::from_str(&serialized)).unwrap();
+    let round_trip: T = T::deserialize(serde_yaml::Deserializer::from_str(&serialized)).unwrap();
     assert_eq!(*thing, round_trip);
 }
 

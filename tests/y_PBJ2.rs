@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +18,7 @@ national:
   - Chicago Cubs
   - Atlanta Braves
 "#;
-    let v: Leagues = serde_yaml_bw::from_str(y).expect("failed to parse PBJ2");
+    let v: Leagues = serde_yaml::from_str(y).expect("failed to parse PBJ2");
     assert_eq!(
         v.american,
         vec!["Boston Red Sox", "Detroit Tigers", "New York Yankees",]

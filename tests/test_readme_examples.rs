@@ -1,5 +1,6 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
-use serde_yaml_bw::Deserializer;
+use serde_yaml::Deserializer;
 
 /// Test example 1 given in README
 #[test]
@@ -18,7 +19,7 @@ fn example_main() {
         retries: 5
     "#;
 
-    let config: Result<Config, _> = serde_yaml_bw::from_str(yaml_input);
+    let config: Result<Config, _> = serde_yaml::from_str(yaml_input);
 
     match config {
         Ok(parsed_config) => {
@@ -83,7 +84,7 @@ fn example_nested() {
           Newtype: 0
     "#};
 
-    let value: Outer = Outer::deserialize(serde_yaml_bw::Deserializer::from_str(yaml)).unwrap();
+    let value: Outer = Outer::deserialize(serde_yaml::Deserializer::from_str(yaml)).unwrap();
     assert_eq!(value, Outer::Inner(Inner::Newtype(0)));
 }
 
@@ -118,7 +119,7 @@ fn deserialize_robot_moves() {
         v: 3.5
 "#;
 
-    let robot_moves: Vec<Move> = serde_yaml_bw::from_str(yaml).unwrap();
+    let robot_moves: Vec<Move> = serde_yaml::from_str(yaml).unwrap();
 
     assert_eq!(robot_moves.len(), 1);
     assert_eq!(robot_moves[0].by, 10.0);
@@ -145,5 +146,5 @@ fn serialize_robot_moves() {
         },
     ];
     let yaml = "- by: 1.0\n  constraints:\n  - StayWithin:\n      x: 0.0\n      y: 0.0\n      r: 5.0\n  - MaxSpeed:\n      v: 100.0\n- by: 2.0\n  constraints:\n  - MaxSpeed:\n      v: 10.0\n";
-    assert_eq!(serde_yaml_bw::to_string(&robot_moves).unwrap(), yaml);
+    assert_eq!(serde_yaml::to_string(&robot_moves).unwrap(), yaml);
 }

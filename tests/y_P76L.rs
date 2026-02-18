@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 // P76L: Secondary Tag Handle with !!int applied to non-integer content
 // Expectation for our parser: treat as a plain string "1 - 3" (custom tags not mapped)
 
@@ -8,7 +9,7 @@ fn yaml_p76l_secondary_tag_handle() -> anyhow::Result<()> {
 !!int 1 - 3 # Interval, not integer
 "#;
     // Try parsing as string; if the directive/tag is unsupported by parser, this may fail.
-    let s: String = serde_yaml_bw::from_str(&y)?;
+    let s: String = serde_yaml::from_str(&y)?;
     assert_eq!(s, "1 - 3");
     Ok(())
 }

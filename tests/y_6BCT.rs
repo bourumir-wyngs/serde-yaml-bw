@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ enum Item {
 #[test]
 fn yaml_6bct_separation_spaces() {
     let y = "- foo: bar\n- - baz\n  - baz\n";
-    let v: Vec<Item> = serde_yaml_bw::from_str(y).expect("failed to parse 6BCT");
+    let v: Vec<Item> = serde_yaml::from_str(y).expect("failed to parse 6BCT");
     assert_eq!(v.len(), 2);
     match &v[0] {
         Item::Map(m) => assert_eq!(m.get("foo").map(String::as_str), Some("bar")),

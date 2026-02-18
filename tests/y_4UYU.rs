@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -14,7 +15,7 @@ fn yaml_4uyu_colon_in_double_quoted_string_key_in_map() {
     // More complex YAML around a mapping that has a quoted key containing a colon.
     // The map should hold a single entry with the colon inside the name.
     let y = "title: Example\ndata:\n  \"foo: bar\": baz\n";
-    let doc: Wrapper = serde_yaml_bw::from_str(y).expect("failed to parse 4UYU");
+    let doc: Wrapper = serde_yaml::from_str(y).expect("failed to parse 4UYU");
 
     assert_eq!(doc.title, "Example");
     assert_eq!(doc.data.len(), 1);

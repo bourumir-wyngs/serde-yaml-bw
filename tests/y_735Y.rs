@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ enum Item {
 #[test]
 fn yaml_735y_block_node_types() {
     let y = "- \"flow in block\"\n- >\n Block scalar\n- !!map\n  foo : bar\n";
-    let v: Vec<Item> = serde_yaml_bw::from_str(y).expect("failed to parse 735Y");
+    let v: Vec<Item> = serde_yaml::from_str(y).expect("failed to parse 735Y");
     assert_eq!(v.len(), 3);
     match &v[0] {
         Item::S(s) => assert_eq!(s, "flow in block"),

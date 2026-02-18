@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // N4JP: Bad indentation in mapping (fail: true) — expect error
@@ -13,7 +14,7 @@ fn yaml_n4jp_bad_indentation_should_fail() {
   key1: "quoted1"
  key2: "bad indentation"
 "#;
-    let result: Result<Root, _> = serde_yaml_bw::from_str(y);
+    let result: Result<Root, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "N4JP should fail to parse due to bad indentation"

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // TE2A: Spec Example 8.16. Block Mappings
@@ -20,6 +21,6 @@ struct Root {
 #[test]
 fn y_te2a_block_mappings() {
     let y = "block mapping:\n key: value\n";
-    let r: Root = serde_yaml_bw::from_str(y).expect("failed to parse TE2A block mapping");
+    let r: Root = serde_yaml::from_str(y).expect("failed to parse TE2A block mapping");
     assert_eq!(r.block_mapping.key, "value");
 }

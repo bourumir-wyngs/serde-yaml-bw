@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value as J;
 use std::collections::BTreeMap;
 
@@ -8,7 +9,7 @@ fn y_ukk6_syntax_character_edge_cases() {
     // JSON cannot represent non-string keys, so we deserialize into a Rust map keyed by Option<String>.
     let yaml1 = "- :\n";
     let v1: Vec<BTreeMap<Option<String>, Option<String>>> =
-        serde_yaml_bw::from_str(yaml1).expect("UKK6 part 1 should parse into Option-keyed map");
+        serde_yaml::from_str(yaml1).expect("UKK6 part 1 should parse into Option-keyed map");
     assert_eq!(v1.len(), 1);
     let m = &v1[0];
     assert_eq!(m.len(), 1);
@@ -21,7 +22,7 @@ fn y_ukk6_syntax_character_edge_cases() {
 
     // Case 2: "::" -> expected object { ":": null }
     let yaml2 = "::\n";
-    let v2: J = serde_yaml_bw::from_str(yaml2).expect("UKK6 part 2 should parse");
+    let v2: J = serde_yaml::from_str(yaml2).expect("UKK6 part 2 should parse");
     let obj = v2.as_object().expect("expected mapping for '::'");
     assert_eq!(obj.len(), 1);
     assert!(
@@ -36,6 +37,6 @@ fn y_ukk6_syntax_character_edge_cases() {
 
     // Case 3: "!" -> null
     let yaml3 = "!\n";
-    let v3: J = serde_yaml_bw::from_str(yaml3).expect("UKK6 part 3 should parse");
+    let v3: J = serde_yaml::from_str(yaml3).expect("UKK6 part 3 should parse");
     assert!(v3.is_null(), "expected null for '!' but got: {:?}", v3);
 }

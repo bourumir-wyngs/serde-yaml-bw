@@ -1,9 +1,10 @@
+use serde_yaml_gtc as serde_yaml;
 // 6XDY: Two document start markers — empty documents may be skipped by from_multiple
 // or represented as `None` when deserializing into Option<String>.
 #[test]
 fn yaml_6xdy_two_null_documents() {
     let y = "---\n---\n";
-    let docs: Vec<Option<String>> = serde_yaml_bw::from_multiple(y).expect("failed to parse 6XDY");
+    let docs: Vec<Option<String>> = serde_yaml::from_multiple(y).expect("failed to parse 6XDY");
     if docs.is_empty() {
         // Parser skipped empty documents — acceptable behavior per policy.
         return;

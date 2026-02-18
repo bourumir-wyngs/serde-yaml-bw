@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // CPZ3: Doublequoted scalar starting with a tab
@@ -9,6 +10,6 @@ struct Doc {
 #[test]
 fn yaml_cpz3_doublequoted_scalar_starting_with_tab() {
     let y = "---\ntab: \"\tstring\"\n";
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse CPZ3");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse CPZ3");
     assert_eq!(d.tab, "\tstring");
 }

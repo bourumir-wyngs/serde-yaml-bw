@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // M6YH: Block sequence indentation — sequence with three elements:
@@ -15,7 +16,7 @@ fn yaml_m6yh_block_sequence_indentation() {
 "#;
 
     let v: (String, HashMap<String, String>, Vec<i32>) =
-        serde_yaml_bw::from_str(y).expect("failed to parse M6YH");
+        serde_yaml::from_str(y).expect("failed to parse M6YH");
     assert_eq!(v.0.as_str(), "x\n");
     assert_eq!(v.1.get("foo").map(String::as_str), Some("bar"));
     assert_eq!(v.2, vec![42]);

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 // XV9V: Spec Example 6.5. Empty Lines [1.3]
@@ -22,7 +23,7 @@ Chomping: |
 
 "#;
 
-    let d: Doc = serde_yaml_bw::from_str(y).expect("failed to parse XV9V");
+    let d: Doc = serde_yaml::from_str(y).expect("failed to parse XV9V");
     assert_eq!(d.folding, "Empty line\nas a line feed");
     assert_eq!(d.chomping, "Clipped empty lines\n");
 }

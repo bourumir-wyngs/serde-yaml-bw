@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -23,7 +24,7 @@ age: 30
         note: None,
     };
 
-    let result: Result<Person, _> = serde_yaml_bw::from_str(yaml_input);
+    let result: Result<Person, _> = serde_yaml::from_str(yaml_input);
 
     assert!(
         result.is_ok(),
@@ -51,7 +52,7 @@ note: ...
         note: Some("...".into()),
     };
 
-    let result: Result<Person, _> = serde_yaml_bw::from_str(yaml_input);
+    let result: Result<Person, _> = serde_yaml::from_str(yaml_input);
 
     assert!(
         result.is_ok(),

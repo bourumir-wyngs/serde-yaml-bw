@@ -1,4 +1,5 @@
-use serde_yaml_bw::Number;
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::Number;
 use std::cmp::Ordering;
 
 #[test]

@@ -1,5 +1,5 @@
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use serde_yaml_bw as yaml;
+use serde_yaml_gtc as yaml;
 
 #[derive(Debug, PartialEq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]

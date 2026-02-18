@@ -1,19 +1,20 @@
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn serialize_small_float_scientific_notation() {
     let value = 0.000004_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e-6");
 
     let value = 4.5123456e-18_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.5123456e-18");
 }
 
 #[test]
 fn serialize_large_float_scientific_notation() {
     let value = 40000000000000000000.0_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e+19");
 }
 
@@ -21,15 +22,15 @@ fn serialize_large_float_scientific_notation() {
 fn serialize_positive_exponent_requires_plus_sign() {
     // YAML 1.1 requires an explicit sign in the exponent.
     let value = 3.12e18_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "3.12e+18");
 }
 
 #[test]
 fn roundtrip_floats() {
     for original in [4.0e-6, 3.12e18, 17.4] {
-        let yaml = serde_yaml_bw::to_string(&original).unwrap();
-        let parsed: f64 = serde_yaml_bw::from_str(&yaml).unwrap();
+        let yaml = serde_yaml::to_string(&original).unwrap();
+        let parsed: f64 = serde_yaml::from_str(&yaml).unwrap();
         assert_eq!(original, parsed);
     }
 }
@@ -84,22 +85,22 @@ fn serialize_small_float_scientific_notation_2() {
     // f64 cases
     // --------------------
     let value = 0.000004_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e-6");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = -0.000004_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "-4.0e-6");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = 4.5123456e-18_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.5123456e-18");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = -4.5123456e-18_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "-4.5123456e-18");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
@@ -107,12 +108,12 @@ fn serialize_small_float_scientific_notation_2() {
     // f32 cases
     // --------------------
     let value = 0.000000004_f32;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e-9");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = -0.000000004_f32;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "-4.0e-9");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 }
@@ -123,12 +124,12 @@ fn serialize_large_float_scientific_notation_2() {
     // f64 cases
     // --------------------
     let value = 40000000000000000000.0_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e+19");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = -40000000000000000000.0_f64;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "-4.0e+19");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
@@ -136,12 +137,12 @@ fn serialize_large_float_scientific_notation_2() {
     // f32 cases
     // --------------------
     let value = 40000000000000000000.0_f32;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "4.0e+19");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 
     let value = -40000000000000000000.0_f32;
-    let yaml = serde_yaml_bw::to_string(&value).unwrap();
+    let yaml = serde_yaml::to_string(&value).unwrap();
     assert_eq!(yaml.trim(), "-4.0e+19");
     assert_yaml11_and_yaml12_float_scalar(yaml.trim());
 }

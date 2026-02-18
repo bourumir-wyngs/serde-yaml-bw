@@ -1,4 +1,5 @@
-use serde_yaml_bw::{Mapping, Value};
+use serde_yaml_gtc as serde_yaml;
+use serde_yaml::{Mapping, Value};
 
 #[test]
 fn test_reserve_and_shrink() {

@@ -1,3 +1,4 @@
+use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -8,7 +9,7 @@ fn yaml_x38w_aliases_in_flow_objects_with_complex_keys() -> anyhow::Result<()> {
 
     // Use BTreeMap<Vec<String>, serde_json::Value> to allow complex (sequence) keys
     // and heterogeneous values (scalar first, then sequence overriding it).
-    let map: BTreeMap<Vec<String>, Value> = serde_yaml_bw::from_str(y)?;
+    let map: BTreeMap<Vec<String>, Value> = serde_yaml::from_str(y)?;
 
     assert_eq!(
         map.len(),
