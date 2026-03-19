@@ -10,11 +10,11 @@ use crate::libyaml::emitter::{
 use crate::libyaml::tag::Tag;
 use crate::value::tagged::{self, MaybeTag};
 use crate::zmij_format;
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use serde::Deserialize;
+use base64::Engine;
 use serde::de::Visitor;
 use serde::ser::{self, Serializer as _};
+use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
@@ -1056,11 +1056,14 @@ where
     where
         T: ?Sized + Display,
     {
-        let string = if let State::CheckForTag | State::CheckForDuplicateTag = self.state {
+        let string = if matches!(self.state, State::CheckForTag | State::CheckForDuplicateTag) {
             match tagged::check_for_tag(value) {
                 MaybeTag::Error => return Err(error::new(ErrorImpl::TagError)),
                 MaybeTag::NotTag(string) => string,
                 MaybeTag::Tag(string) => {
+                    if matches!(self.state, State::CheckForDuplicateTag) {
+                        return Err(error::new(ErrorImpl::TagError));
+                    }
                     self.state = State::FoundTag(string);
                     return Ok(());
                 }
@@ -1971,5 +1974,21 @@ mod tests {
         let alias = Value::Alias("a\0b".to_string());
         let err = crate::to_string(&alias).expect_err("expected error for NUL-containing alias");
         assert_eq!(err.to_string(), "alias name contains NUL byte");
+    }
+
+    #[test]
+    fn nested_tagged_value_is_rejected() {
+        use crate::value::{Tag, TaggedValue};
+
+        let nested = Value::Tagged(Box::new(TaggedValue {
+            tag: Tag::new("Outer").unwrap(),
+            value: Value::Tagged(Box::new(TaggedValue {
+                tag: Tag::new("Inner").unwrap(),
+                value: Value::String("payload".to_owned(), None),
+            })),
+        }));
+
+        let err = crate::to_string(&nested).expect_err("nested tags should be rejected");
+        assert_eq!(err.to_string(), "unexpected tag error");
     }
 }
