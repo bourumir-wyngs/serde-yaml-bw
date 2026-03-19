@@ -8,7 +8,9 @@ use serde::Deserialize;
 use serde_yaml_bw::{Deserializer, Value};
 #[path = "utils/mod.rs"]
 mod utils;
-use utils::{test_error, deserializer_no_pathology};
+use utils::test_error;
+#[cfg(not(miri))]
+use utils::deserializer_no_pathology;
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -311,7 +313,6 @@ fn test_enum_mapping_has_no_keys_from_value() {
     );
 }
 
-#[cfg(not(miri))] 
 #[test]
 fn test_anchor_too_long() {
     use serde_yaml_bw::Value;
