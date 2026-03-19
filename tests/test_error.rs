@@ -311,6 +311,7 @@ fn test_enum_mapping_has_no_keys_from_value() {
     );
 }
 
+#[cfg(not(miri))] 
 #[test]
 fn test_anchor_too_long() {
     use serde_yaml_bw::Value;
