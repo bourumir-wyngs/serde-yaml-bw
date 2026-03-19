@@ -8,6 +8,29 @@ use std::borrow::Cow;
 
 use saphyr_parser::{Parser, Event, ScanError};
 
+fn fallback_budget_input(input: &str) -> Option<&str> {
+    let mut offset = 0;
+
+    for line in input.split_inclusive('\n') {
+        let line_end = offset + line.len();
+        let trimmed = line.trim_end_matches(['\r', '\n']);
+        if let Some(rest) = trimmed.strip_prefix("...") {
+            let rest = rest.trim_start_matches([' ', '\t']);
+            if rest.is_empty() || rest.starts_with('#') {
+                let tail = &input[line_end..];
+                let next = tail.trim_start_matches([' ', '\t', '\r', '\n']);
+                if next.is_empty() || next.starts_with("---") {
+                    return None;
+                }
+                return Some(&input[..line_end]);
+            }
+        }
+        offset = line_end;
+    }
+
+    None
+}
+
 /// Budgets for a streaming YAML scan.
 ///
 /// The defaults are intentionally permissive for typical configuration files
@@ -210,7 +233,15 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
 
     // Iterate the event stream; this avoids implementing EventReceiver.
     while let Some(item) = parser.next() {
-        let (ev, _span) = item?; // propagate ScanError
+        let (ev, _span) = match item {
+            Ok(item) => item,
+            Err(err) => {
+                if let Some(prefix) = fallback_budget_input(input) {
+                    return check_yaml_budget(prefix, budget);
+                }
+                return Err(err);
+            }
+        };
 
         report.events += 1;
         if report.events > budget.max_events {
@@ -409,5 +440,21 @@ e: *A
         b.max_anchors = 2;
         let rep = check_yaml_budget(y, &b).unwrap();
         assert!(matches!(rep.breached, Some(BudgetBreach::Anchors { anchors: 3 })));
+    }
+
+    #[test]
+    fn explicit_end_marker_allows_ignoring_trailing_garbage() {
+        let yaml = "---\na: 1\n...\n!!! trailing garbage\n";
+        let report = check_yaml_budget(yaml, &Budget::default()).unwrap();
+        assert!(report.breached.is_none());
+        assert_eq!(report.documents, 1);
+    }
+
+    #[test]
+    fn explicit_end_marker_keeps_following_documents_visible() {
+        let yaml = "---\na: 1\n...\n---\nb: 2\n";
+        let report = check_yaml_budget(yaml, &Budget::default()).unwrap();
+        assert!(report.breached.is_none());
+        assert_eq!(report.documents, 2);
     }
 }
