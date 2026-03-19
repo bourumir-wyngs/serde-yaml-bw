@@ -882,58 +882,69 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             Scalar(scalar) => Ok(parse_scalar_value(scalar)),
             SequenceStart(seq) => {
                 let anchor = seq.anchor.clone();
-                let mut elements = Vec::new();
-                while !matches!(self.peek_event()?, SequenceEnd) {
-                    elements.push(self.parse_value()?);
-                }
-                self.next_event()?; // consume SequenceEnd
-                Ok(Value::Sequence(Sequence { anchor, elements }))
+                self.recursion_check(mark, |de| {
+                    let mut elements = Vec::new();
+                    while !matches!(de.peek_event()?, SequenceEnd) {
+                        elements.push(de.parse_value()?);
+                    }
+                    de.next_event()?; // consume SequenceEnd
+                    Ok(Value::Sequence(Sequence { anchor, elements }))
+                })
             }
             MappingStart(map) => {
                 let anchor = map.anchor.clone();
-                let mut mapping = Mapping::new();
-                let strategy = self.duplicate_key_strategy.clone();
-                // Track first occurrence marks for keys (only needed for Error strategy)
-                let mut first_marks: Option<HashMap<Value, Mark>> = match strategy {
-                    DuplicateKeyStrategy::Error => Some(HashMap::new()),
-                    _ => None,
-                };
-                while !matches!(self.peek_event()?, MappingEnd) {
-                    // Capture key mark before parsing key value
-                    let (_evt, key_mark) = self.peek_event_mark()?;
-                    let key = self.parse_value()?;
-                    if let Some(ref marks) = first_marks {
-                        if let Some(first_mark) = marks.get(&key).cloned() {
-                            let msg = DuplicateKeyError::from_value_with_marks(&key, first_mark, key_mark).to_string();
-                            return Err(error::fix_mark(error::new(ErrorImpl::Message(msg, None)), key_mark, self.path));
+                self.recursion_check(mark, |de| {
+                    let mut mapping = Mapping::new();
+                    let strategy = de.duplicate_key_strategy.clone();
+                    // Track first occurrence marks for keys (only needed for Error strategy)
+                    let mut first_marks: Option<HashMap<Value, Mark>> = match strategy {
+                        DuplicateKeyStrategy::Error => Some(HashMap::new()),
+                        _ => None,
+                    };
+                    while !matches!(de.peek_event()?, MappingEnd) {
+                        // Capture key mark before parsing key value
+                        let (_evt, key_mark) = de.peek_event_mark()?;
+                        let key = de.parse_value()?;
+                        if let Some(ref marks) = first_marks {
+                            if let Some(first_mark) = marks.get(&key).cloned() {
+                                let msg = DuplicateKeyError::from_value_with_marks(
+                                    &key, first_mark, key_mark,
+                                )
+                                .to_string();
+                                return Err(error::fix_mark(
+                                    error::new(ErrorImpl::Message(msg, None)),
+                                    key_mark,
+                                    de.path,
+                                ));
+                            }
+                        }
+                        match strategy {
+                            DuplicateKeyStrategy::FirstWins => {
+                                if mapping.contains_key(&key) {
+                                    // Skip the duplicate value
+                                    let _ = de.parse_value()?;
+                                    continue;
+                                }
+                                let value = de.parse_value()?;
+                                mapping.insert(key.clone(), value);
+                            }
+                            DuplicateKeyStrategy::LastWins => {
+                                let value = de.parse_value()?;
+                                mapping.insert(key.clone(), value);
+                            }
+                            DuplicateKeyStrategy::Error => {
+                                if let Some(ref mut marks) = first_marks {
+                                    marks.insert(key.clone(), key_mark);
+                                }
+                                let value = de.parse_value()?;
+                                mapping.insert(key.clone(), value);
+                            }
                         }
                     }
-                    match strategy {
-                        DuplicateKeyStrategy::FirstWins => {
-                            if mapping.contains_key(&key) {
-                                // Skip the duplicate value
-                                let _ = self.parse_value()?;
-                                continue;
-                            }
-                            let value = self.parse_value()?;
-                            mapping.insert(key.clone(), value);
-                        }
-                        DuplicateKeyStrategy::LastWins => {
-                            let value = self.parse_value()?;
-                            mapping.insert(key.clone(), value);
-                        }
-                        DuplicateKeyStrategy::Error => {
-                            if let Some(ref mut marks) = first_marks {
-                                marks.insert(key.clone(), key_mark);
-                            }
-                            let value = self.parse_value()?;
-                            mapping.insert(key.clone(), value);
-                        }
-                    }
-                }
-                self.next_event()?; // consume MappingEnd
-                mapping.anchor = anchor;
-                Ok(Value::Mapping(mapping))
+                    de.next_event()?; // consume MappingEnd
+                    mapping.anchor = anchor;
+                    Ok(Value::Mapping(mapping))
+                })
             }
             SequenceEnd => Err(error::fix_mark(
                 error::new(ErrorImpl::UnexpectedEndOfSequence),
