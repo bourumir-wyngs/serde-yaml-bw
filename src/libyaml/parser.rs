@@ -187,12 +187,12 @@ impl<'input> Parser<'input> {
                 }
                 return Err(Error::from(LibyamlError::parse_error(parser)));
             }
-            let ret = convert_event(&*event, &(*self.pin.ptr).input).map_err(error::new)?;
             let mark = Mark {
                 sys: (*event).start_mark,
             };
+            let ret = convert_event(&*event, &(*self.pin.ptr).input).map_err(error::new);
             sys::yaml_event_delete(event);
-            Ok((ret, mark))
+            ret.map(|event| (event, mark))
         }
     }
 }
