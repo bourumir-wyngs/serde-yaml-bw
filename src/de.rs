@@ -2176,27 +2176,28 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
                 if let Some(tag) = parse_tag(mapping.tag.as_ref()) {
                     return visitor.visit_enum(EnumAccess { de: self, tag });
                 }
-                self.next_event_mark()?; // consume MappingStart
-                let (key_event, key_mark) = self.next_event_mark()?;
-                let tag = match key_event {
-                    Event::Scalar(scalar) => scalar.raw.as_str(),
-                    _ => {
-                        struct ExpectedString;
-                        impl Expected for ExpectedString {
-                            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                                f.write_str("string")
+                return self.recursion_check(mark, move |de| {
+                    de.next_event_mark()?; // consume MappingStart
+                    let (key_event, key_mark) = de.next_event_mark()?;
+                    let tag = match key_event {
+                        Event::Scalar(scalar) => scalar.raw.as_str(),
+                        _ => {
+                            struct ExpectedString;
+                            impl Expected for ExpectedString {
+                                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                                    f.write_str("string")
+                                }
                             }
+                            let err = invalid_type(key_event, &ExpectedString);
+                            return Err(error::fix_mark(err, key_mark, de.path));
                         }
-                        let err = invalid_type(key_event, &ExpectedString);
-                        return Err(error::fix_mark(err, key_mark, self.path));
-                    }
-                };
-                let result = visitor.visit_enum(EnumAccess { de: self, tag });
-                let result = result.and_then(|v| {
-                    self.end_mapping(1)?;
-                    Ok(v)
+                    };
+                    let result = visitor.visit_enum(EnumAccess { de, tag });
+                    result.and_then(|v| {
+                        de.end_mapping(1)?;
+                        Ok(v)
+                    })
                 });
-                return result;
             }
             Event::SequenceStart(sequence) => {
                 if let Some(tag) = parse_tag(sequence.tag.as_ref()) {

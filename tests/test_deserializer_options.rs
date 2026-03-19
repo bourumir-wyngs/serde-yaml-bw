@@ -37,6 +37,34 @@ fn custom_recursion_limit_counts_depth_not_siblings() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn custom_recursion_limit_exceeded_for_external_tagged_enum_wrappers() {
+    #[derive(Debug, Deserialize)]
+    enum Node {
+        Leaf,
+        Next(Box<Node>),
+    }
+
+    let depth = 5;
+    let mut yaml = String::from("Leaf\n");
+    for _ in 0..depth {
+        let indented = yaml
+            .lines()
+            .map(|line| format!("  {line}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        yaml = format!("Next:\n{indented}\n");
+    }
+
+    let mut opts = utils::opts_no_pathology();
+    opts.recursion_limit = 2;
+    let err = Node::deserialize(Deserializer::from_str_with_options(&yaml, &opts)).unwrap_err();
+    assert!(
+        err.to_string().starts_with("recursion limit exceeded"),
+        "unexpected error: {}",
+        err
+    );
+}
 
 #[test]
 fn custom_alias_limit_exceeded() {
