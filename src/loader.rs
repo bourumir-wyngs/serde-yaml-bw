@@ -50,17 +50,27 @@ impl<'input> Loader<'input> {
             }
             Progress::Slice(bytes) => {
                 if let Some(b) = &options.budget {
-                    if let Ok(s) = std::str::from_utf8(bytes) {
-                        match check_yaml_budget(s, b) {
-                            Ok(rep) => {
-                                if let Some(breach) = rep.breached {
-                                    return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
-                                }
+                    let s = match std::str::from_utf8(bytes) {
+                        Ok(s) => s,
+                        Err(utf8_err) => {
+                            let valid = utf8_err.valid_up_to();
+                            return Err(error::new(ErrorImpl::PreScan(PreScanError::new(
+                                "budget pre-scan requires UTF-8 input".to_owned(),
+                                valid,
+                                1,
+                                valid + 1,
+                            ))));
+                        }
+                    };
+                    match check_yaml_budget(s, b) {
+                        Ok(rep) => {
+                            if let Some(breach) = rep.breached {
+                                return Err(error::new(ErrorImpl::BudgetExceeded(breach)));
                             }
-                            Err(se) => {
-                                let pse: PreScanError = (&se).into();
-                                return Err(error::new(ErrorImpl::PreScan(pse)));
-                            }
+                        }
+                        Err(se) => {
+                            let pse: PreScanError = (&se).into();
+                            return Err(error::new(ErrorImpl::PreScan(pse)));
                         }
                     }
                 }
@@ -252,5 +262,21 @@ mod tests {
             }
         }
         assert!(found, "anchored mapping not found");
+    }
+
+    #[test]
+    fn budgeted_slice_rejects_non_utf8_input() {
+        let mut opts = crate::de::DeserializerOptions::default();
+        opts.budget = Some(crate::budget::Budget::default());
+
+        let err = match Loader::new(Progress::Slice(&[0xFF]), &opts) {
+            Ok(_) => panic!("expected pre-scan error for non-UTF-8 input"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string()
+                .contains("budget pre-scan requires UTF-8 input"),
+            "unexpected error: {err}"
+        );
     }
 }
