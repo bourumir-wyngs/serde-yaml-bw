@@ -847,14 +847,18 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
         mark: Mark,
         f: F,
     ) -> Result<T> {
-        if let Some(previous_depth) = self.remaining_depth {
-            self.remaining_depth = match previous_depth.checked_sub(1) {
-                Some(depth) => Some(depth),
-                None => return Err(error::new(ErrorImpl::RecursionLimitExceeded(mark))),
-            };
+        match self.remaining_depth {
+            Some(previous_depth) => {
+                self.remaining_depth = match previous_depth.checked_sub(1) {
+                    Some(depth) => Some(depth),
+                    None => return Err(error::new(ErrorImpl::RecursionLimitExceeded(mark))),
+                };
+                let result = f(self);
+                self.remaining_depth = Some(previous_depth);
+                result
+            }
+            None => f(self),
         }
-        let result = f(self);
-        result
     }
 
     pub(crate) fn parse_value(&mut self) -> Result<Value> {

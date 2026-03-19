@@ -27,6 +27,16 @@ fn custom_recursion_limit_disabled() -> anyhow::Result<()>{
     Ok(())
 }
 
+#[test]
+fn custom_recursion_limit_counts_depth_not_siblings() -> anyhow::Result<()> {
+    let yaml = "[[], [], []]";
+    let mut opts = utils::opts_no_pathology();
+    opts.recursion_limit = 2;
+    let value = Vec::<Vec<u8>>::deserialize(Deserializer::from_str_with_options(yaml, &opts))?;
+    assert_eq!(value, vec![vec![], vec![], vec![]]);
+    Ok(())
+}
+
 
 #[test]
 fn custom_alias_limit_exceeded() {
