@@ -1,17 +1,18 @@
+use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::cstr::{self, CStr};
 use crate::libyaml::error::{Error as LibyamlError, Mark};
-use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::tag::Tag;
 use crate::libyaml::util::Owned;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
+use std::io::{self, Read};
 use std::mem::MaybeUninit;
+use std::panic::{self, AssertUnwindSafe};
 use std::ptr::{addr_of_mut, NonNull};
 use std::slice;
-use std::io::{self, Read};
 use unsafe_libyaml_norway as sys;
 
-pub (crate) const MAX_ANCHOR_LEN: usize = 65_536; // Keep in sync with tests/test_error.rs
+pub(crate) const MAX_ANCHOR_LEN: usize = 65_536; // Keep in sync with tests/test_error.rs
 
 pub(crate) struct Parser<'input> {
     pin: Owned<ParserPinned<'input>>,
@@ -113,22 +114,25 @@ impl<'input> Parser<'input> {
                 let reader = match pinned.reader.as_mut() {
                     Some(reader) => reader,
                     None => {
-                        pinned.read_error = Some(io::Error::new(
-                            io::ErrorKind::Other,
-                            "reader is not set",
-                        ));
+                        pinned.read_error =
+                            Some(io::Error::new(io::ErrorKind::Other, "reader is not set"));
                         *size_read = 0;
                         return 0;
                     }
                 };
                 let slice = std::slice::from_raw_parts_mut(buffer, size as usize);
-                match reader.read(slice) {
-                    Ok(len) => {
+                match panic::catch_unwind(AssertUnwindSafe(|| reader.read(slice))) {
+                    Ok(Ok(len)) => {
                         *size_read = len as u64;
                         1
                     }
-                    Err(err) => {
+                    Ok(Err(err)) => {
                         pinned.read_error = Some(err);
+                        *size_read = 0;
+                        0
+                    }
+                    Err(_) => {
+                        pinned.read_error = Some(io::Error::other("reader panicked"));
                         *size_read = 0;
                         0
                     }
@@ -149,7 +153,11 @@ impl<'input> Parser<'input> {
             addr_of_mut!((*owned.ptr).reader).write(Some(Box::new(reader)));
             addr_of_mut!((*owned.ptr).read_error).write(None);
             let data = owned.ptr;
-            sys::yaml_parser_set_input(parser, read_handler as sys::yaml_read_handler_t, data.cast());
+            sys::yaml_parser_set_input(
+                parser,
+                read_handler as sys::yaml_read_handler_t,
+                data.cast(),
+            );
             if let Some(err) = (*data).read_error.take() {
                 return Err(error::new(ErrorImpl::Io(err)));
             }
@@ -281,7 +289,8 @@ unsafe fn optional_anchor(anchor: *const u8) -> std::result::Result<Option<Ancho
                 return Err(ErrorImpl::Message(
                     format!(
                         "anchor too long: length {} exceeds maximum {}",
-                        bytes.len(), MAX_ANCHOR_LEN
+                        bytes.len(),
+                        MAX_ANCHOR_LEN
                     ),
                     None,
                 ));
@@ -301,8 +310,7 @@ unsafe fn optional_tag(tag: *const u8) -> std::result::Result<Option<Tag>, Error
     };
     // SAFETY: `ptr` is non-null and points to a valid NUL-terminated string.
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    cstr
-        .to_bytes()
+    cstr.to_bytes()
         .map(|bytes| Some(Tag(Box::from(bytes))))
         .map_err(|_| ErrorImpl::TagError)
 }
@@ -382,5 +390,20 @@ mod tests {
         let mut parser = Parser::from_reader(FailingReader).unwrap();
         let err = parser.next().unwrap_err();
         assert_eq!(err.to_string(), "fail");
+    }
+
+    struct PanickingReader;
+
+    impl Read for PanickingReader {
+        fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+            panic!("boom");
+        }
+    }
+
+    #[test]
+    fn reader_panic_is_propagated_as_io_error() {
+        let mut parser = Parser::from_reader(PanickingReader).unwrap();
+        let err = parser.next().unwrap_err();
+        assert_eq!(err.to_string(), "reader panicked");
     }
 }
