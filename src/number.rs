@@ -210,7 +210,11 @@ impl PartialEq for N {
                     a == b
                 }
             }
-            _ => false,
+            (N::PosInt(i), N::Float(f)) => cmp_int_float(i as i128, f) == Ordering::Equal,
+            (N::NegInt(i), N::Float(f)) => cmp_int_float(i as i128, f) == Ordering::Equal,
+            (N::Float(f), N::PosInt(i)) => cmp_int_float(i as i128, f) == Ordering::Equal,
+            (N::Float(f), N::NegInt(i)) => cmp_int_float(i as i128, f) == Ordering::Equal,
+            (N::PosInt(_), N::NegInt(_)) | (N::NegInt(_), N::PosInt(_)) => false,
         }
     }
 }
