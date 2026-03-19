@@ -626,6 +626,12 @@ where
     }
 
     fn emit_alias(&mut self, anchor: &str) -> Result<()> {
+        if anchor.as_bytes().contains(&0) {
+            return Err(error::new(ErrorImpl::Message(
+                "alias name contains NUL byte".to_owned(),
+                None,
+            )));
+        }
         if self.check_missing_anchors && !self.anchors.contains(anchor) {
             use crate::libyaml::error::Mark;
             use crate::libyaml::parser::Anchor as YamlAnchor;
@@ -1958,5 +1964,12 @@ mod tests {
             "unexpected error message: {}",
             msg
         );
+    }
+
+    #[test]
+    fn alias_with_nul_is_rejected() {
+        let alias = Value::Alias("a\0b".to_string());
+        let err = crate::to_string(&alias).expect_err("expected error for NUL-containing alias");
+        assert_eq!(err.to_string(), "alias name contains NUL byte");
     }
 }
