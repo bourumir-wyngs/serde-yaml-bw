@@ -2297,13 +2297,7 @@ pub fn from_str_multi<T>(s: &str) -> Result<Vec<T>>
 where
     T: DeserializeOwned,
 {
-    Deserializer::from_str(s)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    collect_multi(Deserializer::from_str(s))
 }
 
 /// Deserialize a list of `T` from multiple YAML documents provided in an IO stream.
@@ -2312,13 +2306,7 @@ where
     R: io::Read,
     T: DeserializeOwned,
 {
-    Deserializer::from_reader(rdr)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    collect_multi(Deserializer::from_reader(rdr))
 }
 
 /// Deserialize a list of `T` from multiple YAML documents provided in bytes.
@@ -2326,13 +2314,27 @@ pub fn from_slice_multi<T>(v: &[u8]) -> Result<Vec<T>>
 where
     T: DeserializeOwned,
 {
-    Deserializer::from_slice(v)
-        .map(|doc| {
-            let mut value: Value = Value::deserialize(doc)?;
-            value.apply_merge()?;
-            crate::value::from_value(value)
-        })
-        .collect()
+    collect_multi(Deserializer::from_slice(v))
+}
+
+const DEFAULT_MULTI_DOCUMENT_LIMIT: usize = 10_000;
+
+fn collect_multi<T>(deserializer: Deserializer<'_>) -> Result<Vec<T>>
+where
+    T: DeserializeOwned,
+{
+    let mut values = Vec::new();
+    for doc in deserializer {
+        if values.len() == DEFAULT_MULTI_DOCUMENT_LIMIT {
+            return Err(de::Error::custom(format!(
+                "multi-document limit exceeded (>{DEFAULT_MULTI_DOCUMENT_LIMIT} documents)"
+            )));
+        }
+        let mut value: Value = Value::deserialize(doc)?;
+        value.apply_merge()?;
+        values.push(crate::value::from_value(value)?);
+    }
+    Ok(values)
 }
 
 /// Deserialize a YAML string into a [`Value`] while **preserving anchors and aliases**.
