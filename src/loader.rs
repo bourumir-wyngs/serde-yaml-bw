@@ -150,7 +150,7 @@ impl<'input> Loader<'input> {
                 YamlEvent::Scalar(mut scalar) => {
                     let anchor_name = scalar.anchor.take().map(|a| {
                         let name = anchor_to_string(&a);
-                        let id = anchors.len();
+                        let id = document.aliases.len();
                         anchors.insert(a, id);
                         document.aliases.push(document.events.len());
                         name
@@ -165,7 +165,7 @@ impl<'input> Loader<'input> {
                 YamlEvent::SequenceStart(mut sequence_start) => {
                     let anchor_name = sequence_start.anchor.take().map(|a| {
                         let name = anchor_to_string(&a);
-                        let id = anchors.len();
+                        let id = document.aliases.len();
                         anchors.insert(a, id);
                         document.aliases.push(document.events.len());
                         name
@@ -179,7 +179,7 @@ impl<'input> Loader<'input> {
                 YamlEvent::MappingStart(mut mapping_start) => {
                     let anchor_name = mapping_start.anchor.take().map(|a| {
                         let name = anchor_to_string(&a);
-                        let id = anchors.len();
+                        let id = document.aliases.len();
                         anchors.insert(a, id);
                         document.aliases.push(document.events.len());
                         name

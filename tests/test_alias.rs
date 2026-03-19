@@ -194,4 +194,39 @@ subvector:
 "#;
         assert_eq!(yaml, expected);
     }
+
+    #[test]
+    fn aliases_follow_latest_redefined_anchor() {
+        #[derive(Debug, Deserialize, PartialEq, Eq)]
+        struct Doc {
+            use_a: i32,
+            use_b: i32,
+        }
+
+        let yaml = r#"
+first: &A 1
+second: &B 2
+re_a: &A 3
+re_b: &B 4
+use_a: *A
+use_b: *B
+"#;
+
+        let parsed: Doc = serde_yaml_bw::from_str(yaml).expect("typed deserialize");
+        assert_eq!(parsed, Doc { use_a: 3, use_b: 4 });
+
+        let mut value = from_str_value_preserve(yaml).expect("value parse");
+        match &value["use_a"] {
+            Value::Alias(name) => assert_eq!(name, "A"),
+            other => panic!("expected Alias for use_a, got {other:?}"),
+        }
+        match &value["use_b"] {
+            Value::Alias(name) => assert_eq!(name, "B"),
+            other => panic!("expected Alias for use_b, got {other:?}"),
+        }
+
+        value.resolve_aliases().expect("resolve aliases");
+        assert_eq!(value["use_a"], Value::Number(3.into(), None));
+        assert_eq!(value["use_b"], Value::Number(4.into(), None));
+    }
 }
