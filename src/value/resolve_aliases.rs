@@ -3,6 +3,8 @@ use crate::Value;
 use std::collections::{HashMap, HashSet};
 
 impl Value {
+    const RESOLVE_ALIASES_LIMIT: usize = 100_000;
+
     /// Recursively replace all [`Alias`](Value::Alias) nodes with copies of the
     /// values referenced by their anchors.
     ///
@@ -50,9 +52,14 @@ impl Value {
             value: &mut Value,
             anchors: &HashMap<String, Value>,
             visiting: &mut HashSet<String>,
+            expansions: &mut usize,
         ) -> Result<(), Error> {
             match value {
                 Value::Alias(name) => {
+                    *expansions += 1;
+                    if *expansions > Value::RESOLVE_ALIASES_LIMIT {
+                        return Err(error::new(ErrorImpl::RepetitionLimitExceeded));
+                    }
                     let alias = name.clone();
                     if !visiting.insert(alias.clone()) {
                         return Err(error::new(ErrorImpl::MergeRecursion));
@@ -61,7 +68,7 @@ impl Value {
                         Some(v) => v.clone(),
                         None => return Err(error::new(ErrorImpl::UnresolvedAlias)),
                     };
-                    resolve(&mut replacement, anchors, visiting)?;
+                    resolve(&mut replacement, anchors, visiting, expansions)?;
                     strip_anchors(&mut replacement);
                     *value = replacement;
                     visiting.remove(&alias);
@@ -69,17 +76,17 @@ impl Value {
                 }
                 Value::Sequence(seq) => {
                     for item in &mut seq.elements {
-                        resolve(item, anchors, visiting)?;
+                        resolve(item, anchors, visiting, expansions)?;
                     }
                     Ok(())
                 }
                 Value::Mapping(map) => {
                     for v in map.values_mut() {
-                        resolve(v, anchors, visiting)?;
+                        resolve(v, anchors, visiting, expansions)?;
                     }
                     Ok(())
                 }
-                Value::Tagged(tagged) => resolve(&mut tagged.value, anchors, visiting),
+                Value::Tagged(tagged) => resolve(&mut tagged.value, anchors, visiting, expansions),
                 _ => Ok(()),
             }
         }
@@ -112,6 +119,7 @@ impl Value {
         let mut anchors = HashMap::new();
         collect_anchors(self, &mut anchors);
         let mut visiting = HashSet::new();
-        resolve(self, &anchors, &mut visiting)
+        let mut expansions = 0;
+        resolve(self, &anchors, &mut visiting, &mut expansions)
     }
 }

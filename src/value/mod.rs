@@ -1005,6 +1005,26 @@ mod tests {
     }
 
     #[test]
+    fn resolve_aliases_repetition_limit_exceeded() {
+        let mut root = Mapping::new();
+        root.insert(
+            Value::String("anchor".into(), None),
+            Value::String("x".into(), Some("id".into())),
+        );
+        root.insert(
+            Value::String("many".into(), None),
+            Value::Sequence(Sequence {
+                anchor: None,
+                elements: (0..100_001).map(|_| Value::Alias("id".into())).collect(),
+            }),
+        );
+
+        let mut value = Value::Mapping(root);
+        let err = value.resolve_aliases().unwrap_err();
+        assert_eq!(err.to_string(), "repetition limit exceeded");
+    }
+
+    #[test]
     fn test_field_inheritance() {
         let yaml_input = r#"
 defaults: &defaults
