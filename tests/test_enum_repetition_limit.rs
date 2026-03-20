@@ -14,7 +14,6 @@ enum Node {
     List(Vec<Node>),
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_enum_billion_laughs() {
     let yaml = indoc! {

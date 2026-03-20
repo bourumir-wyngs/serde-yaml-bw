@@ -6,7 +6,6 @@ use std::fmt;
 mod utils;
 use utils::test_error;
 
-#[cfg(not(miri))]
 #[test]
 fn test_large_repetition_limit() {
     #[derive(Debug)]

@@ -13,8 +13,7 @@ env:
   RUST_BACKTRACE: "1"
   MIRI_BACKTRACE: "1"
   NEXTEST_PROFILE: default
-  # Optional: set this in repo/org variables if you want.
-  # MIRIFLAGS: ""
+  MIRIFLAGS: "-Zmiri-disable-isolation"
 
 jobs:
   build:

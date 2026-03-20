@@ -1,4 +1,3 @@
-#![cfg(not(miri))]
 
 use std::fs;
 use std::path::{Path, PathBuf};

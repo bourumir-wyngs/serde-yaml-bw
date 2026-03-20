@@ -1,7 +1,6 @@
 #![allow(clippy::zero_sized_map_values)]
 
 use indoc::indoc;
-#[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
 use serde::Deserialize;
 
@@ -9,12 +8,9 @@ use serde_yaml_bw::{Deserializer, Value};
 #[path = "utils/mod.rs"]
 mod utils;
 use utils::test_error;
-#[cfg(not(miri))]
 use utils::deserializer_no_pathology;
-#[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-#[cfg(not(miri))]
 use std::fmt;
 use std::fmt::Debug;
 
@@ -412,7 +408,6 @@ fn test_invalid_scalar_type() {
     test_error::<S>(yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_infinite_recursion_objects() {
     #[derive(Deserialize, Debug)]
@@ -426,7 +421,6 @@ fn test_infinite_recursion_objects() {
     test_error::<S>(yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_infinite_recursion_arrays() {
     #[derive(Deserialize, Debug)]
@@ -440,7 +434,6 @@ fn test_infinite_recursion_arrays() {
     test_error::<S>(yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_infinite_recursion_newtype() {
     #[derive(Deserialize, Debug)]
@@ -451,7 +444,6 @@ fn test_infinite_recursion_newtype() {
     test_error::<S>(yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_finite_recursion_objects() {
     #[derive(Deserialize, Debug)]
@@ -465,7 +457,6 @@ fn test_finite_recursion_objects() {
     test_error::<S>(&yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_finite_recursion_arrays() {
     #[derive(Deserialize, Debug)]
@@ -479,7 +470,6 @@ fn test_finite_recursion_arrays() {
     test_error::<S>(&yaml, expected);
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_billion_laughs() {
     #[derive(Debug)]
@@ -677,7 +667,6 @@ b: *missing_anchor
     }
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_extreme_nesting_error_message() {
     // Construct YAML with extremely deep nesting to exceed the recursion limit.
@@ -692,7 +681,6 @@ fn test_extreme_nesting_error_message() {
     );
 }
 
-#[cfg(not(miri))]
 #[test]
 fn test_long_alias_chain_error() {
     use std::fmt::Write;
