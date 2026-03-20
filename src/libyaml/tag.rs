@@ -2,7 +2,7 @@ use crate::libyaml::cstr;
 use std::fmt::{self, Debug};
 use std::ops::Deref;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub(crate) struct Tag(pub(in crate::libyaml) Box<[u8]>);
 
 impl Tag {

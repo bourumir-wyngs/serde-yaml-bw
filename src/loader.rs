@@ -16,6 +16,7 @@ pub(crate) struct Loader<'input> {
     document_count: usize,
 }
 
+#[derive(Clone)]
 pub(crate) struct Document<'input> {
     pub events: Vec<(Event<'input>, Mark)>,
     pub error: Option<Arc<ErrorImpl>>,

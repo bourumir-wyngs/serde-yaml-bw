@@ -41,6 +41,7 @@ pub(crate) enum Event<'input> {
     Void,
 }
 
+#[derive(Clone)]
 pub(crate) struct Scalar<'input> {
     pub anchor: Option<Anchor>,
     pub tag: Option<Tag>,
@@ -49,19 +50,19 @@ pub(crate) struct Scalar<'input> {
     pub repr: Option<&'input [u8]>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct SequenceStart {
     pub anchor: Option<Anchor>,
     pub tag: Option<Tag>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct MappingStart {
     pub anchor: Option<Anchor>,
     pub tag: Option<Tag>,
 }
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct Anchor(pub(crate) Box<[u8]>);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

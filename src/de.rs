@@ -581,26 +581,26 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ScalarEvent<'de> {
     pub anchor: Option<String>,
     pub value: Scalar<'de>,
     pub(crate) raw: String,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct SequenceStartEvent {
     pub anchor: Option<String>,
     pub tag: Option<Tag>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct MappingStartEvent {
     pub anchor: Option<String>,
     pub tag: Option<Tag>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum Event<'de> {
     Alias(usize),
     Scalar(ScalarEvent<'de>),
@@ -2282,11 +2282,15 @@ where
     R: io::Read,
     T: DeserializeOwned,
 {
-    let mut bytes = Vec::new();
-    let mut rdr = rdr;
-    rdr.read_to_end(&mut bytes)
-        .map_err(|err| error::new(ErrorImpl::Io(err)))?;
-    from_slice_with_merge_fallback(&bytes)
+    let mut loader = Loader::new(Progress::Read(Box::new(rdr)), &DeserializerOptions::default())?;
+    let Some(document) = loader.next_document() else {
+        return Err(error::new(ErrorImpl::EndOfStream));
+    };
+    if loader.next_document().is_some() {
+        return Err(error::new(ErrorImpl::MoreThanOneDocument));
+    }
+
+    from_document_with_merge_fallback(document)
 }
 
 /// Deserialize an instance of type `T` from bytes of YAML text.
@@ -2329,6 +2333,35 @@ where
         }
         Err(_err) => {
             let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        }
+    }
+}
+
+fn from_document_with_merge_fallback<T>(document: Document<'_>) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    if type_name::<T>() == type_name::<Value>() {
+        let mut value: Value = Value::deserialize(Deserializer {
+            progress: Progress::Document(document),
+            options: DeserializerOptions::default(),
+        })?;
+        value.apply_merge()?;
+        return crate::value::from_value(value);
+    }
+
+    match T::deserialize(Deserializer {
+        progress: Progress::Document(document.clone()),
+        options: DeserializerOptions::default(),
+    }) {
+        Ok(parsed) => Ok(parsed),
+        Err(_err) => {
+            let mut value: Value = Value::deserialize(Deserializer {
+                progress: Progress::Document(document),
+                options: DeserializerOptions::default(),
+            })?;
             value.apply_merge()?;
             crate::value::from_value(value)
         }

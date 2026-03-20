@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
+use std::io::{self, Cursor, Read};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {
@@ -45,4 +45,54 @@ fn test_error_location() {
     let loc = err.location().expect("location missing");
     assert_eq!(loc.line(), 1);
     assert_eq!(loc.column(), 1);
+}
+
+#[test]
+fn test_from_reader_does_not_read_past_early_parse_error() {
+    struct InvalidPrefixWithReadLimit {
+        emitted: usize,
+        limit: usize,
+    }
+
+    impl Read for InvalidPrefixWithReadLimit {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            if self.emitted >= self.limit {
+                return Err(io::Error::other("reader limit exceeded"));
+            }
+
+            let remaining = self.limit - self.emitted;
+            let n = remaining.min(buf.len()).max(1);
+            if self.emitted == 0 {
+                buf[0] = b'@';
+                for b in &mut buf[1..n] {
+                    *b = b'a';
+                }
+            } else {
+                for b in &mut buf[..n] {
+                    *b = b'a';
+                }
+            }
+            self.emitted += n;
+            Ok(n)
+        }
+    }
+
+    let result: Result<Point, _> = serde_yaml_bw::from_reader(InvalidPrefixWithReadLimit {
+        emitted: 0,
+        limit: 64 * 1024,
+    });
+    let err = result.unwrap_err();
+    assert!(!err.to_string().contains("reader limit exceeded"));
+}
+
+#[test]
+fn test_from_reader_ignored_field_does_not_require_alias_expansion() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Data {
+        used: i32,
+    }
+
+    let yaml = b"used: 1\nignored: &loop\n  - *loop\n";
+    let parsed: Data = serde_yaml_bw::from_reader(Cursor::new(yaml)).unwrap();
+    assert_eq!(parsed, Data { used: 1 });
 }
