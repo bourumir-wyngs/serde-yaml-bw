@@ -1006,20 +1006,15 @@ mod tests {
 
     #[test]
     fn resolve_aliases_repetition_limit_exceeded() {
-        let mut root = Mapping::new();
-        root.insert(
-            Value::String("anchor".into(), None),
-            Value::String("x".into(), Some("id".into())),
-        );
-        root.insert(
-            Value::String("many".into(), None),
-            Value::Sequence(Sequence {
-                anchor: None,
-                elements: (0..100_001).map(|_| Value::Alias("id".into())).collect(),
-            }),
-        );
+        let mut yaml = String::from("a: &a [0]\n");
+        for ch in b'b'..=b't' {
+            let prev = (ch - 1) as char;
+            let curr = ch as char;
+            yaml.push_str(&format!("{curr}: &{curr} [*{prev}, *{prev}]\n"));
+        }
+        yaml.push_str("root: *t\n");
 
-        let mut value = Value::Mapping(root);
+        let mut value: Value = from_str_value_preserve(&yaml).unwrap();
         let err = value.resolve_aliases().unwrap_err();
         assert_eq!(err.to_string(), "repetition limit exceeded");
     }

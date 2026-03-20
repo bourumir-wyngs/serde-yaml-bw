@@ -29,3 +29,17 @@ fn test_from_str_value_applies_merge() {
     assert_eq!(value["actual"]["b"], Value::Number(Number::from(2), None));
     assert_eq!(value["actual"]["c"], Value::Number(Number::from(3), None));
 }
+
+#[test]
+fn test_from_str_value_rejects_alias_bomb() {
+    let mut yaml = String::from("a: &a [0]\n");
+    for ch in b'b'..=b't' {
+        let prev = (ch - 1) as char;
+        let curr = ch as char;
+        yaml.push_str(&format!("{curr}: &{curr} [*{prev}, *{prev}]\n"));
+    }
+    yaml.push_str("root: *t\n");
+
+    let err = from_str_value(&yaml).unwrap_err();
+    assert!(err.to_string().contains("repetition limit exceeded"));
+}
