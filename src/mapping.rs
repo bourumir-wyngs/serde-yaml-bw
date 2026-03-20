@@ -439,19 +439,123 @@ where
 #[allow(clippy::derived_hash_with_manual_eq)]
 impl Hash for Mapping {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // Hash the kv pairs in a way that is not sensitive to their order.
+        // Hash kv pairs in an order-insensitive O(n) way.
         //
-        // We still feed key/value hashes into `state` directly so that callers'
-        // hash randomization remains effective.
-        let mut entries = self.iter().collect::<Vec<_>>();
-        entries.sort_by(|(ak, av), (bk, bv)| {
-            total_cmp_value(ak, bk).then_with(|| total_cmp_value(av, bv))
-        });
-        for (k, v) in entries {
-            k.hash(state);
-            v.hash(state);
+        // Each entry is first reduced into a deterministic 64-bit digest, then
+        // digests are combined commutatively and finally mixed into caller's
+        // hasher, preserving caller-side hash randomization.
+        let mut xor_acc = 0_u64;
+        let mut sum_acc = 0_u64;
+        let mut mix_acc = 0_u64;
+
+        for (k, v) in self {
+            let mut entry_hasher = StableMixHasher::default();
+            k.hash(&mut entry_hasher);
+            v.hash(&mut entry_hasher);
+            let digest = entry_hasher.finish();
+
+            xor_acc ^= digest;
+            sum_acc = sum_acc.wrapping_add(digest.rotate_left(23));
+            mix_acc = mix_acc.wrapping_add(mix64(digest ^ 0x9e37_79b9_7f4a_7c15));
+        }
+
+        state.write_u64(mix64(xor_acc) ^ mix64(sum_acc) ^ mix64(mix_acc));
+        state.write_usize(self.len());
+    }
+}
+
+#[derive(Default)]
+struct StableMixHasher {
+    state: u64,
+}
+
+impl StableMixHasher {
+    fn mix_word(&mut self, word: u64) {
+        self.state = mix64(self.state ^ mix64(word));
+    }
+}
+
+impl Hasher for StableMixHasher {
+    fn finish(&self) -> u64 {
+        mix64(self.state)
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        let mut chunks = bytes.chunks_exact(8);
+        for chunk in &mut chunks {
+            let mut buf = [0_u8; 8];
+            buf.copy_from_slice(chunk);
+            self.mix_word(u64::from_le_bytes(buf));
+        }
+
+        let rem = chunks.remainder();
+        if !rem.is_empty() {
+            let mut buf = [0_u8; 8];
+            for (i, byte) in rem.iter().enumerate() {
+                buf[i] = *byte;
+            }
+            self.mix_word(u64::from_le_bytes(buf) ^ ((rem.len() as u64) << 56));
         }
     }
+
+    fn write_u8(&mut self, i: u8) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_u16(&mut self, i: u16) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_u32(&mut self, i: u32) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_u64(&mut self, i: u64) {
+        self.mix_word(i);
+    }
+
+    fn write_u128(&mut self, i: u128) {
+        self.mix_word(i as u64);
+        self.mix_word((i >> 64) as u64);
+    }
+
+    fn write_usize(&mut self, i: usize) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_i8(&mut self, i: i8) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_i16(&mut self, i: i16) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_i32(&mut self, i: i32) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_i64(&mut self, i: i64) {
+        self.mix_word(i as u64);
+    }
+
+    fn write_i128(&mut self, i: i128) {
+        self.mix_word(i as u64);
+        self.mix_word((i >> 64) as u64);
+    }
+
+    fn write_isize(&mut self, i: isize) {
+        self.mix_word(i as u64);
+    }
+}
+
+#[inline]
+fn mix64(mut x: u64) -> u64 {
+    x ^= x >> 30;
+    x = x.wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    x ^= x >> 27;
+    x = x.wrapping_mul(0x94d0_49bb_1331_11eb);
+    x ^ (x >> 31)
 }
 
 fn total_cmp_value(a: &Value, b: &Value) -> Ordering {
@@ -887,6 +991,7 @@ impl<'de> Deserialize<'de> for Mapping {
 mod tests {
     use super::Mapping;
     use crate::Value;
+    use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 
     #[derive(Default)]
@@ -920,5 +1025,30 @@ mod tests {
         mapping.hash(&mut hasher);
 
         assert!(hasher.writes > 1);
+    }
+
+    #[test]
+    fn mapping_hash_is_order_insensitive() {
+        let mut a = Mapping::new();
+        a.insert(Value::String("k1".to_owned(), None), Value::Bool(true, None));
+        a.insert(
+            Value::String("k2".to_owned(), None),
+            Value::String("v2".to_owned(), None),
+        );
+
+        let mut b = Mapping::new();
+        b.insert(
+            Value::String("k2".to_owned(), None),
+            Value::String("v2".to_owned(), None),
+        );
+        b.insert(Value::String("k1".to_owned(), None), Value::Bool(true, None));
+
+        let mut ah = DefaultHasher::new();
+        a.hash(&mut ah);
+
+        let mut bh = DefaultHasher::new();
+        b.hash(&mut bh);
+
+        assert_eq!(ah.finish(), bh.finish());
     }
 }
