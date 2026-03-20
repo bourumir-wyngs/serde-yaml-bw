@@ -1,11 +1,10 @@
 //! A YAML mapping and its iterator types.
 
 use crate::duplicate_key::DuplicateKeyError;
-use crate::{private, Value};
+use crate::{Value, private};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp::Ordering;
-use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -107,11 +106,8 @@ impl Mapping {
 
     /// Convenience method, as key is most often as string and the key itself
     /// normally has no anchor, value does.
-    pub fn set(&mut self, key: &str, value: Value)  {
-        self.insert(
-            Value::String(key.to_string(), None),
-            value,
-        );
+    pub fn set(&mut self, key: &str, value: Value) {
+        self.insert(Value::String(key.to_string(), None), value);
     }
 
     /// Checks if the map contains the given key.
@@ -444,14 +440,90 @@ where
 impl Hash for Mapping {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Hash the kv pairs in a way that is not sensitive to their order.
-        let mut xor = 0;
-        for (k, v) in self {
-            let mut hasher = DefaultHasher::new();
-            k.hash(&mut hasher);
-            v.hash(&mut hasher);
-            xor ^= hasher.finish();
+        //
+        // We still feed key/value hashes into `state` directly so that callers'
+        // hash randomization remains effective.
+        let mut entries = self.iter().collect::<Vec<_>>();
+        entries.sort_by(|(ak, av), (bk, bv)| {
+            total_cmp_value(ak, bk).then_with(|| total_cmp_value(av, bv))
+        });
+        for (k, v) in entries {
+            k.hash(state);
+            v.hash(state);
         }
-        xor.hash(state);
+    }
+}
+
+fn total_cmp_value(a: &Value, b: &Value) -> Ordering {
+    match (a, b) {
+        (Value::Null(_), Value::Null(_)) => Ordering::Equal,
+        (Value::Null(_), _) => Ordering::Less,
+        (_, Value::Null(_)) => Ordering::Greater,
+
+        (Value::Bool(a, _), Value::Bool(b, _)) => a.cmp(b),
+        (Value::Bool(_, _), _) => Ordering::Less,
+        (_, Value::Bool(_, _)) => Ordering::Greater,
+
+        (Value::Number(a, _), Value::Number(b, _)) => a.total_cmp(b),
+        (Value::Number(_, _), _) => Ordering::Less,
+        (_, Value::Number(_, _)) => Ordering::Greater,
+
+        (Value::String(a, _), Value::String(b, _)) => a.cmp(b),
+        (Value::String(_, _), _) => Ordering::Less,
+        (_, Value::String(_, _)) => Ordering::Greater,
+
+        (Value::Sequence(a), Value::Sequence(b)) => iter_cmp_by(a, b, total_cmp_value),
+        (Value::Sequence(_), _) => Ordering::Less,
+        (_, Value::Sequence(_)) => Ordering::Greater,
+
+        (Value::Alias(a), Value::Alias(b)) => a.cmp(b),
+        (Value::Alias(_), _) => Ordering::Less,
+        (_, Value::Alias(_)) => Ordering::Greater,
+
+        (Value::Mapping(a), Value::Mapping(b)) => a.partial_cmp(b).unwrap_or_else(|| {
+            iter_cmp_by(a, b, |(ak, av), (bk, bv)| {
+                total_cmp_value(ak, bk).then_with(|| total_cmp_value(av, bv))
+            })
+        }),
+        (Value::Mapping(_), _) => Ordering::Less,
+        (_, Value::Mapping(_)) => Ordering::Greater,
+
+        (Value::Tagged(a), Value::Tagged(b)) => a
+            .tag
+            .cmp(&b.tag)
+            .then_with(|| total_cmp_value(&a.value, &b.value)),
+    }
+}
+
+fn iter_cmp_by<I, F>(this: I, other: I, mut cmp: F) -> Ordering
+where
+    I: IntoIterator,
+    F: FnMut(I::Item, I::Item) -> Ordering,
+{
+    let mut this = this.into_iter();
+    let mut other = other.into_iter();
+
+    loop {
+        let x = match this.next() {
+            None => {
+                return if other.next().is_none() {
+                    Ordering::Equal
+                } else {
+                    Ordering::Less
+                };
+            }
+            Some(val) => val,
+        };
+
+        let y = match other.next() {
+            None => return Ordering::Greater,
+            Some(val) => val,
+        };
+
+        match cmp(x, y) {
+            Ordering::Equal => {}
+            non_eq => return non_eq,
+        }
     }
 }
 
@@ -460,85 +532,10 @@ impl PartialOrd for Mapping {
         let mut self_entries = self.iter().collect::<Vec<_>>();
         let mut other_entries = other.iter().collect::<Vec<_>>();
 
-        // Sort in an arbitrary order that is consistent with Value's PartialOrd
-        // impl.
-        fn total_cmp(a: &Value, b: &Value) -> Ordering {
-            match (a, b) {
-                (Value::Null(_), Value::Null(_)) => Ordering::Equal,
-                (Value::Null(_), _) => Ordering::Less,
-                (_, Value::Null(_)) => Ordering::Greater,
-
-                (Value::Bool(a, _), Value::Bool(b, _)) => a.cmp(b),
-                (Value::Bool(_, _), _) => Ordering::Less,
-                (_, Value::Bool(_, _)) => Ordering::Greater,
-
-                (Value::Number(a, _), Value::Number(b, _)) => a.total_cmp(b),
-                (Value::Number(_, _), _) => Ordering::Less,
-                (_, Value::Number(_, _)) => Ordering::Greater,
-
-                (Value::String(a, _), Value::String(b, _)) => a.cmp(b),
-                (Value::String(_, _), _) => Ordering::Less,
-                (_, Value::String(_, _)) => Ordering::Greater,
-
-                (Value::Sequence(a), Value::Sequence(b)) => iter_cmp_by(a, b, total_cmp),
-                (Value::Sequence(_), _) => Ordering::Less,
-                (_, Value::Sequence(_)) => Ordering::Greater,
-
-                (Value::Alias(a), Value::Alias(b)) => a.cmp(b),
-                (Value::Alias(_), _) => Ordering::Less,
-                (_, Value::Alias(_)) => Ordering::Greater,
-
-                (Value::Mapping(a), Value::Mapping(b)) => a.partial_cmp(b).unwrap_or_else(|| {
-                    iter_cmp_by(a, b, |(ak, av), (bk, bv)| {
-                        total_cmp(ak, bk).then_with(|| total_cmp(av, bv))
-                    })
-                }),
-                (Value::Mapping(_), _) => Ordering::Less,
-                (_, Value::Mapping(_)) => Ordering::Greater,
-
-                (Value::Tagged(a), Value::Tagged(b)) => a
-                    .tag
-                    .cmp(&b.tag)
-                    .then_with(|| total_cmp(&a.value, &b.value)),
-            }
-        }
-
-        fn iter_cmp_by<I, F>(this: I, other: I, mut cmp: F) -> Ordering
-        where
-            I: IntoIterator,
-            F: FnMut(I::Item, I::Item) -> Ordering,
-        {
-            let mut this = this.into_iter();
-            let mut other = other.into_iter();
-
-            loop {
-                let x = match this.next() {
-                    None => {
-                        return if other.next().is_none() {
-                            Ordering::Equal
-                        } else {
-                            Ordering::Less
-                        }
-                    }
-                    Some(val) => val,
-                };
-
-                let y = match other.next() {
-                    None => return Ordering::Greater,
-                    Some(val) => val,
-                };
-
-                match cmp(x, y) {
-                    Ordering::Equal => {}
-                    non_eq => return non_eq,
-                }
-            }
-        }
-
         // While sorting by map key, we get to assume that no two keys are
         // equal, otherwise they wouldn't both be in the map. This is not a safe
         // assumption outside of this situation.
-        let total_cmp = |&(a, _): &_, &(b, _): &_| total_cmp(a, b);
+        let total_cmp = |&(a, _): &_, &(b, _): &_| total_cmp_value(a, b);
         self_entries.sort_by(total_cmp);
         other_entries.sort_by(total_cmp);
         self_entries.partial_cmp(&other_entries)
@@ -883,5 +880,45 @@ impl<'de> Deserialize<'de> for Mapping {
         }
 
         deserializer.deserialize_map(Visitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Mapping;
+    use crate::Value;
+    use std::hash::{Hash, Hasher};
+
+    #[derive(Default)]
+    struct CountingHasher {
+        writes: usize,
+    }
+
+    impl Hasher for CountingHasher {
+        fn finish(&self) -> u64 {
+            self.writes as u64
+        }
+
+        fn write(&mut self, _bytes: &[u8]) {
+            self.writes += 1;
+        }
+
+        fn write_u64(&mut self, _i: u64) {
+            self.writes += 1;
+        }
+    }
+
+    #[test]
+    fn mapping_hash_feeds_entries_into_caller_hasher() {
+        let mut mapping = Mapping::new();
+        mapping.insert(
+            Value::String("k".to_owned(), None),
+            Value::String("v".to_owned(), None),
+        );
+
+        let mut hasher = CountingHasher::default();
+        mapping.hash(&mut hasher);
+
+        assert!(hasher.writes > 1);
     }
 }
