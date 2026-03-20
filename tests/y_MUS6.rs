@@ -45,6 +45,20 @@ fn yaml_mus6_yaml_1_1_with_comment_then_empty_doc() {
     assert_eq!(v, None);
 }
 
+#[test]
+fn yaml_mus6_yaml_1_2_with_single_space_comment_then_empty_doc() {
+    let y = "%YAML 1.2 # comment\n---\n";
+    let v: Option<String> = serde_yaml_bw::from_str(y).expect("MUS6 case4b parse failed");
+    assert_eq!(v, None);
+}
+
+#[test]
+fn yaml_mus6_yaml_1_2_with_trailing_junk_should_fail() {
+    let y = "%YAML 1.2foo\n---\n";
+    let r: Result<Dummy, _> = serde_yaml_bw::from_str(y);
+    assert!(r.is_err(), "MUS6 trailing junk after version should fail");
+}
+
 // Case 5: Reserved/unknown directives should be ignored by parser. Empty doc follows.
 #[test]
 #[ignore]

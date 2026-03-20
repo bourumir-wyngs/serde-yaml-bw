@@ -2421,24 +2421,43 @@ fn validate_leading_yaml_directive(v: &[u8]) -> Result<()> {
             }
 
             let after_ws = rest.trim_start();
-            let consumed_version = after_ws
-                .chars()
-                .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
-                .count();
-            let remaining = &after_ws[consumed_version..];
+            let mut parts = after_ws.splitn(3, '.');
+            let major = parts.next().unwrap_or_default();
+            let minor_and_tail = parts.next().unwrap_or_default();
+            let extra_dot = parts.next();
 
-            if consumed_version == 0 {
+            if major.is_empty()
+                || !major.chars().all(|ch| ch.is_ascii_digit())
+                || minor_and_tail.is_empty()
+                || extra_dot.is_some()
+            {
                 return Err(error::new(ErrorImpl::Message(
                     "invalid %YAML directive".to_owned(),
                     None,
                 )));
             }
 
-            if let Some('#') = remaining.chars().next() {
+            let minor_len = minor_and_tail
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit())
+                .count();
+            if minor_len == 0 {
                 return Err(error::new(ErrorImpl::Message(
                     "invalid %YAML directive".to_owned(),
                     None,
                 )));
+            }
+
+            let tail = &minor_and_tail[minor_len..];
+            if !tail.is_empty() {
+                let ws_len = tail.chars().take_while(|ch| ch.is_whitespace()).count();
+                let after_inline_ws = &tail[ws_len..];
+                if !after_inline_ws.is_empty() && !after_inline_ws.starts_with('#') {
+                    return Err(error::new(ErrorImpl::Message(
+                        "invalid %YAML directive".to_owned(),
+                        None,
+                    )));
+                }
             }
         }
 
