@@ -1572,10 +1572,15 @@ fn is_plain_or_tagged_literal_scalar(
     scalar: &Scalar,
     tagged_already: bool,
 ) -> bool {
-    match (scalar.style, &scalar.tag, tagged_already) {
-        (ScalarStyle::Plain, _, _) => true,
-        (ScalarStyle::Literal | ScalarStyle::Folded, Some(tag), false) => tag == expected,
-        _ => false,
+    if tagged_already {
+        return scalar.style == ScalarStyle::Plain;
+    }
+
+    match &scalar.tag {
+        Some(tag) if tag == expected => true,
+        Some(tag) if tag.starts_with("!") => scalar.style == ScalarStyle::Plain,
+        Some(_) => false,
+        None => scalar.style == ScalarStyle::Plain,
     }
 }
 

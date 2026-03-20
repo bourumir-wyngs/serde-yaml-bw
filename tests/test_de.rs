@@ -48,6 +48,19 @@ fn test_folded_block_scalar_int() {
 }
 
 #[test]
+fn test_quoted_scalar_with_int_tag_deserializes_as_integer() {
+    let yaml = "!!int \"123\"\n";
+    test_de(yaml, &123_i64);
+}
+
+#[test]
+fn test_plain_scalar_with_string_tag_does_not_deserialize_as_integer() {
+    let yaml = "!!str 123\n";
+    let err = serde_yaml_bw::from_str::<i64>(yaml).unwrap_err().to_string();
+    assert!(err.contains("invalid type"), "unexpected error: {err}");
+}
+
+#[test]
 fn test_folded_block_scalar_float() {
     let yaml = indoc! {"!!float >-\n  1.5\n"};
     test_de(yaml, &1.5_f64);
