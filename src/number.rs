@@ -446,11 +446,29 @@ impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self.n {
             N::Float(f) => {
-                // Hash the raw IEEE 754 bits so different floats produce
-                // different hashes. Canonicalize negative zero to positive
-                // zero so values considered equal have the same hash.
+                // Keep hashing consistent with equality: floats that compare
+                // equal to integers must hash the same as those integers.
+                if f.is_finite() && f.fract() == 0.0 {
+                    let int = f as i128;
+                    if (int as f64) == f {
+                        if let Ok(u) = u64::try_from(int) {
+                            u.hash(state);
+                            return;
+                        }
+                        if let Ok(i) = i64::try_from(int) {
+                            i.hash(state);
+                            return;
+                        }
+                    }
+                }
+
+                // Hash the raw IEEE 754 bits for non-integer floats.
+                // Canonicalize NaN and negative zero so values considered
+                // equal have the same hash.
                 let mut bits = f.to_bits();
-                if bits == (-0.0f64).to_bits() {
+                if f.is_nan() {
+                    bits = f64::NAN.copysign(1.0).to_bits();
+                } else if bits == (-0.0f64).to_bits() {
                     bits = 0.0f64.to_bits();
                 }
                 bits.hash(state);

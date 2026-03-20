@@ -1,5 +1,7 @@
 use serde_yaml_bw::Number;
+use serde_yaml_bw::Value;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 #[test]
 fn test_ordering_between_int_and_float() {
@@ -39,4 +41,24 @@ fn test_ordering_special_values() {
     assert!(std::panic::catch_unwind(|| nan > int_zero).unwrap());
     // direct comparison with float returns false but does not panic
     assert!(!std::panic::catch_unwind(|| nan > float_zero).unwrap());
+}
+
+#[test]
+fn test_value_hash_consistent_with_numeric_equality() {
+    let mut map = HashMap::new();
+    map.insert(Value::Number(Number::from(2), Default::default()), "int");
+    map.insert(
+        Value::Number(Number::from(2.0), Default::default()),
+        "float",
+    );
+
+    assert_eq!(map.len(), 1);
+    assert_eq!(
+        map.get(&Value::Number(Number::from(2), Default::default())),
+        Some(&"float")
+    );
+    assert_eq!(
+        map.get(&Value::Number(Number::from(2.0), Default::default())),
+        Some(&"float")
+    );
 }
