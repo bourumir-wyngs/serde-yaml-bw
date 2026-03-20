@@ -22,7 +22,7 @@ jobs:
           fetch-tags: true
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7
 
       - name: Check public API compatibility
         uses: obi1kenobi/cargo-semver-checks-action@v2
