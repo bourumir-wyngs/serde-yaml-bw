@@ -96,3 +96,27 @@ fn test_from_reader_ignored_field_does_not_require_alias_expansion() {
     let parsed: Data = serde_yaml_bw::from_reader(Cursor::new(yaml)).unwrap();
     assert_eq!(parsed, Data { used: 1 });
 }
+
+#[test]
+fn test_from_str_with_leading_directive_no_extra_merge_path_needed() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Data {
+        name: String,
+    }
+
+    let yaml = "%YAML 1.2\n---\nname: demo\n";
+    let parsed: Data = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(parsed, Data { name: "demo".to_owned() });
+}
+
+#[test]
+fn test_merge_fallback_still_applies_when_needed() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Data {
+        key: i32,
+    }
+
+    let yaml = "defaults: &defaults\n  key: 7\n<<: *defaults\n";
+    let parsed: Data = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(parsed, Data { key: 7 });
+}

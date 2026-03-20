@@ -2322,15 +2322,12 @@ where
         return crate::value::from_value(value);
     }
 
+    if has_leading_directive(v) {
+        validate_leading_yaml_directive(v)?;
+    }
+
     match T::deserialize(Deserializer::from_slice(v)) {
-        Ok(parsed) => {
-            if has_leading_directive(v) {
-                validate_leading_yaml_directive(v)?;
-                let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
-                value.apply_merge()?;
-            }
-            Ok(parsed)
-        }
+        Ok(parsed) => Ok(parsed),
         Err(_err) => {
             let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
             value.apply_merge()?;
@@ -2352,6 +2349,13 @@ where
         return crate::value::from_value(value);
     }
 
+    if !has_fallback_retry_hint_in_document(&document) {
+        return T::deserialize(Deserializer {
+            progress: Progress::Document(document),
+            options: DeserializerOptions::default(),
+        });
+    }
+
     match T::deserialize(Deserializer {
         progress: Progress::Document(document.clone()),
         options: DeserializerOptions::default(),
@@ -2366,6 +2370,16 @@ where
             crate::value::from_value(value)
         }
     }
+}
+
+fn has_fallback_retry_hint_in_document(document: &Document<'_>) -> bool {
+    document.events.iter().any(|(event, _)| match event {
+        Event::Scalar(scalar) => scalar.raw == "<<" || scalar.value.tag.is_some(),
+        Event::SequenceStart(sequence) => sequence.tag.is_some(),
+        Event::MappingStart(mapping) => mapping.tag.is_some(),
+        Event::Alias(_) => true,
+        _ => false,
+    })
 }
 
 fn has_leading_directive(v: &[u8]) -> bool {
