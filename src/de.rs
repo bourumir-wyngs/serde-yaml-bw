@@ -13,6 +13,7 @@ use serde::de::value::StrDeserializer;
 use serde::de::{
     self, Deserialize, DeserializeOwned, DeserializeSeed, Expected, IgnoredAny, Unexpected, Visitor,
 };
+use std::any::type_name;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -2256,9 +2257,7 @@ pub fn from_str<T>(s: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let mut value: Value = Value::deserialize(Deserializer::from_str(s))?;
-    value.apply_merge()?;
-    crate::value::from_value(value)
+    from_slice_with_merge_fallback(s.as_bytes())
 }
 
 /// Deserialize an instance of type `T` from an IO stream of YAML.
@@ -2278,9 +2277,11 @@ where
     R: io::Read,
     T: DeserializeOwned,
 {
-    let mut value: Value = Value::deserialize(Deserializer::from_reader(rdr))?;
-    value.apply_merge()?;
-    crate::value::from_value(value)
+    let mut bytes = Vec::new();
+    let mut rdr = rdr;
+    rdr.read_to_end(&mut bytes)
+        .map_err(|err| error::new(ErrorImpl::Io(err)))?;
+    from_slice_with_merge_fallback(&bytes)
 }
 
 /// Deserialize an instance of type `T` from bytes of YAML text.
@@ -2299,9 +2300,100 @@ pub fn from_slice<T>(v: &[u8]) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
-    value.apply_merge()?;
-    crate::value::from_value(value)
+    from_slice_with_merge_fallback(v)
+}
+
+fn from_slice_with_merge_fallback<T>(v: &[u8]) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    if type_name::<T>() == type_name::<Value>() {
+        let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
+        value.apply_merge()?;
+        return crate::value::from_value(value);
+    }
+
+    match T::deserialize(Deserializer::from_slice(v)) {
+        Ok(parsed) => {
+            if has_leading_directive(v) {
+                validate_leading_yaml_directive(v)?;
+                let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
+                value.apply_merge()?;
+            }
+            Ok(parsed)
+        }
+        Err(_err) => {
+            let mut value: Value = Value::deserialize(Deserializer::from_slice(v))?;
+            value.apply_merge()?;
+            crate::value::from_value(value)
+        }
+    }
+}
+
+fn has_leading_directive(v: &[u8]) -> bool {
+    let s = match str::from_utf8(v) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+
+    for line in s.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        return trimmed.starts_with('%');
+    }
+
+    false
+}
+
+fn validate_leading_yaml_directive(v: &[u8]) -> Result<()> {
+    let s = match str::from_utf8(v) {
+        Ok(s) => s,
+        Err(_) => return Ok(()),
+    };
+
+    for line in s.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        if let Some(rest) = trimmed.strip_prefix("%YAML") {
+            if rest.is_empty() || !rest.starts_with(char::is_whitespace) {
+                return Err(error::new(ErrorImpl::Message(
+                    "invalid %YAML directive".to_owned(),
+                    None,
+                )));
+            }
+
+            let after_ws = rest.trim_start();
+            let consumed_version = after_ws
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
+                .count();
+            let remaining = &after_ws[consumed_version..];
+
+            if consumed_version == 0 {
+                return Err(error::new(ErrorImpl::Message(
+                    "invalid %YAML directive".to_owned(),
+                    None,
+                )));
+            }
+
+            if let Some('#') = remaining.chars().next() {
+                return Err(error::new(ErrorImpl::Message(
+                    "invalid %YAML directive".to_owned(),
+                    None,
+                )));
+            }
+        }
+
+        return Ok(());
+    }
+
+    Ok(())
 }
 
 /// Deserialize a list of `T` from multiple YAML documents provided in a string.

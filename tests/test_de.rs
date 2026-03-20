@@ -147,6 +147,23 @@ fn test_alias() {
 }
 
 #[test]
+fn test_ignored_field_does_not_require_alias_expansion() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Data {
+        used: i32,
+    }
+
+    let yaml = indoc! {"
+        used: 1
+        ignored: &loop
+          - *loop
+    "};
+
+    let parsed: Data = serde_yaml_bw::from_str(yaml).unwrap();
+    assert_eq!(parsed, Data { used: 1 });
+}
+
+#[test]
 fn test_option() {
     #[derive(Deserialize, PartialEq, Debug)]
     struct Data {

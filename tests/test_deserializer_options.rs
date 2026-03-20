@@ -40,6 +40,7 @@ fn custom_recursion_limit_counts_depth_not_siblings() -> anyhow::Result<()> {
 #[test]
 fn custom_recursion_limit_exceeded_for_external_tagged_enum_wrappers() {
     #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
     enum Node {
         Leaf,
         Next(Box<Node>),
