@@ -103,6 +103,15 @@ pub(crate) struct Mapping {
     pub style: MappingStyle,
 }
 
+fn scalar_length(len: usize) -> Result<i32, Error> {
+    i32::try_from(len).map_err(|_| {
+        Error::Io(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "scalar length exceeds libyaml i32 limit",
+        ))
+    })
+}
+
 impl<W> Emitter<W>
 where
     W: io::Write,
@@ -179,7 +188,7 @@ where
                         .as_ref()
                         .map_or(ptr::null(), |cstr| cstr.as_ptr() as *const u8);
                     let value = scalar.value.as_ptr();
-                    let length = scalar.value.len() as i32;
+                    let length = scalar_length(scalar.value.len())?;
                     let plain_implicit = tag.is_null();
                     let quoted_implicit = tag.is_null();
                     let style = match scalar.style {
@@ -348,6 +357,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn scalar_length_rejects_oversized_input() {
+        let err = scalar_length(i32::MAX as usize + 1).unwrap_err();
+        match err {
+            Error::Io(err) => assert_eq!(err.kind(), io::ErrorKind::InvalidInput),
+            Error::Libyaml(_) => panic!("expected io error"),
+        }
+    }
+
+    #[test]
     fn sequence_with_style_flow() {
         let mut out = Vec::new();
         let mut emitter = Emitter::new(&mut out, -1, 2).unwrap();
@@ -355,7 +373,9 @@ mod tests {
         emitter.emit(Event::StreamStart).unwrap();
         emitter.emit(Event::DocumentStart).unwrap();
         emitter
-            .emit(Event::SequenceStart(Sequence::with_style(SequenceStyle::Flow)))
+            .emit(Event::SequenceStart(Sequence::with_style(
+                SequenceStyle::Flow,
+            )))
             .unwrap();
         for value in ["1", "2", "3"] {
             emitter
