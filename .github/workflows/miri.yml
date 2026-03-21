@@ -1,10 +1,9 @@
 name: Miri
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  schedule:
+    - cron: '50 5 7,17,27 * *'  # Runs three times a month
+  workflow_dispatch:     # Allows manual triggering
 
 permissions: read-all
 
@@ -17,8 +16,7 @@ env:
 
 jobs:
   build:
-    # runs-on: [self-hosted, linux, x64]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +24,7 @@ jobs:
       - name: Install Rust toolchains (stable + nightly with Miri)
         shell: bash
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           set -euo pipefail
 
           rustup set profile minimal
@@ -52,7 +50,7 @@ jobs:
       - name: Install cargo-nextest
         shell: bash
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           set -euo pipefail
 
           if ! cargo nextest --version >/dev/null 2>&1; then
@@ -64,25 +62,25 @@ jobs:
 
       - name: Build (stable)
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           cargo build --verbose
 
       - name: Run tests (stable)
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           cargo test --verbose
 
       - name: Miri setup (nightly)
         shell: bash
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           set -euo pipefail
           cargo +nightly miri setup
 
       - name: Run tests under Miri using nextest (nightly)
         shell: bash
         run: |
-          export PATH=$PATH:/home/github-runner/.cargo/bin          
+          export PATH=$PATH:/home/gitlab-runner-serde-yaml-bw/.cargo/bin          
           set -euo pipefail
 
           jobs="$(nproc || echo 1)"
