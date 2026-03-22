@@ -17,6 +17,7 @@ env:
 jobs:
   build:
     runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 7200
 
     steps:
       - uses: actions/checkout@v4
