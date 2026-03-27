@@ -1,0 +1,6 @@
+# Canonical rustfmt config for all Greentic repos.
+# Source: greenticai/.github/toolchain/rustfmt.toml
+# Sync: ./sync-toolchain.sh (from workspace root)
+# Do not edit per-repo.
+
+edition = "2024"
