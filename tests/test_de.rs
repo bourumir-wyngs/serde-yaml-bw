@@ -6,10 +6,10 @@
     clippy::uninlined_format_args
 )]
 
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
 use serde_yaml::{Deserializer, Number, Value};
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 

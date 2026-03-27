@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // SR86: Anchor plus Alias in value: key2: &b *a
 // Parser should reject alias immediately

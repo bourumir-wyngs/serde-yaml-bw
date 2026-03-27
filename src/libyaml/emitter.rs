@@ -1,6 +1,6 @@
 use crate::libyaml;
 use crate::libyaml::util::Owned;
-use std::ffi::{c_void, CString};
+use std::ffi::{CString, c_void};
 use std::io;
 use std::mem::MaybeUninit;
 use std::ptr::{self, addr_of_mut};
@@ -355,7 +355,9 @@ mod tests {
         emitter.emit(Event::StreamStart).unwrap();
         emitter.emit(Event::DocumentStart).unwrap();
         emitter
-            .emit(Event::SequenceStart(Sequence::with_style(SequenceStyle::Flow)))
+            .emit(Event::SequenceStart(Sequence::with_style(
+                SequenceStyle::Flow,
+            )))
             .unwrap();
         for value in ["1", "2", "3"] {
             emitter

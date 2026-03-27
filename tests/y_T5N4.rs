@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // T5N4: Literal scalar with actual tab and newline characters (suite used glyphs to visualize them).
 

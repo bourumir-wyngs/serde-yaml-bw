@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
-use serde_yaml::{from_str_value, Number, Value};
+use serde_yaml::{Number, Value, from_str_value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_from_str_value_resolves_alias() {

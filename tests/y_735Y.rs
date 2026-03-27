@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 735Y: Block Node Types — sequence: string, folded scalar, and an explicitly tagged map

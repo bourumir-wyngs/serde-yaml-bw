@@ -1,7 +1,7 @@
 use serde::Deserialize;
-use std::time::Instant;
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::Error;
+use serde_yaml_gtc as serde_yaml;
+use std::time::Instant;
 
 #[derive(Debug, Deserialize)]
 struct Document {

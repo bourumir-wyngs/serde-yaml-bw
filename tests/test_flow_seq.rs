@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
-use serde_yaml::{to_string, FlowSeq};
+use serde_yaml::{FlowSeq, to_string};
+use serde_yaml_gtc as serde_yaml;
 
 #[derive(Serialize)]
 struct Data {

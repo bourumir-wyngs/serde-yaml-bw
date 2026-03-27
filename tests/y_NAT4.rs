@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // NAT4: Various empty or newline-only quoted strings
 #[derive(Debug, Deserialize)]

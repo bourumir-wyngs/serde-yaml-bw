@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // W42U: Spec Example 8.15. Block Sequence Entry Types
 // The YAML represents: [null, "block node\n", ["one", "two"], {one: "two"}]

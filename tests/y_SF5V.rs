@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // SF5V: Duplicate YAML directive
 // The parser should fail when encountering two %YAML directives in a single stream.

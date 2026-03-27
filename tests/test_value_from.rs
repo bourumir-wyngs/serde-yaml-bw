@@ -1,6 +1,6 @@
+use serde_yaml::{Number, Sequence, Value};
 use serde_yaml_gtc as serde_yaml;
 use std::borrow::Cow;
-use serde_yaml::{Number, Sequence, Value};
 
 #[test]
 fn test_value_from_iter_integers() {

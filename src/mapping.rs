@@ -1,7 +1,7 @@
 //! A YAML mapping and its iterator types.
 
 use crate::duplicate_key::DuplicateKeyError;
-use crate::{private, Value};
+use crate::{Value, private};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp::Ordering;
@@ -107,11 +107,8 @@ impl Mapping {
 
     /// Convenience method, as key is most often as string and the key itself
     /// normally has no anchor, value does.
-    pub fn set(&mut self, key: &str, value: Value)  {
-        self.insert(
-            Value::String(key.to_string(), None),
-            value,
-        );
+    pub fn set(&mut self, key: &str, value: Value) {
+        self.insert(Value::String(key.to_string(), None), value);
     }
 
     /// Checks if the map contains the given key.
@@ -518,7 +515,7 @@ impl PartialOrd for Mapping {
                             Ordering::Equal
                         } else {
                             Ordering::Less
-                        }
+                        };
                     }
                     Some(val) => val,
                 };

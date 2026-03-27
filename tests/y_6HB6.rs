@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 6HB6: Indentation Spaces — nested mapping and a flow-style-like list in dump
 #[derive(Debug, Deserialize, PartialEq)]

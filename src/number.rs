@@ -1,7 +1,7 @@
-use crate::{de, zmij_format};
 use crate::error::{self, Error, ErrorImpl};
+use crate::{de, zmij_format};
 use serde::de::{Unexpected, Visitor};
-use serde::{forward_to_deserialize_any, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, forward_to_deserialize_any};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};

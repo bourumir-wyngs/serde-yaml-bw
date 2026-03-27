@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 4FJ6: Nested implicit complex keys
 // The document is a sequence with one mapping whose key is a nested structure and value is 23.

@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // P2EQ: Invalid sequence item on same line as previous item (fail: true) — expect error
 #[derive(Debug, Deserialize)]

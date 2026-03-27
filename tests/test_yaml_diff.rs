@@ -23,7 +23,6 @@ fn collect_test_inputs(base: &Path) -> std::io::Result<Vec<PathBuf>> {
     Ok(inputs)
 }
 
-
 fn parse_all_with_serde_yaml(input: &str) -> anyhow::Result<Vec<serde_yaml::Value>> {
     let mut docs = Vec::new();
     let des = serde_yaml::Deserializer::from_str(input);
@@ -66,14 +65,20 @@ fn yaml_test_suite_differential() -> Result<()> {
     let mut skipped = 0usize;
 
     for file in inputs {
-        let yaml = fs::read_to_string(&file)
-            .with_context(|| format!("reading {}", file.display()))?;
+        let yaml =
+            fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
 
         // Use serde_yaml as the reference. If it can't parse, skip this case.
         let ser_docs = match parse_all_with_serde_yaml_from_str(&yaml) {
             Ok(v) if !v.is_empty() => v,
-            Ok(_) => { skipped += 1; continue; },
-            Err(_e) => { skipped += 1; continue; },
+            Ok(_) => {
+                skipped += 1;
+                continue;
+            }
+            Err(_e) => {
+                skipped += 1;
+                continue;
+            }
         };
 
         // Our parser must be able to parse if serde_yaml did.
@@ -82,7 +87,8 @@ fn yaml_test_suite_differential() -> Result<()> {
             Err(err) => {
                 panic!(
                     "Our parser failed to parse a case that serde_yaml accepted.\nFile: {}\nError: {err}\nInput:\n{}",
-                    file.display(), yaml
+                    file.display(),
+                    yaml
                 );
             }
         };
@@ -97,9 +103,12 @@ fn yaml_test_suite_differential() -> Result<()> {
 
         let reparsed_by_serde = parse_all_with_serde_yaml(&bw_yaml)?;
         assert_eq!(
-            reparsed_by_serde, ser_docs,
+            reparsed_by_serde,
+            ser_docs,
             "Roundtrip via our serializer/Value changed semantics compared to serde_yaml.\nFile: {}\nInput:\n{}\nOur emitted YAML:\n{}",
-            file.display(), yaml, bw_yaml
+            file.display(),
+            yaml,
+            bw_yaml
         );
 
         // Additionally, serialize the serde_yaml Values using our serializer
@@ -112,16 +121,23 @@ fn yaml_test_suite_differential() -> Result<()> {
         };
 
         let reparsed_bw = parse_all_with_bw(&ser_yaml_via_bw)?;
-        let reparsed_bw_via_serde = parse_all_with_serde_yaml(&serde_yaml::to_string_multi(&reparsed_bw)?)?;
+        let reparsed_bw_via_serde =
+            parse_all_with_serde_yaml(&serde_yaml::to_string_multi(&reparsed_bw)?)?;
         assert_eq!(
-            reparsed_bw_via_serde, ser_docs,
+            reparsed_bw_via_serde,
+            ser_docs,
             "Serializing serde_yaml Values with our serializer, then parsing with our parser, should be semantics-preserving.\nFile: {}\nInput:\n{}\nserde_yaml -> (our serializer) YAML:\n{}",
-            file.display(), yaml, ser_yaml_via_bw
+            file.display(),
+            yaml,
+            ser_yaml_via_bw
         );
 
         tested += 1;
     }
 
-    eprintln!("yaml-test-suite differential: tested {} cases, skipped {}", tested, skipped);
+    eprintln!(
+        "yaml-test-suite differential: tested {} cases, skipped {}",
+        tested, skipped
+    );
     Ok(())
 }

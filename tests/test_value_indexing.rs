@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::Value;
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn sequence_indexing() {

@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // C4HZ rewritten: use serde tagged enums (externally tagged) instead of YAML local tags.
 #[derive(Debug, Deserialize, PartialEq, Copy, Clone)]

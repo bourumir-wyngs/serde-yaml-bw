@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Deserializer;
+use serde_yaml_gtc as serde_yaml;
 
 /// Test example 1 given in README
 #[test]

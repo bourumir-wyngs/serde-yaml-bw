@@ -34,7 +34,11 @@ impl DuplicateKeyError {
             Value::String(s, _) => String(s.clone()),
             _ => Other,
         };
-        DuplicateKeyError { kind, first: None, duplicate: None }
+        DuplicateKeyError {
+            kind,
+            first: None,
+            duplicate: None,
+        }
     }
 
     pub(crate) fn from_value_with_marks(value: &Value, first: Mark, duplicate: Mark) -> Self {
@@ -47,14 +51,26 @@ impl DuplicateKeyError {
     pub(crate) fn from_scalar(bytes: &[u8]) -> Self {
         use DuplicateKeyKind::{Bool, Null, Number, String};
         if is_null(bytes) {
-            return DuplicateKeyError { kind: Null, first: None, duplicate: None };
+            return DuplicateKeyError {
+                kind: Null,
+                first: None,
+                duplicate: None,
+            };
         }
         if let Ok(s) = std::str::from_utf8(bytes) {
             if let Some(b) = parse_bool(s) {
-                return DuplicateKeyError { kind: Bool(b), first: None, duplicate: None };
+                return DuplicateKeyError {
+                    kind: Bool(b),
+                    first: None,
+                    duplicate: None,
+                };
             }
             if let Ok(n) = Num::from_str(s) {
-                return DuplicateKeyError { kind: Number(n), first: None, duplicate: None };
+                return DuplicateKeyError {
+                    kind: Number(n),
+                    first: None,
+                    duplicate: None,
+                };
             }
             return DuplicateKeyError {
                 kind: String(s.to_string()),
@@ -62,7 +78,11 @@ impl DuplicateKeyError {
                 duplicate: None,
             };
         }
-        DuplicateKeyError { kind: DuplicateKeyKind::Other, first: None, duplicate: None }
+        DuplicateKeyError {
+            kind: DuplicateKeyKind::Other,
+            first: None,
+            duplicate: None,
+        }
     }
 
     pub(crate) fn from_scalar_with_marks(bytes: &[u8], first: Mark, duplicate: Mark) -> Self {
@@ -97,7 +117,11 @@ impl Display for DuplicateKeyError {
             // enclosing error formatter. Here we include the first occurrence.
             let line = first.line() as usize + 1;
             let col = first.column() as usize + 1;
-            write!(formatter, " (first defined at line {} column {})", line, col)?;
+            write!(
+                formatter,
+                " (first defined at line {} column {})",
+                line, col
+            )?;
         }
         Ok(())
     }
@@ -105,7 +129,7 @@ impl Display for DuplicateKeyError {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_null, DuplicateKeyError, DuplicateKeyKind};
+    use super::{DuplicateKeyError, DuplicateKeyKind, is_null};
     use crate::number::Number;
     use crate::parse_bool_casefold;
 

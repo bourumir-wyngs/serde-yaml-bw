@@ -1,11 +1,11 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
+use serde_yaml_gtc as serde_yaml;
 use std::rc::Rc;
 use std::sync::{Arc, Weak as ArcWeak};
 
 use serde_yaml::{
-    to_string, to_string_multi, ArcAnchor, ArcWeakAnchor, RcAnchor, RcWeakAnchor, SerializerBuilder,
-    SerializerOptions,
+    ArcAnchor, ArcWeakAnchor, RcAnchor, RcWeakAnchor, SerializerBuilder, SerializerOptions,
+    to_string, to_string_multi,
 };
 
 #[test]

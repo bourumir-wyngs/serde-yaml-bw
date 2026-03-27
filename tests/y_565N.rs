@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 565N: Construct Binary — test both !!binary inline and block forms decode to the same bytes
 #[derive(Debug, Deserialize)]

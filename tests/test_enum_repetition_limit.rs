@@ -33,4 +33,3 @@ fn test_enum_billion_laughs() {
     let expected = "repetition limit exceeded";
     test_error::<BTreeMap<String, Node>>(yaml, expected);
 }
-

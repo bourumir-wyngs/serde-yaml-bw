@@ -1,8 +1,8 @@
-use crate::value::tagged::{self, TagStringVisitor};
 use crate::value::TaggedValue;
-use crate::{number, Error, Mapping, Sequence, Value};
-use base64::prelude::BASE64_STANDARD;
+use crate::value::tagged::{self, TagStringVisitor};
+use crate::{Error, Mapping, Sequence, Value, number};
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use serde::de::value::{BorrowedStrDeserializer, StrDeserializer};
 use serde::de::{
     self, Deserialize, DeserializeSeed, Deserializer, EnumAccess, Error as _, Expected, MapAccess,

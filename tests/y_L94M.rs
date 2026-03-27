@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // L94M: Tags in Explicit Mapping
 // YAML uses explicit keys with tags (!!str for key, !!int/!!str for values).

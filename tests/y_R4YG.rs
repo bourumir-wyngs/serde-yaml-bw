@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 /// # YAML 1.2 Example 8.2 – Block Indentation Indicator (Test R4YG)
 #[test]

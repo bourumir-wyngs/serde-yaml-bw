@@ -1,12 +1,12 @@
 //! Streaming YAML budget checker using saphyr-parser (YAML 1.2).
 //!
 //! This inspects the parser's event stream and enforces simple budgets to
-//! avoid pathological inputs 
+//! avoid pathological inputs
 
-use std::collections::HashSet;
 use std::borrow::Cow;
+use std::collections::HashSet;
 
-use saphyr_parser::{Parser, Event, ScanError};
+use saphyr_parser::{Event, Parser, ScanError};
 
 /// Budgets for a streaming YAML scan.
 ///
@@ -66,12 +66,12 @@ pub struct Budget {
 impl Default for Budget {
     fn default() -> Self {
         Self {
-            max_events: 1_000_000,              // plenty for normal configs
-            max_aliases: 50_000,                // liberal absolute cap
-            max_anchors: 50_000,    
-            max_depth: 2_000,                   // protects stack/CPU
-            max_documents: 1_024,               // doc separator storms
-            max_nodes: 250_000,                 // sequences + maps + scalars
+            max_events: 1_000_000, // plenty for normal configs
+            max_aliases: 50_000,   // liberal absolute cap
+            max_anchors: 50_000,
+            max_depth: 2_000,                         // protects stack/CPU
+            max_documents: 1_024,                     // doc separator storms
+            max_nodes: 250_000,                       // sequences + maps + scalars
             max_total_scalar_bytes: 64 * 1024 * 1024, // 64 MiB of scalar text
             enforce_alias_anchor_ratio: true,
             alias_anchor_min_aliases: 100,
@@ -214,7 +214,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
 
         report.events += 1;
         if report.events > budget.max_events {
-            breach!(BudgetBreach::Events { events: report.events });
+            breach!(BudgetBreach::Events {
+                events: report.events
+            });
         }
 
         match ev {
@@ -223,7 +225,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             Event::DocumentStart(_explicit) => {
                 report.documents += 1;
                 if report.documents > budget.max_documents {
-                    breach!(BudgetBreach::Documents { documents: report.documents });
+                    breach!(BudgetBreach::Documents {
+                        documents: report.documents
+                    });
                 }
             }
             Event::DocumentEnd => {}
@@ -231,7 +235,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             Event::Alias(anchor_id) => {
                 report.aliases += 1;
                 if report.aliases > budget.max_aliases {
-                    breach!(BudgetBreach::Aliases { aliases: report.aliases });
+                    breach!(BudgetBreach::Aliases {
+                        aliases: report.aliases
+                    });
                 }
                 // alias/anchor ratio checked after the loop with totals
                 let _ = anchor_id; // we don't need to resolve it here
@@ -240,7 +246,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             Event::Scalar(value, _style, anchor_id, _tag_opt) => {
                 report.nodes += 1;
                 if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
+                    breach!(BudgetBreach::Nodes {
+                        nodes: report.nodes
+                    });
                 }
                 // Count scalar bytes
                 let len = match value {
@@ -249,12 +257,16 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                 };
                 report.total_scalar_bytes = report.total_scalar_bytes.saturating_add(len);
                 if report.total_scalar_bytes > budget.max_total_scalar_bytes {
-                    breach!(BudgetBreach::ScalarBytes { total_scalar_bytes: report.total_scalar_bytes });
+                    breach!(BudgetBreach::ScalarBytes {
+                        total_scalar_bytes: report.total_scalar_bytes
+                    });
                 }
                 if anchor_id != 0 {
                     if defined_anchors.insert(anchor_id) {
                         if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
+                            breach!(BudgetBreach::Anchors {
+                                anchors: defined_anchors.len()
+                            });
                         }
                     }
                 }
@@ -263,19 +275,25 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             Event::SequenceStart(anchor_id, _tag_opt) => {
                 report.nodes += 1;
                 if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
+                    breach!(BudgetBreach::Nodes {
+                        nodes: report.nodes
+                    });
                 }
                 depth += 1;
                 if depth > report.max_depth {
                     report.max_depth = depth;
                 }
                 if report.max_depth > budget.max_depth {
-                    breach!(BudgetBreach::Depth { depth: report.max_depth });
+                    breach!(BudgetBreach::Depth {
+                        depth: report.max_depth
+                    });
                 }
                 if anchor_id != 0 {
                     if defined_anchors.insert(anchor_id) {
                         if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
+                            breach!(BudgetBreach::Anchors {
+                                anchors: defined_anchors.len()
+                            });
                         }
                     }
                 }
@@ -291,19 +309,25 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             Event::MappingStart(anchor_id, _tag_opt) => {
                 report.nodes += 1;
                 if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
+                    breach!(BudgetBreach::Nodes {
+                        nodes: report.nodes
+                    });
                 }
                 depth += 1;
                 if depth > report.max_depth {
                     report.max_depth = depth;
                 }
                 if report.max_depth > budget.max_depth {
-                    breach!(BudgetBreach::Depth { depth: report.max_depth });
+                    breach!(BudgetBreach::Depth {
+                        depth: report.max_depth
+                    });
                 }
                 if anchor_id != 0 {
                     if defined_anchors.insert(anchor_id) {
                         if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
+                            breach!(BudgetBreach::Anchors {
+                                anchors: defined_anchors.len()
+                            });
                         }
                     }
                 }
@@ -324,7 +348,9 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
 
     if budget.enforce_alias_anchor_ratio && report.aliases >= budget.alias_anchor_min_aliases {
         // Heuristic: too many aliases compared to anchors hints at macro-like expansion.
-        if report.anchors == 0 || report.aliases > budget.alias_anchor_ratio_multiplier * report.anchors {
+        if report.anchors == 0
+            || report.aliases > budget.alias_anchor_ratio_multiplier * report.anchors
+        {
             breach!(BudgetBreach::AliasAnchorRatio {
                 aliases: report.aliases,
                 anchors: report.anchors,
@@ -379,7 +405,7 @@ e: *A
         b.max_aliases = 3; // set a tiny limit for the test
 
         let rep = check_yaml_budget(y, &b).unwrap();
-        assert!(matches!(rep.breached, Some(BudgetBreach::Aliases{ .. })));
+        assert!(matches!(rep.breached, Some(BudgetBreach::Aliases { .. })));
     }
 
     #[test]
@@ -398,7 +424,7 @@ e: *A
         b.max_depth = 150;
 
         let rep = check_yaml_budget(&y, &b).unwrap();
-        assert!(matches!(rep.breached, Some(BudgetBreach::Depth{ .. })));
+        assert!(matches!(rep.breached, Some(BudgetBreach::Depth { .. })));
     }
 
     #[test]
@@ -408,6 +434,9 @@ e: *A
         let mut b = Budget::default();
         b.max_anchors = 2;
         let rep = check_yaml_budget(y, &b).unwrap();
-        assert!(matches!(rep.breached, Some(BudgetBreach::Anchors { anchors: 3 })));
+        assert!(matches!(
+            rep.breached,
+            Some(BudgetBreach::Anchors { anchors: 3 })
+        ));
     }
 }

@@ -10,8 +10,8 @@ mod ser;
 pub mod tagged;
 
 use crate::error::{self, Error, ErrorImpl};
-use serde::de::{Deserialize, DeserializeOwned, IntoDeserializer};
 use serde::Serialize;
+use serde::de::{Deserialize, DeserializeOwned, IntoDeserializer};
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -858,7 +858,7 @@ impl Value {
     pub fn from_vector(values: Vec<Value>) -> Self {
         Value::Sequence(Sequence {
             anchor: None,
-            elements: values
+            elements: values,
         })
     }
 }
@@ -1025,7 +1025,9 @@ production:
         let serialized = crate::to_string(&parsed).unwrap();
 
         if serialized.matches("adapter: postgres").count() != 1 {
-            panic!("Anchors and aliases were not correctly preserved; duplication detected. Serialized output {serialized}");
+            panic!(
+                "Anchors and aliases were not correctly preserved; duplication detected. Serialized output {serialized}"
+            );
         }
     }
 

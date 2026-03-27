@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use serde_yaml::Error;
+use serde_yaml_gtc as serde_yaml;
 
 // 5GBF: Empty lines and chomping behaviors
 #[derive(Debug, Deserialize, PartialEq)]

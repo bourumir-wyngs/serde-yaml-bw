@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // EW3V: Wrong indentation in mapping (invalid YAML). The snippet is expected to fail.
 #[derive(Debug, Deserialize)]

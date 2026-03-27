@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // ZK9H: Nested top level flow mapping with multi-line nested sequences
 // { key: [[[\n  value\n ]]]\n}

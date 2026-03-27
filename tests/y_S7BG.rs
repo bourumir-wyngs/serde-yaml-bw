@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // S7BG: Colon followed by comma
 // YAML: sequence with a single scalar value ":,"

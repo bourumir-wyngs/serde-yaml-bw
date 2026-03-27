@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 229Q: Spec Example 2.4. Sequence of Mappings
 #[derive(Debug, Deserialize, PartialEq)]

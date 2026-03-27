@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::mem::{self, MaybeUninit};
 use std::ops::Deref;
-use std::ptr::{addr_of, NonNull};
+use std::ptr::{NonNull, addr_of};
 
 pub(crate) struct Owned<T, Init = T> {
     ptr: NonNull<T>,

@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
-use serde_yaml::{to_string, from_str};
+use serde_yaml::{from_str, to_string};
+use serde_yaml_gtc as serde_yaml;
 use std::borrow::Cow;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -10,7 +10,7 @@ struct BuiltInTypes {
     // Rc and Arc require "rc" feature that is in dev dependencies of this library.
     rc: Rc<String>,
     arc: Arc<Vec<u8>>,
-    
+
     boxed: Box<i32>,
     opt_some: Option<String>,
     opt_none: Option<String>,

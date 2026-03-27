@@ -4,11 +4,11 @@
     clippy::uninlined_format_args
 )]
 
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
-use serde::de::IntoDeserializer;
 use serde::Deserialize;
+use serde::de::IntoDeserializer;
 use serde_yaml::{Number, Value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_nan() {

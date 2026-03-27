@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // JKF3: Multiline unindented double-quoted block key — marked fail: true in suite
 // Expect parsing to fail (no panic).

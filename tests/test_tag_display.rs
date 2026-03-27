@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::value::Tag;
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn tag_equality_ignores_leading_bang() {

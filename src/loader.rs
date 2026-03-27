@@ -1,8 +1,8 @@
+use crate::budget::check_yaml_budget;
 use crate::de::{Event, MappingStartEvent, Progress, ScalarEvent, SequenceStartEvent};
 use crate::error::{self, ErrorImpl, Result, ScanError as PreScanError};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
-use crate::budget::check_yaml_budget;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;

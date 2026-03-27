@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
-use serde::{Deserialize, Serialize};
 use indoc::indoc;
+use serde::{Deserialize, Serialize};
+use serde_yaml_gtc as serde_yaml;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {

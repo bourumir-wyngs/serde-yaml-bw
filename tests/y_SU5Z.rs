@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // SU5Z: Comment without whitespace after doublequoted scalar
 // YAML requires whitespace before a comment (#).

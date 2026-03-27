@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
+use serde_yaml_gtc as serde_yaml;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {
@@ -26,13 +26,7 @@ fn test_read_json_array_of_structs() {
     // Parse JSON (valid YAML) into Vec<Point>
     let points: Vec<Point> = serde_yaml::from_str(json).unwrap();
 
-    assert_eq!(
-        points,
-        vec![
-            Point { x: 1, y: 2 },
-            Point { x: 3, y: 4 },
-        ]
-    );
+    assert_eq!(points, vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 },]);
 
     // Serialize back to YAML
     let s = serde_yaml::to_string(&points).unwrap();

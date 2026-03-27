@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // A2M4: Indentation Indicators — explicit key mapping to a sequence ["b", ["c", "d"]]

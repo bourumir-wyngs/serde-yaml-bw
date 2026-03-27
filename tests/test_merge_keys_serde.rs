@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 /// Configuration to parse into. Does not include "defaults"
 #[derive(Debug, Deserialize, PartialEq)]
@@ -121,7 +121,6 @@ entries:
     assert_eq!(root.entries[3], base);
 }
 
-
 #[test]
 fn test_merge_full_ancestor() {
     let yaml = r#"
@@ -178,7 +177,6 @@ fn test_merge_full_ancestor() {
         r: 12,
         label: "from_LEFT".to_string(),
     };
-
 
     assert_eq!(entries[4], e1);
     assert_eq!(entries[5], e2);

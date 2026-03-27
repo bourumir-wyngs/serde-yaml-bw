@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // MUS6: Directive variants
 // We add separate tests per case in the YAML suite. Where the suite marks fail: true,

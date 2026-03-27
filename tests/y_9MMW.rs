@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 9MMW: Single Pair Implicit Entries — sequence of sequences, each inner sequence has one mapping with a single pair.

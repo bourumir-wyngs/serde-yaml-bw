@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // SY6V: Anchor before sequence entry on same line. Marked fail: true in suite.
 #[test]

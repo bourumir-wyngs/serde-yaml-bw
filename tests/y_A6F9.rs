@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // A6F9: Chomping Final Line Break — strip (no trailing), clip (one trailing), keep (one trailing here per suite)
 #[derive(Debug, Deserialize, PartialEq)]

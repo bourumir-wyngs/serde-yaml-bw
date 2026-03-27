@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::{Mapping, Value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_reserve_and_shrink() {
@@ -36,7 +36,10 @@ fn test_swap_and_shift_remove() {
     let removed = map2.shift_remove("b");
     assert_eq!(removed, Some(Value::from(2)));
     assert!(!map2.contains_key("b"));
-    let keys: Vec<_> = map2.keys().map(|k| k.as_str().unwrap().to_string()).collect();
+    let keys: Vec<_> = map2
+        .keys()
+        .map(|k| k.as_str().unwrap().to_string())
+        .collect();
     assert_eq!(keys, ["a", "c"]);
 }
 
@@ -46,7 +49,10 @@ fn test_iterators() {
     map.insert("x".into(), 1.into());
     map.insert("y".into(), 2.into());
 
-    let keys: Vec<_> = map.keys().map(|k| k.as_str().unwrap().to_string()).collect();
+    let keys: Vec<_> = map
+        .keys()
+        .map(|k| k.as_str().unwrap().to_string())
+        .collect();
     assert_eq!(keys, ["x", "y"]);
     let values: Vec<_> = map.values().map(|v| v.as_i64().unwrap()).collect();
     assert_eq!(values, [1, 2]);

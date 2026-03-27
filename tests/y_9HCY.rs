@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // 9HCY: Need document footer before directives
 // YAML places a directive (%TAG) after content of the first document but before a document

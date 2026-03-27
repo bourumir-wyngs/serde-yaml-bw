@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::{Mapping, Number, Sequence, Value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_value_accessors() {
@@ -60,7 +60,10 @@ fn test_value_accessors() {
 #[test]
 fn test_indexing_returns_null_when_absent() {
     let mut map = Mapping::new();
-    map.insert(Value::String("a".into(), None), Value::Number(Number::from(1), None));
+    map.insert(
+        Value::String("a".into(), None),
+        Value::Number(Number::from(1), None),
+    );
     let map_val = Value::Mapping(map);
 
     assert_eq!(map_val["a"], Value::Number(Number::from(1), None));

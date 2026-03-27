@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 7BUB: Node for "Sammy Sosa" appears twice via anchor/alias
 #[derive(Debug, Deserialize)]

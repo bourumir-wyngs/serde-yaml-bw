@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 #[derive(Debug, PartialEq, Deserialize)]
 struct Node {
@@ -27,10 +27,15 @@ second: *node
 
     let parsed: Root = serde_yaml::from_str(yaml).expect("Failed to deserialize");
     let expected = Root {
-        first: Node { id: 1, name: "First".into() },
-        second: Node { id: 1, name: "First".into() },
+        first: Node {
+            id: 1,
+            name: "First".into(),
+        },
+        second: Node {
+            id: 1,
+            name: "First".into(),
+        },
     };
 
     assert_eq!(parsed, expected);
 }
-

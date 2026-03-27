@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // M5C3: Block Scalar Nodes — literal with indent |2 and folded >1 with local tag
 #[derive(Debug, Deserialize)]

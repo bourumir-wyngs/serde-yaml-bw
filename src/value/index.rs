@@ -1,7 +1,7 @@
-use crate::{mapping, private, Value};
+use crate::{Value, mapping, private};
 use std::ops;
 
-/// A type that can be used to index into a `serde_yaml_gtc::Value`. 
+/// A type that can be used to index into a `serde_yaml_gtc::Value`.
 /// See the `get` methods of `Value`.
 ///
 /// This trait is sealed and cannot be implemented for types outside of
@@ -41,7 +41,7 @@ impl Index for Value {
 impl Index for str {
     fn index_into<'v>(&self, v: &'v Value) -> Option<&'v Value> {
         index_into_mapping(self, v)
-    }    
+    }
 }
 
 impl Index for String {
@@ -116,4 +116,3 @@ where
         index.index_into(self).unwrap_or(&NULL)
     }
 }
-

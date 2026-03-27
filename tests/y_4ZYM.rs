@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 4ZYM: Spec Example 6.4. Line Prefixes
 #[derive(Debug, Deserialize, PartialEq)]

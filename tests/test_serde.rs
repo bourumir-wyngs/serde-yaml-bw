@@ -5,11 +5,11 @@
     clippy::shadow_unrelated
 )]
 
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use serde_yaml::{Mapping, Number, Sequence, Value};
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter;
@@ -576,7 +576,9 @@ fn test_leaf_enum() {
     #[derive(Deserialize, Debug, PartialEq)]
     #[allow(dead_code)]
     enum Simple {
-        A, B, C,
+        A,
+        B,
+        C,
     }
     // This YAML has identation misplaced to Struct becomes an empty map
     let yaml = indoc! {

@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // U9NS: Spec Example 2.8. Play by Play Feed from a Game (multiple documents)
 // Two documents separated by explicit document end markers.

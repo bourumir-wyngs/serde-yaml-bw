@@ -1,10 +1,13 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::Number;
+use serde_yaml_gtc as serde_yaml;
 use std::cmp::Ordering;
 
 #[test]
 fn test_ordering_between_int_and_float() {
-    assert_eq!(Number::from(2).partial_cmp(&Number::from(2.0)), Some(Ordering::Equal));
+    assert_eq!(
+        Number::from(2).partial_cmp(&Number::from(2.0)),
+        Some(Ordering::Equal)
+    );
     assert!(Number::from(1) < Number::from(1.5));
     assert!(Number::from(3) > Number::from(2.5));
     assert!(Number::from(-3) < Number::from(-2.5));

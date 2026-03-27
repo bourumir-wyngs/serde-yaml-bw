@@ -2,20 +2,20 @@
 use serde_yaml_gtc as serde_yaml;
 
 use indoc::indoc;
+use serde::Deserialize;
 #[cfg(not(miri))]
 use serde::de::{SeqAccess, Visitor};
-use serde::Deserialize;
 
 use serde_yaml::{Deserializer, Value};
 #[path = "utils/mod.rs"]
 mod utils;
-use utils::{test_error, deserializer_no_pathology};
 #[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 #[cfg(not(miri))]
 use std::fmt;
 use std::fmt::Debug;
+use utils::{deserializer_no_pathology, test_error};
 
 #[test]
 fn test_scan_error() {
@@ -535,7 +535,8 @@ fn test_duplicate_keys_cases() {
         thing: true
         thing: false
     "};
-    let expected = "duplicate entry with key \"thing\" (first defined at line 2 column 1) at line 3 column 1";
+    let expected =
+        "duplicate entry with key \"thing\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<Value>(yaml, expected);
 
     let yaml = indoc! {"
@@ -551,7 +552,8 @@ fn test_duplicate_keys_cases() {
         99: true
         99: false
     "};
-    let expected = "duplicate entry with key 99 (first defined at line 2 column 1) at line 3 column 1";
+    let expected =
+        "duplicate entry with key 99 (first defined at line 2 column 1) at line 3 column 1";
     test_error::<Value>(yaml, expected);
 
     let yaml = indoc! {"
@@ -571,7 +573,8 @@ fn test_duplicate_keys_hashmap() {
         a: 1
         a: 2
     "};
-    let expected = "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
+    let expected =
+        "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<HashMap<String, i32>>(yaml, expected);
 }
 
@@ -587,7 +590,8 @@ fn test_duplicate_keys_struct() {
         a: 1
         a: 2
     "};
-    let expected = "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
+    let expected =
+        "duplicate entry with key \"a\" (first defined at line 2 column 1) at line 3 column 1";
     test_error::<S>(yaml, expected);
 }
 
