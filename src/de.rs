@@ -643,6 +643,10 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
 
     fn peek_event_mark(&self) -> Result<(&'document Event<'de>, Mark)> {
         match self.document.events.get(*self.pos) {
+            Some((Event::Void, mark)) => match self.document_error() {
+                Some(err) => Err(error::fix_mark(err, *mark, self.path)),
+                None => Ok((&Event::Void, *mark)),
+            },
             Some((event, mark)) => Ok((event, *mark)),
             None => Err(self
                 .document_error()

@@ -15,6 +15,7 @@ pub(crate) struct Loader<'input> {
     parser: Option<Parser<'input>>,
     document_count: usize,
     budget: Option<BudgetTracker<Anchor>>,
+    explicit_end_marker: bool,
 }
 
 #[derive(Clone)]
@@ -95,6 +96,7 @@ impl<'input> Loader<'input> {
             parser: Some(parser),
             document_count: 0,
             budget: options.budget.as_ref().map(BudgetTracker::new),
+            explicit_end_marker: false,
         })
     }
 
@@ -114,17 +116,15 @@ impl<'input> Loader<'input> {
             end_mark: None,
         };
 
-        let mut seen = false;
         loop {
             let (event, mark) = match parser.next() {
                 Ok((event, mark)) => {
-                    seen = true;
                     if let Some(budget) = &mut self.budget {
                         let budget_event = match &event {
                             YamlEvent::StreamStart => BudgetEvent::StreamStart,
                             YamlEvent::StreamEnd => BudgetEvent::StreamEnd,
                             YamlEvent::DocumentStart => BudgetEvent::DocumentStart,
-                            YamlEvent::DocumentEnd => BudgetEvent::DocumentEnd,
+                            YamlEvent::DocumentEnd { .. } => BudgetEvent::DocumentEnd,
                             YamlEvent::Alias(alias) => BudgetEvent::Alias(alias.clone()),
                             YamlEvent::Scalar(scalar) => BudgetEvent::Scalar {
                                 anchor: scalar.anchor.clone(),
@@ -154,7 +154,11 @@ impl<'input> Loader<'input> {
                 }
                 Err(err) => {
                     let err = err.shared();
-                    if !seen && !matches!(err.as_ref(), ErrorImpl::BudgetExceeded(_)) {
+                    if !first
+                        && document.events.is_empty()
+                        && self.explicit_end_marker
+                        && !matches!(err.as_ref(), ErrorImpl::BudgetExceeded(_))
+                    {
                         self.parser = None;
                         return None;
                     }
@@ -180,7 +184,8 @@ impl<'input> Loader<'input> {
                     };
                 }
                 YamlEvent::DocumentStart => continue,
-                YamlEvent::DocumentEnd => {
+                YamlEvent::DocumentEnd { implicit } => {
+                    self.explicit_end_marker = !implicit;
                     document.end_mark = Some(mark);
                     return Some(document);
                 }

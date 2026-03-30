@@ -33,7 +33,7 @@ pub(crate) enum Event<'input> {
     StreamStart,
     StreamEnd,
     DocumentStart,
-    DocumentEnd,
+    DocumentEnd { implicit: bool },
     Alias(Anchor),
     Scalar(Scalar<'input>),
     SequenceStart(SequenceStart),
@@ -93,6 +93,8 @@ impl<'input> Parser<'input> {
             addr_of_mut!((*owned.ptr).input).write(Some(input));
             addr_of_mut!((*owned.ptr).reader).write(None);
             addr_of_mut!((*owned.ptr).read_error).write(None);
+            addr_of_mut!((*owned.ptr).max_input_bytes).write(None);
+            addr_of_mut!((*owned.ptr).total_input_bytes).write(0);
             Owned::assume_init(owned)
         };
         Ok(Parser { pin })
@@ -231,7 +233,9 @@ unsafe fn convert_event<'input>(
         sys::YAML_STREAM_START_EVENT => Ok(Event::StreamStart),
         sys::YAML_STREAM_END_EVENT => Ok(Event::StreamEnd),
         sys::YAML_DOCUMENT_START_EVENT => Ok(Event::DocumentStart),
-        sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd),
+        sys::YAML_DOCUMENT_END_EVENT => Ok(Event::DocumentEnd {
+            implicit: unsafe { sys.data.document_end.implicit },
+        }),
         sys::YAML_ALIAS_EVENT => match unsafe {
             // SAFETY: The event is an alias; the union field `alias` is valid and
             // the pointer comes from libyaml.

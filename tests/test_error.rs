@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
+use std::io::{self, Read};
 
 #[test]
 fn test_scan_error() {
@@ -790,4 +791,20 @@ fn test_from_str_value_unexpected_end_location() {
     let loc = err.location().expect("location");
     assert_eq!(1, loc.line());
     assert_eq!(1, loc.column());
+}
+
+#[test]
+fn test_reader_error_before_first_buffered_event_is_not_eof() {
+    struct FailingReader;
+
+    impl Read for FailingReader {
+        fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+            Err(io::Error::new(io::ErrorKind::Other, "boom"))
+        }
+    }
+
+    let result: Result<bool, _> = bool::deserialize(Deserializer::from_reader(FailingReader));
+
+    let err = result.expect_err("reader failure should surface as an error");
+    assert!(err.to_string().contains("boom"), "expected boom, got: {}", err);
 }
