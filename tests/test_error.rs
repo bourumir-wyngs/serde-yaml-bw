@@ -3,8 +3,10 @@
 use indoc::indoc;
 use serde::de::{SeqAccess, Visitor};
 use serde::Deserialize;
+use std::io::Cursor;
 
-use serde_yaml_bw::{Deserializer, Value};
+use serde_yaml_bw::budget::Budget;
+use serde_yaml_bw::{Deserializer, DeserializerOptions, Value};
 #[path = "utils/mod.rs"]
 mod utils;
 use utils::test_error;
@@ -624,6 +626,52 @@ fn test_unexpected_end_of_sequence() {
             assert_eq!(msg, "invalid length 3, expected a tuple of size 4");
         }
     }
+}
+
+#[test]
+fn test_reader_budget_breach_reports_budget_exceeded() {
+    let input = "- 1\n- 2\n";
+    let options = DeserializerOptions {
+        budget: Some(Budget {
+            max_events: 2,
+            ..Budget::default()
+        }),
+        ..DeserializerOptions::default()
+    };
+
+    let result: Result<Vec<i32>, _> = Vec::deserialize(Deserializer::from_reader_with_options(
+        Cursor::new(input.as_bytes()),
+        &options,
+    ));
+
+    let err = result.expect_err("reader budget breach should error");
+    assert_eq!(
+        err.to_string(),
+        "YAML budget exceeded: Events { events: 3 }"
+    );
+}
+
+#[test]
+fn test_reader_scalar_budget_breach_reports_budget_exceeded() {
+    let input = "value: abcdef\n";
+    let options = DeserializerOptions {
+        budget: Some(Budget {
+            max_total_scalar_bytes: 4,
+            ..Budget::default()
+        }),
+        ..DeserializerOptions::default()
+    };
+
+    let result: Result<Value, _> = Value::deserialize(Deserializer::from_reader_with_options(
+        Cursor::new(input.as_bytes()),
+        &options,
+    ));
+
+    let err = result.expect_err("reader scalar budget breach should error");
+    assert_eq!(
+        err.to_string(),
+        "YAML budget exceeded: ScalarBytes { total_scalar_bytes: 14 }"
+    );
 }
 
 #[derive(Deserialize)]

@@ -623,6 +623,20 @@ struct DeserializerFromEvents<'de, 'document> {
 }
 
 impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
+    fn document_error(&self) -> Option<Error> {
+        self.document
+            .error
+            .as_ref()
+            .map(|parse_error| error::shared(Arc::clone(parse_error)))
+    }
+
+    fn reader_error_on_void(&self) -> Option<Error> {
+        match self.document.events.get(*self.pos) {
+            Some((Event::Void, _)) => self.document_error(),
+            _ => None,
+        }
+    }
+
     fn peek_event(&self) -> Result<&'document Event<'de>> {
         self.peek_event_mark().map(|(event, _mark)| event)
     }
@@ -630,10 +644,9 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
     fn peek_event_mark(&self) -> Result<(&'document Event<'de>, Mark)> {
         match self.document.events.get(*self.pos) {
             Some((event, mark)) => Ok((event, *mark)),
-            None => Err(match &self.document.error {
-                Some(parse_error) => error::shared(Arc::clone(parse_error)),
-                None => error::new(ErrorImpl::EndOfStream),
-            }),
+            None => Err(self
+                .document_error()
+                .unwrap_or_else(|| error::new(ErrorImpl::EndOfStream))),
         }
     }
 
@@ -778,7 +791,12 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             seq.len
         };
         match self.next_event()? {
-            Event::SequenceEnd | Event::Void => {}
+            Event::SequenceEnd => {}
+            Event::Void => {
+                if let Some(err) = self.document_error() {
+                    return Err(err);
+                }
+            }
             _ => {
                 return Err(error::fix_mark(
                     error::new(ErrorImpl::UnexpectedEndOfSequence),
@@ -817,7 +835,12 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             map.len
         };
         match self.next_event()? {
-            Event::MappingEnd | Event::Void => {}
+            Event::MappingEnd => {}
+            Event::Void => {
+                if let Some(err) = self.document_error() {
+                    return Err(err);
+                }
+            }
             _ => {
                 return Err(crate::error::fix_mark(
                     crate::error::new(ErrorImpl::UnexpectedEndOfMapping),
@@ -978,6 +1001,9 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
         if self.empty {
             return Ok(None);
         }
+        if let Some(err) = self.de.reader_error_on_void() {
+            return Err(err);
+        }
         match self.de.peek_event()? {
             Event::SequenceEnd | Event::Void => Ok(None),
             _ => {
@@ -1018,6 +1044,9 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
     {
         if self.empty {
             return Ok(None);
+        }
+        if let Some(err) = self.de.reader_error_on_void() {
+            return Err(err);
         }
         loop {
             match self.de.peek_event()? {
@@ -1983,6 +2012,9 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
+        if let Some(err) = self.reader_error_on_void() {
+            return Err(err);
+        }
         let is_some = match self.peek_event()? {
             &Event::Alias(mut pos) => {
                 *self.pos += 1;
@@ -2030,6 +2062,9 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
+        if let Some(err) = self.reader_error_on_void() {
+            return Err(err);
+        }
         let tagged_already = *self.enum_depth.borrow() > 0;
         let (next, mark) = self.next_event_mark()?;
         match next {
@@ -2077,6 +2112,9 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
+        if let Some(err) = self.reader_error_on_void() {
+            return Err(err);
+        }
         let (next, mark) = self.next_event_mark()?;
         match next {
             &Event::Alias(mut pos) => self.jump(&mut pos)?.deserialize_seq(visitor),
@@ -2125,6 +2163,9 @@ impl<'de> de::Deserializer<'de> for &mut DeserializerFromEvents<'de, '_> {
     where
         V: Visitor<'de>,
     {
+        if let Some(err) = self.reader_error_on_void() {
+            return Err(err);
+        }
         let (next, mark) = self.next_event_mark()?;
         match next {
             &Event::Alias(mut pos) => self.jump(&mut pos)?.deserialize_map(visitor),

@@ -78,7 +78,13 @@ impl<'input> Loader<'input> {
                 }
                 Parser::new(Cow::Borrowed(bytes))?
             }
-            Progress::Read(rdr) => Parser::from_reader(rdr)?,
+            Progress::Read(rdr) => Parser::from_reader(
+                rdr,
+                options
+                    .budget
+                    .as_ref()
+                    .map(|budget| budget.max_total_scalar_bytes),
+            )?,
             Progress::Iterable(_) | Progress::Document(_) => {
                 return Err(error::new(ErrorImpl::MoreThanOneDocument));
             }
@@ -147,11 +153,16 @@ impl<'input> Loader<'input> {
                     (event, mark)
                 }
                 Err(err) => {
-                    if !seen {
+                    let err = err.shared();
+                    if !seen && !matches!(err.as_ref(), ErrorImpl::BudgetExceeded(_)) {
                         self.parser = None;
                         return None;
                     }
-                    document.error = Some(err.shared());
+                    if document.events.is_empty() {
+                        document.events.push((Event::Void, Mark::default()));
+                    }
+                    document.error = Some(err);
+                    self.parser = None;
                     return Some(document);
                 }
             };

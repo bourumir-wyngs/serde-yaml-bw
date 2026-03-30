@@ -1,3 +1,4 @@
+use crate::budget::BudgetBreach;
 use crate::error::{self, Error, ErrorImpl, Result};
 use crate::libyaml::cstr::{self, CStr};
 use crate::libyaml::error::{Error as LibyamlError, Mark};
@@ -22,7 +23,9 @@ struct ParserPinned<'input> {
     sys: sys::yaml_parser_t,
     input: Option<Cow<'input, [u8]>>,
     reader: Option<Box<dyn Read + 'input>>,
-    read_error: Option<io::Error>,
+    read_error: Option<Error>,
+    max_input_bytes: Option<usize>,
+    total_input_bytes: usize,
 }
 
 #[derive(Debug)]
@@ -95,7 +98,7 @@ impl<'input> Parser<'input> {
         Ok(Parser { pin })
     }
 
-    pub fn from_reader<R>(reader: R) -> Result<Parser<'input>>
+    pub fn from_reader<R>(reader: R, max_input_bytes: Option<usize>) -> Result<Parser<'input>>
     where
         R: Read + 'input,
     {
@@ -115,8 +118,10 @@ impl<'input> Parser<'input> {
                 let reader = match pinned.reader.as_mut() {
                     Some(reader) => reader,
                     None => {
-                        pinned.read_error =
-                            Some(io::Error::new(io::ErrorKind::Other, "reader is not set"));
+                        pinned.read_error = Some(error::new(ErrorImpl::Io(io::Error::new(
+                            io::ErrorKind::Other,
+                            "reader is not set",
+                        ))));
                         *size_read = 0;
                         return 0;
                     }
@@ -124,16 +129,31 @@ impl<'input> Parser<'input> {
                 let slice = std::slice::from_raw_parts_mut(buffer, size as usize);
                 match panic::catch_unwind(AssertUnwindSafe(|| reader.read(slice))) {
                     Ok(Ok(len)) => {
+                        let total = pinned.total_input_bytes.saturating_add(len);
+                        if let Some(limit) = pinned.max_input_bytes {
+                            if total > limit {
+                                pinned.read_error = Some(error::new(ErrorImpl::BudgetExceeded(
+                                    BudgetBreach::ScalarBytes {
+                                        total_scalar_bytes: total,
+                                    },
+                                )));
+                                *size_read = 0;
+                                return 0;
+                            }
+                        }
+                        pinned.total_input_bytes = total;
                         *size_read = len as u64;
                         1
                     }
                     Ok(Err(err)) => {
-                        pinned.read_error = Some(err);
+                        pinned.read_error = Some(error::new(ErrorImpl::Io(err)));
                         *size_read = 0;
                         0
                     }
                     Err(_) => {
-                        pinned.read_error = Some(io::Error::other("reader panicked"));
+                        pinned.read_error = Some(error::new(ErrorImpl::Io(io::Error::other(
+                            "reader panicked",
+                        ))));
                         *size_read = 0;
                         0
                     }
@@ -153,6 +173,8 @@ impl<'input> Parser<'input> {
             sys::yaml_parser_set_encoding(parser, sys::YAML_UTF8_ENCODING);
             addr_of_mut!((*owned.ptr).reader).write(Some(Box::new(reader)));
             addr_of_mut!((*owned.ptr).read_error).write(None);
+            addr_of_mut!((*owned.ptr).max_input_bytes).write(max_input_bytes);
+            addr_of_mut!((*owned.ptr).total_input_bytes).write(0);
             let data = owned.ptr;
             sys::yaml_parser_set_input(
                 parser,
@@ -160,7 +182,7 @@ impl<'input> Parser<'input> {
                 data.cast(),
             );
             if let Some(err) = (*data).read_error.take() {
-                return Err(error::new(ErrorImpl::Io(err)));
+                return Err(err);
             }
             addr_of_mut!((*owned.ptr).input).write(None);
             Owned::assume_init(owned)
@@ -175,7 +197,7 @@ impl<'input> Parser<'input> {
         // event is properly initialized before being passed to libyaml.
         unsafe {
             if let Some(err) = (*self.pin.ptr).read_error.take() {
-                return Err(error::new(ErrorImpl::Io(err)));
+                return Err(err);
             }
             let parser = addr_of_mut!((*self.pin.ptr).sys);
             if (&*parser).error != sys::YAML_NO_ERROR {
@@ -184,7 +206,7 @@ impl<'input> Parser<'input> {
             let event = event.as_mut_ptr();
             if sys::yaml_parser_parse(parser, event).fail {
                 if let Some(err) = (*self.pin.ptr).read_error.take() {
-                    return Err(error::new(ErrorImpl::Io(err)));
+                    return Err(err);
                 }
                 return Err(Error::from(LibyamlError::parse_error(parser)));
             }
@@ -388,7 +410,7 @@ mod tests {
 
     #[test]
     fn read_error_is_propagated() {
-        let mut parser = Parser::from_reader(FailingReader).unwrap();
+        let mut parser = Parser::from_reader(FailingReader, None).unwrap();
         let err = parser.next().unwrap_err();
         assert_eq!(err.to_string(), "fail");
     }
@@ -403,8 +425,42 @@ mod tests {
 
     #[test]
     fn reader_panic_is_propagated_as_io_error() {
-        let mut parser = Parser::from_reader(PanickingReader).unwrap();
+        let mut parser = Parser::from_reader(PanickingReader, None).unwrap();
         let err = parser.next().unwrap_err();
         assert_eq!(err.to_string(), "reader panicked");
+    }
+
+    struct ChunkedReader {
+        chunks: Vec<&'static [u8]>,
+    }
+
+    impl Read for ChunkedReader {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            let Some(chunk) = self.chunks.first().copied() else {
+                return Ok(0);
+            };
+            let len = chunk.len().min(buf.len());
+            buf[..len].copy_from_slice(&chunk[..len]);
+            if len == chunk.len() {
+                self.chunks.remove(0);
+            } else {
+                self.chunks[0] = &chunk[len..];
+            }
+            Ok(len)
+        }
+    }
+
+    #[test]
+    fn oversized_reader_input_is_reported_as_budget_exceeded() {
+        let reader = ChunkedReader {
+            chunks: vec![b"a", b"b"],
+        };
+        let mut parser = Parser::from_reader(reader, Some(1)).unwrap();
+        let _ = parser.next().unwrap();
+        let err = parser.next().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "YAML budget exceeded: ScalarBytes { total_scalar_bytes: 2 }"
+        );
     }
 }
