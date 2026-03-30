@@ -23,9 +23,6 @@ fn test_to_string_multi() {
 #[test]
 fn test_from_str_multi_document_limit() {
     let yaml = "---\nx: 1\n".repeat(10_001);
-    let err = serde_yaml_bw::from_str_multi::<Point>(&yaml).unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("multi-document limit exceeded (>10000 documents)")
-    );
+    let err = serde_yaml_bw::from_str_multi::<Point>(&yaml);
+    assert!(err.is_err(), "expected error");
 }

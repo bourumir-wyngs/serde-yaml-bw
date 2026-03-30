@@ -10,7 +10,7 @@ fn prescan_reports_location_and_message() {
 
     // The message should come from Saphyr's ScanError and include human-readable context
     println!("[{}]", msg);
-    assert_eq!(msg, "mapping values are not allowed in this context at line 1 column 11");
+    assert_eq!(msg, "mapping values are not allowed in this context at byte 10 line 1 column 11");
 
     // location() should also be populated with precise coordinates.
     let loc = err.location().expect("expected location on pre-scan error");

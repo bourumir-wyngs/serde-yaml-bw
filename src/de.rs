@@ -98,7 +98,7 @@ impl Default for DeserializerOptions {
             recursion_limit: DEFAULT_RECURSION_LIMIT,
             alias_limit: 0,
             duplicate_key: DuplicateKeyStrategy::Error,
-            budget: None,
+            budget: Some(Budget::default()),
         }
     }
 }
