@@ -3,10 +3,10 @@
 //! This inspects the parser's event stream and enforces simple budgets to
 //! avoid pathological inputs 
 
-use std::collections::HashSet;
 use std::borrow::Cow;
+use std::collections::HashSet;
 
-use saphyr_parser::{Parser, Event, ScanError};
+use saphyr_parser::{Event, Parser, ScanError};
 
 fn fallback_budget_input(input: &str) -> Option<&str> {
     let mut offset = 0;
@@ -198,6 +198,238 @@ pub struct BudgetReport {
     pub total_scalar_bytes: usize,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum BudgetEvent<'a, A> {
+    StreamStart,
+    StreamEnd,
+    DocumentStart,
+    DocumentEnd,
+    Alias(A),
+    Scalar {
+        anchor: Option<A>,
+        scalar_bytes: usize,
+    },
+    SequenceStart {
+        anchor: Option<A>,
+    },
+    SequenceEnd,
+    MappingStart {
+        anchor: Option<A>,
+    },
+    MappingEnd,
+    Nothing,
+    #[allow(dead_code)]
+    _Marker(std::marker::PhantomData<&'a A>),
+}
+
+#[derive(Clone, Debug)]
+struct BudgetScope<A> {
+    aliases: usize,
+    nodes: usize,
+    max_depth: usize,
+    total_scalar_bytes: usize,
+    anchors: HashSet<A>,
+}
+
+impl<A> Default for BudgetScope<A> {
+    fn default() -> Self {
+        Self {
+            aliases: 0,
+            nodes: 0,
+            max_depth: 0,
+            total_scalar_bytes: 0,
+            anchors: HashSet::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct BudgetTracker<A> {
+    budget: Budget,
+    report: BudgetReport,
+    depth: usize,
+    scope: BudgetScope<A>,
+}
+
+impl<A> BudgetTracker<A>
+where
+    A: Eq + std::hash::Hash,
+{
+    pub(crate) fn new(budget: &Budget) -> Self {
+        Self {
+            budget: budget.clone(),
+            report: BudgetReport::default(),
+            depth: 0,
+            scope: BudgetScope {
+                anchors: HashSet::with_capacity(256),
+                ..BudgetScope::default()
+            },
+        }
+    }
+
+    fn reset_scope(&mut self) {
+        self.depth = 0;
+        self.scope.aliases = 0;
+        self.scope.nodes = 0;
+        self.scope.max_depth = 0;
+        self.scope.total_scalar_bytes = 0;
+        self.scope.anchors.clear();
+    }
+
+    fn breach(&mut self, breach: BudgetBreach) -> BudgetBreach {
+        self.report.breached = Some(breach.clone());
+        breach
+    }
+
+    fn check_alias_anchor_ratio(&mut self) -> Result<(), BudgetBreach> {
+        if self.budget.enforce_alias_anchor_ratio
+            && self.scope.aliases >= self.budget.alias_anchor_min_aliases
+        {
+            let anchors = self.scope.anchors.len();
+            if anchors == 0 || self.scope.aliases > self.budget.alias_anchor_ratio_multiplier * anchors
+            {
+                return Err(self.breach(BudgetBreach::AliasAnchorRatio {
+                    aliases: self.scope.aliases,
+                    anchors,
+                }));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn finish_document(&mut self) -> Result<(), BudgetBreach> {
+        self.check_alias_anchor_ratio()?;
+        self.report.aliases = self.scope.aliases;
+        self.report.anchors = self.scope.anchors.len();
+        self.report.nodes = self.scope.nodes;
+        self.report.max_depth = self.scope.max_depth;
+        self.report.total_scalar_bytes = self.scope.total_scalar_bytes;
+        self.reset_scope();
+        Ok(())
+    }
+
+    pub(crate) fn observe<'a>(&mut self, event: BudgetEvent<'a, A>) -> Result<(), BudgetBreach> {
+        self.report.events += 1;
+        if self.report.events > self.budget.max_events {
+            return Err(self.breach(BudgetBreach::Events {
+                events: self.report.events,
+            }));
+        }
+
+        match event {
+            BudgetEvent::StreamStart | BudgetEvent::StreamEnd | BudgetEvent::Nothing => {}
+            BudgetEvent::DocumentStart => {
+                self.report.documents += 1;
+                if self.report.documents > self.budget.max_documents {
+                    return Err(self.breach(BudgetBreach::Documents {
+                        documents: self.report.documents,
+                    }));
+                }
+            }
+            BudgetEvent::DocumentEnd => {
+                self.finish_document()?;
+            }
+            BudgetEvent::Alias(_anchor) => {
+                self.scope.aliases += 1;
+                self.report.aliases = self.scope.aliases;
+                if self.scope.aliases > self.budget.max_aliases {
+                    return Err(self.breach(BudgetBreach::Aliases {
+                        aliases: self.scope.aliases,
+                    }));
+                }
+            }
+            BudgetEvent::Scalar {
+                anchor,
+                scalar_bytes,
+            } => {
+                self.scope.nodes += 1;
+                self.report.nodes = self.scope.nodes;
+                if self.scope.nodes > self.budget.max_nodes {
+                    return Err(self.breach(BudgetBreach::Nodes {
+                        nodes: self.scope.nodes,
+                    }));
+                }
+
+                self.scope.total_scalar_bytes =
+                    self.scope.total_scalar_bytes.saturating_add(scalar_bytes);
+                self.report.total_scalar_bytes = self.scope.total_scalar_bytes;
+                if self.scope.total_scalar_bytes > self.budget.max_total_scalar_bytes {
+                    return Err(self.breach(BudgetBreach::ScalarBytes {
+                        total_scalar_bytes: self.scope.total_scalar_bytes,
+                    }));
+                }
+
+                if let Some(anchor) = anchor {
+                    if self.scope.anchors.insert(anchor) {
+                        self.report.anchors = self.scope.anchors.len();
+                        if self.scope.anchors.len() > self.budget.max_anchors {
+                            return Err(self.breach(BudgetBreach::Anchors {
+                                anchors: self.scope.anchors.len(),
+                            }));
+                        }
+                    }
+                }
+            }
+            BudgetEvent::SequenceStart { anchor } | BudgetEvent::MappingStart { anchor } => {
+                self.scope.nodes += 1;
+                self.report.nodes = self.scope.nodes;
+                if self.scope.nodes > self.budget.max_nodes {
+                    return Err(self.breach(BudgetBreach::Nodes {
+                        nodes: self.scope.nodes,
+                    }));
+                }
+
+                self.depth += 1;
+                if self.depth > self.scope.max_depth {
+                    self.scope.max_depth = self.depth;
+                    self.report.max_depth = self.scope.max_depth;
+                }
+                if self.scope.max_depth > self.budget.max_depth {
+                    return Err(self.breach(BudgetBreach::Depth {
+                        depth: self.scope.max_depth,
+                    }));
+                }
+
+                if let Some(anchor) = anchor {
+                    if self.scope.anchors.insert(anchor) {
+                        self.report.anchors = self.scope.anchors.len();
+                        if self.scope.anchors.len() > self.budget.max_anchors {
+                            return Err(self.breach(BudgetBreach::Anchors {
+                                anchors: self.scope.anchors.len(),
+                            }));
+                        }
+                    }
+                }
+            }
+            BudgetEvent::SequenceEnd | BudgetEvent::MappingEnd => {
+                if let Some(new_depth) = self.depth.checked_sub(1) {
+                    self.depth = new_depth;
+                } else {
+                    return Err(self.breach(BudgetBreach::SequenceUnbalanced));
+                }
+            }
+            BudgetEvent::_Marker(_) => unreachable!(),
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn finish(mut self) -> Result<BudgetReport, BudgetBreach> {
+        if self.report.breached.is_none() && self.report.documents > 0 && self.depth == 0 {
+            if self.scope.aliases > 0
+                || self.scope.nodes > 0
+                || self.scope.total_scalar_bytes > 0
+                || !self.scope.anchors.is_empty()
+                || self.scope.max_depth > 0
+            {
+                self.finish_document()?;
+            }
+        }
+        Ok(self.report)
+    }
+}
+
 /// Check an input `&str` against the given `Budget`.
 ///
 /// Parameters:
@@ -214,22 +446,7 @@ pub struct BudgetReport {
 /// - Depth counts nested `SequenceStart` and `MappingStart`.
 pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, ScanError> {
     let mut parser = Parser::new_from_str(input);
-
-    let mut report = BudgetReport::default();
-    let mut depth: usize = 0;
-
-    // Track anchors that were actually defined (IDs from starts/scalars).
-    // saphyr-parser attaches an "anchor id" (usize) to Scalar/SequenceStart/MappingStart.
-    // The Alias event carries an anchor id it references.
-    let mut defined_anchors: HashSet<usize> = HashSet::with_capacity(256);
-
-    // Helper: early-return with a breach
-    macro_rules! breach {
-        ($kind:expr) => {{
-            report.breached = Some($kind);
-            return Ok(report);
-        }};
-    }
+    let mut tracker = BudgetTracker::<usize>::new(budget);
 
     // Iterate the event stream; this avoids implementing EventReceiver.
     while let Some(item) = parser.next() {
@@ -243,127 +460,44 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
             }
         };
 
-        report.events += 1;
-        if report.events > budget.max_events {
-            breach!(BudgetBreach::Events { events: report.events });
-        }
-
-        match ev {
-            Event::StreamStart => {}
-            Event::StreamEnd => {}
-            Event::DocumentStart(_explicit) => {
-                report.documents += 1;
-                if report.documents > budget.max_documents {
-                    breach!(BudgetBreach::Documents { documents: report.documents });
-                }
-            }
-            Event::DocumentEnd => {}
-
-            Event::Alias(anchor_id) => {
-                report.aliases += 1;
-                if report.aliases > budget.max_aliases {
-                    breach!(BudgetBreach::Aliases { aliases: report.aliases });
-                }
-                // alias/anchor ratio checked after the loop with totals
-                let _ = anchor_id; // we don't need to resolve it here
-            }
-
-            Event::Scalar(value, _style, anchor_id, _tag_opt) => {
-                report.nodes += 1;
-                if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
-                }
-                // Count scalar bytes
-                let len = match value {
+        let budget_event = match ev {
+            Event::StreamStart => BudgetEvent::StreamStart,
+            Event::StreamEnd => BudgetEvent::StreamEnd,
+            Event::DocumentStart(_explicit) => BudgetEvent::DocumentStart,
+            Event::DocumentEnd => BudgetEvent::DocumentEnd,
+            Event::Alias(anchor_id) => BudgetEvent::Alias(anchor_id),
+            Event::Scalar(value, _style, anchor_id, _tag_opt) => BudgetEvent::Scalar {
+                anchor: (anchor_id != 0).then_some(anchor_id),
+                scalar_bytes: match value {
                     Cow::Borrowed(s) => s.len(),
                     Cow::Owned(s) => s.len(),
-                };
-                report.total_scalar_bytes = report.total_scalar_bytes.saturating_add(len);
-                if report.total_scalar_bytes > budget.max_total_scalar_bytes {
-                    breach!(BudgetBreach::ScalarBytes { total_scalar_bytes: report.total_scalar_bytes });
-                }
-                if anchor_id != 0 {
-                    if defined_anchors.insert(anchor_id) {
-                        if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
-                        }
-                    }
-                }
-            }
+                },
+            },
+            Event::SequenceStart(anchor_id, _tag_opt) => BudgetEvent::SequenceStart {
+                anchor: (anchor_id != 0).then_some(anchor_id),
+            },
+            Event::SequenceEnd => BudgetEvent::SequenceEnd,
+            Event::MappingStart(anchor_id, _tag_opt) => BudgetEvent::MappingStart {
+                anchor: (anchor_id != 0).then_some(anchor_id),
+            },
+            Event::MappingEnd => BudgetEvent::MappingEnd,
+            Event::Nothing => BudgetEvent::Nothing,
+        };
 
-            Event::SequenceStart(anchor_id, _tag_opt) => {
-                report.nodes += 1;
-                if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
-                }
-                depth += 1;
-                if depth > report.max_depth {
-                    report.max_depth = depth;
-                }
-                if report.max_depth > budget.max_depth {
-                    breach!(BudgetBreach::Depth { depth: report.max_depth });
-                }
-                if anchor_id != 0 {
-                    if defined_anchors.insert(anchor_id) {
-                        if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
-                        }
-                    }
-                }
-            }
-            Event::SequenceEnd => {
-                if let Some(new_depth) = depth.checked_sub(1) {
-                    depth = new_depth;
-                } else {
-                    breach!(BudgetBreach::SequenceUnbalanced);
-                }
-            }
-
-            Event::MappingStart(anchor_id, _tag_opt) => {
-                report.nodes += 1;
-                if report.nodes > budget.max_nodes {
-                    breach!(BudgetBreach::Nodes { nodes: report.nodes });
-                }
-                depth += 1;
-                if depth > report.max_depth {
-                    report.max_depth = depth;
-                }
-                if report.max_depth > budget.max_depth {
-                    breach!(BudgetBreach::Depth { depth: report.max_depth });
-                }
-                if anchor_id != 0 {
-                    if defined_anchors.insert(anchor_id) {
-                        if defined_anchors.len() > budget.max_anchors {
-                            breach!(BudgetBreach::Anchors { anchors: defined_anchors.len() });
-                        }
-                    }
-                }
-            }
-            Event::MappingEnd => {
-                if let Some(new_depth) = depth.checked_sub(1) {
-                    depth = new_depth;
-                } else {
-                    breach!(BudgetBreach::SequenceUnbalanced);
-                }
-            }
-
-            Event::Nothing => {}
+        if let Err(breach) = tracker.observe(budget_event) {
+            let mut report = tracker.finish().unwrap_or_else(|_| BudgetReport::default());
+            report.breached = Some(breach);
+            return Ok(report);
         }
     }
 
-    report.anchors = defined_anchors.len();
-
-    if budget.enforce_alias_anchor_ratio && report.aliases >= budget.alias_anchor_min_aliases {
-        // Heuristic: too many aliases compared to anchors hints at macro-like expansion.
-        if report.anchors == 0 || report.aliases > budget.alias_anchor_ratio_multiplier * report.anchors {
-            breach!(BudgetBreach::AliasAnchorRatio {
-                aliases: report.aliases,
-                anchors: report.anchors,
-            });
-        }
+    match tracker.finish() {
+        Ok(report) => Ok(report),
+        Err(breach) => Ok(BudgetReport {
+            breached: Some(breach),
+            ..BudgetReport::default()
+        }),
     }
-
-    Ok(report)
 }
 
 /// Convenience wrapper that returns `true` if the YAML **exceeds** any budget.
@@ -456,5 +590,30 @@ e: *A
         let report = check_yaml_budget(yaml, &Budget::default()).unwrap();
         assert!(report.breached.is_none());
         assert_eq!(report.documents, 2);
+    }
+
+    #[test]
+    fn non_document_limits_reset_per_document() {
+        let yaml = "---\na: 1\nb: 2\n---\nc: 3\nd: 4\n";
+        let mut budget = Budget::default();
+        budget.max_nodes = 5;
+
+        let report = check_yaml_budget(yaml, &budget).unwrap();
+        assert!(report.breached.is_none());
+        assert_eq!(report.documents, 2);
+        assert_eq!(report.nodes, 5);
+    }
+
+    #[test]
+    fn document_count_remains_stream_wide() {
+        let yaml = "---\na: 1\n---\nb: 2\n";
+        let mut budget = Budget::default();
+        budget.max_documents = 1;
+
+        let report = check_yaml_budget(yaml, &budget).unwrap();
+        assert!(matches!(
+            report.breached,
+            Some(BudgetBreach::Documents { documents: 2 })
+        ));
     }
 }

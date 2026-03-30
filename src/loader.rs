@@ -1,8 +1,8 @@
 use crate::de::{Event, MappingStartEvent, Progress, ScalarEvent, SequenceStartEvent};
+use crate::budget::{BudgetEvent, BudgetTracker, check_yaml_budget};
 use crate::error::{self, ErrorImpl, Result, ScanError as PreScanError};
 use crate::libyaml::error::Mark;
 use crate::libyaml::parser::{Anchor, Event as YamlEvent, Parser};
-use crate::budget::check_yaml_budget;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -14,6 +14,7 @@ fn anchor_to_string(anchor: &Anchor) -> String {
 pub(crate) struct Loader<'input> {
     parser: Option<Parser<'input>>,
     document_count: usize,
+    budget: Option<BudgetTracker<Anchor>>,
 }
 
 #[derive(Clone)]
@@ -87,6 +88,7 @@ impl<'input> Loader<'input> {
         Ok(Loader {
             parser: Some(parser),
             document_count: 0,
+            budget: options.budget.as_ref().map(BudgetTracker::new),
         })
     }
 
@@ -111,6 +113,37 @@ impl<'input> Loader<'input> {
             let (event, mark) = match parser.next() {
                 Ok((event, mark)) => {
                     seen = true;
+                    if let Some(budget) = &mut self.budget {
+                        let budget_event = match &event {
+                            YamlEvent::StreamStart => BudgetEvent::StreamStart,
+                            YamlEvent::StreamEnd => BudgetEvent::StreamEnd,
+                            YamlEvent::DocumentStart => BudgetEvent::DocumentStart,
+                            YamlEvent::DocumentEnd => BudgetEvent::DocumentEnd,
+                            YamlEvent::Alias(alias) => BudgetEvent::Alias(alias.clone()),
+                            YamlEvent::Scalar(scalar) => BudgetEvent::Scalar {
+                                anchor: scalar.anchor.clone(),
+                                scalar_bytes: scalar.value.len(),
+                            },
+                            YamlEvent::SequenceStart(sequence_start) => BudgetEvent::SequenceStart {
+                                anchor: sequence_start.anchor.clone(),
+                            },
+                            YamlEvent::SequenceEnd => BudgetEvent::SequenceEnd,
+                            YamlEvent::MappingStart(mapping_start) => BudgetEvent::MappingStart {
+                                anchor: mapping_start.anchor.clone(),
+                            },
+                            YamlEvent::MappingEnd => BudgetEvent::MappingEnd,
+                            YamlEvent::Void => BudgetEvent::Nothing,
+                        };
+
+                        if let Err(breach) = budget.observe(budget_event) {
+                            self.parser = None;
+                            document.error = Some(error::new(ErrorImpl::BudgetExceeded(breach)).shared());
+                            if document.events.is_empty() {
+                                document.events.push((Event::Void, mark));
+                            }
+                            return Some(document);
+                        }
+                    }
                     (event, mark)
                 }
                 Err(err) => {
@@ -279,5 +312,49 @@ mod tests {
                 .contains("budget pre-scan requires UTF-8 input"),
             "unexpected error: {err}"
         );
+    }
+
+    #[test]
+    fn budgeted_reader_rejects_second_document_without_buffering() {
+        use std::io::{self, Read};
+
+        struct ChunkedReader {
+            chunks: Vec<&'static [u8]>,
+            next_chunk: usize,
+        }
+
+        impl Read for ChunkedReader {
+            fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+                if self.next_chunk >= self.chunks.len() {
+                    return Ok(0);
+                }
+                let chunk = self.chunks[self.next_chunk];
+                let len = chunk.len().min(buf.len());
+                buf[..len].copy_from_slice(&chunk[..len]);
+                self.next_chunk += 1;
+                Ok(len)
+            }
+        }
+
+        let reader = ChunkedReader {
+            chunks: vec![b"---\na: 1\n", b"---\nb: [1, 2]\n"],
+            next_chunk: 0,
+        };
+
+        let mut opts = crate::de::DeserializerOptions::default();
+        let mut budget = crate::budget::Budget::default();
+        budget.max_nodes = 3;
+        opts.budget = Some(budget);
+
+        let mut loader = Loader::new(Progress::Read(Box::new(reader)), &opts).unwrap();
+
+        let first_document = loader.next_document().unwrap();
+        assert!(first_document.error.is_none());
+
+        let second_document = loader.next_document().unwrap();
+        assert!(matches!(
+            second_document.error,
+            Some(ref err) if matches!(err.as_ref(), ErrorImpl::BudgetExceeded(_))
+        ));
     }
 }
