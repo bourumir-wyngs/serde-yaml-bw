@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // W4TN: Spec Example 9.5. Directives Documents
 // First document: %YAML directive, then a literal block scalar with trailing newline "%!PS-Adobe-2.0\n".

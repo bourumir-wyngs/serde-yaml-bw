@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // W5VH: Allowed characters in alias
 // YAML uses an anchor/alias name containing characters like ':', '@', '!', '*', '$', '"', '<', '>' and ':'

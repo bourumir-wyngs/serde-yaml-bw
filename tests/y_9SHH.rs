@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 9SHH: Quoted Scalar Indicators — mapping with 'single' and 'double'
 #[derive(Debug, Deserialize, PartialEq)]

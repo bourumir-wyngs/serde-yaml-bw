@@ -196,8 +196,8 @@ impl Debug for Mark {
 
 #[cfg(test)]
 mod tests {
+    use crate::libyaml::emitter::{Emitter, Error as EmitterError, Event};
     use crate::libyaml::parser::Parser;
-    use crate::libyaml::emitter::{Emitter, Event, Error as EmitterError};
     use std::borrow::Cow;
 
     #[test]

@@ -70,7 +70,6 @@ fn run_duplicate_keys_on(data: &[u8]) -> bool {
         return true;
     }
     return false;
-
 }
 
 // ===== flow_collections =====
@@ -239,7 +238,7 @@ fn repro_large_scalars_crashes() {
     }
 }
 
-use serde_yaml::budget::{exceeds_yaml_budget, Budget};
+use serde_yaml::budget::{Budget, exceeds_yaml_budget};
 use std::str;
 
 /// Convert possibly non-UTF-8 bytes to a `String`, preserving valid UTF-8

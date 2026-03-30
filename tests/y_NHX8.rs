@@ -14,8 +14,7 @@ fn yaml_nhx8_empty_lines_at_end_of_document() {
 
 "#;
 
-    let v: HashMap<String, Option<String>> =
-        serde_yaml::from_str(y).expect("failed to parse NHX8");
+    let v: HashMap<String, Option<String>> = serde_yaml::from_str(y).expect("failed to parse NHX8");
 
     assert_eq!(v.len(), 1);
     assert!(v.contains_key(""));

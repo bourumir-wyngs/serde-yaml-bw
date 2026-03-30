@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::{Deserialize, Serialize};
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]

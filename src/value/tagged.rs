@@ -1,9 +1,9 @@
 //! Types for working with YAML tags on [`Value`].
 
-use crate::value::de::{MapDeserializer, MapRefDeserializer, SeqDeserializer, SeqRefDeserializer};
-use crate::value::Value;
 use crate::Error;
 use crate::error::{self, ErrorImpl};
+use crate::value::Value;
+use crate::value::de::{MapDeserializer, MapRefDeserializer, SeqDeserializer, SeqRefDeserializer};
 use serde::de::value::{BorrowedStrDeserializer, StrDeserializer};
 use serde::de::{
     Deserialize, DeserializeSeed, Deserializer, EnumAccess, Error as _, VariantAccess, Visitor,
@@ -429,7 +429,7 @@ pub enum MaybeTag<T> {
     /// The value did not represent a tag. Contains the original string.
     NotTag(T),
     /// Formatting the value returned an error.
-    Error
+    Error,
 }
 
 /// Determine whether the `Display` of a value encodes a YAML tag.

@@ -1,3 +1,4 @@
+use crate::budget::BudgetBreach;
 use crate::libyaml::parser::Anchor;
 use crate::libyaml::{emitter, error as libyaml};
 use crate::path::Path;
@@ -8,8 +9,6 @@ use std::io;
 use std::result;
 use std::string;
 use std::sync::Arc;
-use crate::budget::BudgetBreach;
-
 
 /// An error that happened serializing or deserializing YAML data.
 pub struct Error(Box<ErrorImpl>);
@@ -65,7 +64,12 @@ pub struct ScanError {
 
 impl ScanError {
     pub(crate) fn new(msg: String, index: usize, line: usize, column: usize) -> Self {
-        Self { msg, index, line, column }
+        Self {
+            msg,
+            index,
+            line,
+            column,
+        }
     }
 }
 
@@ -242,7 +246,11 @@ pub(crate) fn sanitize_anchor(anchor: &Anchor) -> String {
 impl ErrorImpl {
     fn location(&self) -> Option<Location> {
         match self {
-            ErrorImpl::PreScan(se) => Some(Location { index: se.index, line: se.line, column: se.column }),
+            ErrorImpl::PreScan(se) => Some(Location {
+                index: se.index,
+                line: se.line,
+                column: se.column,
+            }),
             _ => self.mark().map(Location::from_mark),
         }
     }
@@ -285,12 +293,10 @@ impl ErrorImpl {
             ),
             ErrorImpl::RecursionLimitExceeded(_mark) => f.write_str("recursion limit exceeded"),
             ErrorImpl::RepetitionLimitExceeded => f.write_str("repetition limit exceeded"),
-            ErrorImpl::UnknownAnchor(_mark, alias) => {
-                f.write_str(&format!(
-                    "reference to non existing anchor [{}]",
-                    &crate::error::sanitize_anchor(alias)
-                ))
-            }
+            ErrorImpl::UnknownAnchor(_mark, alias) => f.write_str(&format!(
+                "reference to non existing anchor [{}]",
+                &crate::error::sanitize_anchor(alias)
+            )),
             ErrorImpl::ScalarInMerge => {
                 f.write_str("expected a mapping or list of mappings for merging, but found scalar")
             }

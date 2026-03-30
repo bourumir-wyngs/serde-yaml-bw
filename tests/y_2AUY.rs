@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // The YAML in tests/yaml-test-suite/src/2AUY.yaml under the `yaml:` key is a
 // block sequence with explicit tags (!!str, !!int). It represents:

@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // YJV2: Dash in flow sequence
 // The YAML test suite marks this as a failure. We'll assert that parsing fails.

@@ -1,6 +1,6 @@
+use serde::Deserialize;
 use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
-use serde::Deserialize;
 
 #[test]
 fn test_recursive_yaml_references_fail() {
@@ -77,7 +77,10 @@ fn test_unexpected_type_fail() {
 
     let yaml = "config: John";
     let res: Result<HashMap<String, Config>, _> = serde_yaml::from_str(yaml);
-    assert!(res.is_err(), "Unexpected scalar instead of struct should fail");
+    assert!(
+        res.is_err(),
+        "Unexpected scalar instead of struct should fail"
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::Deserialize;
 use serde_yaml::{Deserializer, Value};
+use serde_yaml_gtc as serde_yaml;
 mod utils;
 
 #[test]
@@ -19,7 +19,7 @@ fn custom_recursion_limit_exceeded() {
 }
 
 #[test]
-fn custom_recursion_limit_disabled() -> anyhow::Result<()>{
+fn custom_recursion_limit_disabled() -> anyhow::Result<()> {
     let depth = 3;
     let yaml = "[".repeat(depth) + &"]".repeat(depth);
     let mut opts = utils::opts_no_pathology();
@@ -27,7 +27,6 @@ fn custom_recursion_limit_disabled() -> anyhow::Result<()>{
     Value::deserialize(Deserializer::from_str_with_options(&yaml, &opts))?;
     Ok(())
 }
-
 
 #[test]
 fn custom_alias_limit_exceeded() {

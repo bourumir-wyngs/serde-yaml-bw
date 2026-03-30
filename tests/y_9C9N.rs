@@ -5,8 +5,7 @@ use serde_yaml_gtc as serde_yaml;
 #[ignore]
 fn yaml_9c9n_wrong_indented_flow_sequence_should_fail() {
     let y = "---\nflow: [a,\nb,\nc]\n";
-    let result: Result<std::collections::HashMap<String, Vec<String>>, _> =
-        serde_yaml::from_str(y);
+    let result: Result<std::collections::HashMap<String, Vec<String>>, _> = serde_yaml::from_str(y);
     assert!(
         result.is_err(),
         "9C9N should fail to parse due to wrong indentation in flow sequence"

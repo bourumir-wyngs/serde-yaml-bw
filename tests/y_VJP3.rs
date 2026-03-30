@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // VJP3: Flow collections over many lines
 // The file contains one failing example and one valid example. We implement the valid one:

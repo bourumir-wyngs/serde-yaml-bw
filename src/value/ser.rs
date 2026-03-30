@@ -1,6 +1,6 @@
 use crate::error::{self, Error, ErrorImpl};
 use crate::value::tagged::{self, MaybeTag};
-use crate::value::{to_value, Mapping, Number, Sequence, Tag, TaggedValue, Value};
+use crate::value::{Mapping, Number, Sequence, Tag, TaggedValue, Value, to_value};
 use serde::ser::{self, Serialize};
 use std::fmt::Display;
 use std::mem;

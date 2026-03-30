@@ -1,3 +1,4 @@
+use crate::budget::Budget;
 use crate::duplicate_key::DuplicateKeyError;
 use crate::error::{self, Error, ErrorImpl};
 use crate::libyaml::error::Mark;
@@ -24,7 +25,6 @@ use std::rc::Rc;
 use std::str;
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::budget::Budget;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -88,7 +88,7 @@ pub struct DeserializerOptions {
     /// If not explicitly set, this field is initialized to Some(..) with some reasonable conservative
     /// defaults. Setting to None turns the budget limit (and all pre-check) off,
     /// making parser faster but vulnerable to some bad-intention crafted YAML.
-    pub budget: Option<Budget>
+    pub budget: Option<Budget>,
 }
 
 impl Default for DeserializerOptions {
@@ -668,7 +668,7 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
             Some(found) => {
                 *pos = *found;
                 Ok(DeserializerFromEvents {
-                                    duplicate_key_strategy: self.duplicate_key_strategy.clone(),
+                    duplicate_key_strategy: self.duplicate_key_strategy.clone(),
                     document: self.document,
                     pos,
                     jumpcount: self.jumpcount,
@@ -900,8 +900,15 @@ impl<'de, 'document> DeserializerFromEvents<'de, 'document> {
                     let key = self.parse_value()?;
                     if let Some(ref marks) = first_marks {
                         if let Some(first_mark) = marks.get(&key).cloned() {
-                            let msg = DuplicateKeyError::from_value_with_marks(&key, first_mark, key_mark).to_string();
-                            return Err(error::fix_mark(error::new(ErrorImpl::Message(msg, None)), key_mark, self.path));
+                            let msg = DuplicateKeyError::from_value_with_marks(
+                                &key, first_mark, key_mark,
+                            )
+                            .to_string();
+                            return Err(error::fix_mark(
+                                error::new(ErrorImpl::Message(msg, None)),
+                                key_mark,
+                                self.path,
+                            ));
                         }
                     }
                     match strategy {
@@ -966,7 +973,7 @@ impl<'de> de::SeqAccess<'de> for SeqAccess<'de, '_, '_> {
             Event::SequenceEnd | Event::Void => Ok(None),
             _ => {
                 let mut element_de = DeserializerFromEvents {
-                                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
                     document: self.de.document,
                     pos: self.de.pos,
                     jumpcount: self.de.jumpcount,
@@ -1020,12 +1027,16 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
                         DuplicateKeyStrategy::Error | DuplicateKeyStrategy::FirstWins => {
                             if let Some(first_mark) = self.seen.get(&key_bytes).cloned() {
                                 if let DuplicateKeyStrategy::Error = strategy {
-                                    let err = de::Error::custom(DuplicateKeyError::from_scalar_with_marks(
-                                        &key_bytes,
-                                        first_mark,
+                                    let err = de::Error::custom(
+                                        DuplicateKeyError::from_scalar_with_marks(
+                                            &key_bytes, first_mark, dup_mark,
+                                        ),
+                                    );
+                                    return Err(crate::error::fix_mark(
+                                        err,
                                         dup_mark,
+                                        self.de.path,
                                     ));
-                                    return Err(crate::error::fix_mark(err, dup_mark, self.de.path));
                                 } else {
                                     // FirstWins: skip this duplicate pair (key and its value)
                                     // consume key
@@ -1057,7 +1068,7 @@ impl<'de> de::MapAccess<'de> for MapAccess<'de, '_, '_> {
         V: DeserializeSeed<'de>,
     {
         let mut value_de = DeserializerFromEvents {
-                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+            duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,
@@ -1096,7 +1107,7 @@ impl<'de, 'variant> de::EnumAccess<'de> for EnumAccess<'de, '_, 'variant> {
         let variant = seed.deserialize(str_de)?;
         *self.de.enum_depth.borrow_mut() += 1;
         let visitor = DeserializerFromEvents {
-                    duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
+            duplicate_key_strategy: self.de.duplicate_key_strategy.clone(),
             document: self.de.document,
             pos: self.de.pos,
             jumpcount: self.de.jumpcount,

@@ -1,10 +1,14 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Serialize;
+use serde_yaml_gtc as serde_yaml;
 
 #[derive(Serialize)]
-struct Inner { value: u32 }
+struct Inner {
+    value: u32,
+}
 #[derive(Serialize)]
-struct Outer { inner: Inner }
+struct Outer {
+    inner: Inner,
+}
 
 #[test]
 fn custom_indent() {
@@ -13,7 +17,9 @@ fn custom_indent() {
         .indent(4)
         .build(&mut buf)
         .unwrap();
-    let outer = Outer { inner: Inner { value: 1 } };
+    let outer = Outer {
+        inner: Inner { value: 1 },
+    };
     outer.serialize(&mut ser).unwrap();
     drop(ser);
     assert_eq!(String::from_utf8(buf).unwrap(), "inner:\n    value: 1\n");
@@ -22,13 +28,17 @@ fn custom_indent() {
 #[test]
 fn custom_width() {
     #[derive(Serialize)]
-    struct Data { text: String }
+    struct Data {
+        text: String,
+    }
     let mut buf = Vec::new();
     let mut ser = serde_yaml::SerializerBuilder::new()
         .width(10)
         .build(&mut buf)
         .unwrap();
-    let data = Data { text: "a b c d e f g h i j k l m n o p".to_string() };
+    let data = Data {
+        text: "a b c d e f g h i j k l m n o p".to_string(),
+    };
     data.serialize(&mut ser).unwrap();
     drop(ser);
     let output = String::from_utf8(buf).unwrap();

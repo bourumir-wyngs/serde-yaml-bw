@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 mod utils;
 
 fn collect_test_inputs(base: &Path) -> std::io::Result<Vec<PathBuf>> {
@@ -16,7 +16,7 @@ fn collect_test_inputs(base: &Path) -> std::io::Result<Vec<PathBuf>> {
         let entry = entry?;
         let path = entry.path();
         if path.is_file() {
-           inputs.push(path);
+            inputs.push(path);
         }
     }
     Ok(inputs)
@@ -62,7 +62,9 @@ enum Status {
 // and the "zero documents" case (which we also treat as an error for differential
 // testing); Status::Crash captures panics inside the library.
 fn classify_serde(input: &[u8]) -> (Status, Option<Vec<serde_yaml::Value>>) {
-    let res = catch_unwind(AssertUnwindSafe(|| parse_all_with_serde_yaml_from_bytes(input)));
+    let res = catch_unwind(AssertUnwindSafe(|| {
+        parse_all_with_serde_yaml_from_bytes(input)
+    }));
     match res {
         Err(_) => (Status::Crash, None),
         Ok(Err(_)) => (Status::Error, None),
@@ -118,8 +120,7 @@ fn yaml_test_suite_differential() -> Result<()> {
     let mut skipped = 0usize;
 
     for file in inputs {
-        let yaml_bytes = fs::read(&file)
-            .with_context(|| format!("reading {}", file.display()))?;
+        let yaml_bytes = fs::read(&file).with_context(|| format!("reading {}", file.display()))?;
 
         // First, classify serde_yaml outcome and capture docs if successful.
         let (serde_status, ser_docs_opt) = classify_serde(&yaml_bytes);
@@ -128,7 +129,9 @@ fn yaml_test_suite_differential() -> Result<()> {
             let (bw_status, _bw_docs_opt) = classify_bw(&yaml_bytes);
             eprintln!(
                 "summary: {} | ours: {} | serde_yaml: {}",
-                file.display(), status_str(bw_status), status_str(serde_status)
+                file.display(),
+                status_str(bw_status),
+                status_str(serde_status)
             );
             skipped += 1;
             continue;
@@ -136,35 +139,30 @@ fn yaml_test_suite_differential() -> Result<()> {
         let ser_docs = ser_docs_opt.expect("status Ok must include docs");
 
         // Our parser must be able to parse if serde_yaml did. Catch crashes to report nicely.
-        let bw_attempt = catch_unwind(AssertUnwindSafe(|| parse_all_with_bw_from_bytes(&yaml_bytes)));
+        let bw_attempt = catch_unwind(AssertUnwindSafe(|| {
+            parse_all_with_bw_from_bytes(&yaml_bytes)
+        }));
         let bw_docs = match bw_attempt {
             Err(_) => {
-                eprintln!(
-                    "summary: {} | ours: crash | serde_yaml: ok",
-                    file.display()
-                );
+                eprintln!("summary: {} | ours: crash | serde_yaml: ok", file.display());
                 let yaml_preview = String::from_utf8_lossy(&yaml_bytes);
                 panic!(
                     "Our parser crashed on a case that serde_yaml accepted.\nFile: {}\nInput (lossy):\n{}",
-                    file.display(), yaml_preview
+                    file.display(),
+                    yaml_preview
                 );
             }
             Ok(Ok(v)) => {
-                eprintln!(
-                    "summary: {} | ours: ok | serde_yaml: ok",
-                    file.display()
-                );
+                eprintln!("summary: {} | ours: ok | serde_yaml: ok", file.display());
                 v
             }
             Ok(Err(err)) => {
-                eprintln!(
-                    "summary: {} | ours: error | serde_yaml: ok",
-                    file.display()
-                );
+                eprintln!("summary: {} | ours: error | serde_yaml: ok", file.display());
                 let yaml_preview = String::from_utf8_lossy(&yaml_bytes);
                 panic!(
                     "Our parser failed to parse a case that serde_yaml accepted.\nFile: {}\nError: {err}\nInput (lossy):\n{}",
-                    file.display(), yaml_preview
+                    file.display(),
+                    yaml_preview
                 );
             }
         };
@@ -179,9 +177,11 @@ fn yaml_test_suite_differential() -> Result<()> {
 
         let reparsed_by_serde = parse_all_with_serde_yaml_from_bytes(bw_yaml.as_bytes())?;
         assert_eq!(
-            reparsed_by_serde, ser_docs,
+            reparsed_by_serde,
+            ser_docs,
             "Roundtrip via our serializer/Value changed semantics compared to serde_yaml.\nFile: {}\nOur emitted YAML:\n{}",
-            file.display(), bw_yaml
+            file.display(),
+            bw_yaml
         );
 
         // Additionally, serialize the serde_yaml Values using our serializer
@@ -198,14 +198,19 @@ fn yaml_test_suite_differential() -> Result<()> {
             serde_yaml::to_string_multi(&reparsed_bw)?.as_bytes(),
         )?;
         assert_eq!(
-            reparsed_bw_via_serde, ser_docs,
+            reparsed_bw_via_serde,
+            ser_docs,
             "Serializing serde_yaml Values with our serializer, then parsing with our parser, should be semantics-preserving.\nFile: {}\nserde_yaml -> (our serializer) YAML:\n{}",
-            file.display(), ser_yaml_via_bw
+            file.display(),
+            ser_yaml_via_bw
         );
 
         tested += 1;
     }
 
-    eprintln!("yaml-test-suite differential: tested {} cases, skipped {}", tested, skipped);
+    eprintln!(
+        "yaml-test-suite differential: tested {} cases, skipped {}",
+        tested, skipped
+    );
     Ok(())
 }

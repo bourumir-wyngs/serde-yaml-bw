@@ -1,5 +1,5 @@
-use crate::error::{self, Error, ErrorImpl};
 use crate::Value;
+use crate::error::{self, Error, ErrorImpl};
 use std::collections::{HashMap, HashSet};
 
 impl Value {

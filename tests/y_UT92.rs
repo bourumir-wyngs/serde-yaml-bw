@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // UT92: Spec Example 9.4. Explicit Documents

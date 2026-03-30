@@ -1,10 +1,11 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
 use serde_yaml::{Deserializer, Value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn null_key() {
-    let yaml: serde_json::Value = serde_json::Value::deserialize(Deserializer::from_str(r#"null: "key_value""#)).unwrap();
+    let yaml: serde_json::Value =
+        serde_json::Value::deserialize(Deserializer::from_str(r#"null: "key_value""#)).unwrap();
     let json_str = serde_json::to_string(&yaml).unwrap();
     assert_eq!("{\"null\":\"key_value\"}", json_str);
 }
@@ -14,7 +15,7 @@ fn test_yaml_malformed() {
     #[derive(Debug, Deserialize)]
     #[allow(dead_code)]
     struct TestStruct {
-        x: String
+        x: String,
     }
 
     let yaml_input = "\n    x {\n        ";
@@ -23,7 +24,10 @@ fn test_yaml_malformed() {
     println!("{result:?}");
 
     // Confirm parsing yields an error, and does not panic or succeed.
-    assert!(result.is_err(), "Parsing invalid YAML should fail with an error, not succeed.");
+    assert!(
+        result.is_err(),
+        "Parsing invalid YAML should fail with an error, not succeed."
+    );
 }
 
 #[test]
@@ -32,35 +36,50 @@ fn test_lexer_errors() {
     let result: Result<serde_yaml::Value, _> = serde_yaml::from_str(yaml_input);
 
     // The YAML input is invalid, so expect an Err, but no panic
-    assert!(result.is_err(), "Parsing invalid YAML should return an error, not panic.");
+    assert!(
+        result.is_err(),
+        "Parsing invalid YAML should return an error, not panic."
+    );
 }
 
 #[test]
 fn test_unmatched_brackets() {
     let yaml_input = "{key: [value1, value2";
     let result: Result<serde_yaml::Value, _> = serde_yaml::from_str(yaml_input);
-    assert!(result.is_err(), "Unmatched brackets should yield an error without panic.");
+    assert!(
+        result.is_err(),
+        "Unmatched brackets should yield an error without panic."
+    );
 }
 
 #[test]
 fn test_invalid_escape_sequence() {
     let yaml_input = r#"key: "Invalid\xEscape""#;
     let result: Result<serde_yaml::Value, _> = serde_yaml::from_str(yaml_input);
-    assert!(result.is_err(), "Invalid escape sequences should yield an error without panic.");
+    assert!(
+        result.is_err(),
+        "Invalid escape sequences should yield an error without panic."
+    );
 }
 
 #[test]
 fn test_invalid_boolean_tagged() {
     let yaml_input = "key: !!bool truue";
     let result: Result<serde_yaml::Value, _> = serde_yaml::from_str(yaml_input);
-    assert!(result.is_err(), "Tagged invalid boolean should yield an error without panic.");
+    assert!(
+        result.is_err(),
+        "Tagged invalid boolean should yield an error without panic."
+    );
 }
 
 #[test]
 fn test_deeply_nested_structures() {
     let yaml_input = format!("{}{}", "[".repeat(10_000), "]".repeat(10_000));
     let result: Result<serde_yaml::Value, _> = serde_yaml::from_str(&yaml_input);
-    assert!(result.is_err(), "Deeply nested structures should gracefully return an error.");
+    assert!(
+        result.is_err(),
+        "Deeply nested structures should gracefully return an error."
+    );
 }
 
 #[test]
@@ -93,7 +112,10 @@ fn test_unexpected_eof() {
 
 #[test]
 fn test_empty_input() {
-    assert_eq!(serde_yaml::from_str::<Value>("").unwrap(), Value::Null(None));
+    assert_eq!(
+        serde_yaml::from_str::<Value>("").unwrap(),
+        Value::Null(None)
+    );
 }
 
 #[test]

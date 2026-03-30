@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // UV7Q: Legal tab after indentation — multiline plain scalar folded into one value
 // YAML intends that the second physical line belongs to the first sequence item, producing "x x".

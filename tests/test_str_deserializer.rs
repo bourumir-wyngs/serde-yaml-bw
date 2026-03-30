@@ -1,7 +1,7 @@
-use serde_yaml_gtc as serde_yaml;
 use anyhow::Result;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_yaml_gtc as serde_yaml;
 use std::borrow::Cow;
 
 // Common serializer used by all scenarios
@@ -33,8 +33,7 @@ mod borrowed_str_fails {
         D: serde::Deserializer<'de>,
     {
         use serde::Deserialize as _;
-        Regex::new(<&str>::deserialize(deserializer)?)
-            .map_err(serde::de::Error::custom)
+        Regex::new(<&str>::deserialize(deserializer)?).map_err(serde::de::Error::custom)
     }
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -69,8 +68,8 @@ global:
 // 2) Owned String requested -> should SUCCEED
 // -----------------------------------------------------------------------------
 mod string_works {
-    use regex::Regex;
     use super::*;
+    use regex::Regex;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct RegexConf {

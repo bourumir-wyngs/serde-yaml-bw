@@ -1,5 +1,5 @@
+use serde_yaml::value::tagged::{MaybeTag, check_for_tag};
 use serde_yaml_gtc as serde_yaml;
-use serde_yaml::value::tagged::{check_for_tag, MaybeTag};
 use std::fmt::{self, Display};
 
 #[test]
@@ -33,4 +33,3 @@ fn display_error_returns_error() {
     let out = check_for_tag(&FailsDisplay);
     assert!(matches!(out, MaybeTag::Error));
 }
-

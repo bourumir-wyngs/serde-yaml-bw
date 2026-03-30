@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // XV9V: Spec Example 6.5. Empty Lines [1.3]
 // Expect:

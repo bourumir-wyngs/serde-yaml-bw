@@ -4,8 +4,8 @@ use std::collections::HashMap;
 fn y_sm9w_single_dash() {
     // Just dash followed by new line is a single entry list holding null.
     let y1 = "-\n";
-    let r1: Vec<Option<String>> = serde_yaml::from_str(y1)
-        .expect("Parser failed to handle single dash as a sequence entry");
+    let r1: Vec<Option<String>> =
+        serde_yaml::from_str(y1).expect("Parser failed to handle single dash as a sequence entry");
 
     assert_eq!(1, r1.len());
     assert!(r1[0].is_none());

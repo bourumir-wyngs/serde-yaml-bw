@@ -11,8 +11,7 @@ fn yaml_c2dt_flow_mapping_adjacent_values() {
 "empty":
 }
 "#;
-    let m: HashMap<String, Option<String>> =
-        serde_yaml::from_str(y).expect("failed to parse C2DT");
+    let m: HashMap<String, Option<String>> = serde_yaml::from_str(y).expect("failed to parse C2DT");
     assert_eq!(
         m.get("adjacent").cloned().flatten().as_deref(),
         Some("value")

@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // S98Z: Block scalar with more spaces than first content line (invalid)
 // The following YAML is expected to be invalid per test suite.

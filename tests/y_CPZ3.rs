@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // CPZ3: Doublequoted scalar starting with a tab
 #[derive(Debug, Deserialize)]

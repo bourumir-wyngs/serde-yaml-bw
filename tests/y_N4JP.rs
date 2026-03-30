@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // N4JP: Bad indentation in mapping (fail: true) — expect error
 #[derive(Debug, Deserialize)]

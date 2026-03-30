@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 // 9DXL: Spec Example 9.6. Stream [1.3] — three documents: mapping, empty, mapping

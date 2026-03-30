@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // 4CQQ: Multi-line Flow Scalars
 #[derive(Debug, Deserialize, PartialEq)]

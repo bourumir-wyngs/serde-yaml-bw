@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value;
+use serde_yaml_gtc as serde_yaml;
 
 // SU74: Anchor and alias used as a mapping key. Marked fail: true in suite.
 #[test]

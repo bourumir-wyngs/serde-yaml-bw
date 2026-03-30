@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // LHL4: Invalid tag -> expect parse error
 #[derive(Debug, Deserialize)]

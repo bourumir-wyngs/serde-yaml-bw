@@ -1,15 +1,12 @@
-use serde_yaml_gtc as serde_yaml;
-use serde_yaml::{Sequence, Value};
 use serde_yaml::Mapping;
+use serde_yaml::{Sequence, Value};
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_alias_serialization_errors_without_anchor() {
     let value = Value::Alias("anchor".to_string());
     let err = serde_yaml::to_string(&value).unwrap_err();
-    assert_eq!(
-        err.to_string(),
-        "reference to non existing anchor [anchor]"
-    );
+    assert_eq!(err.to_string(), "reference to non existing anchor [anchor]");
 }
 
 #[test]
@@ -30,7 +27,6 @@ fn test_alias_in_sequence_resolves() {
 
 #[test]
 fn test_alias_in_mapping_branch() {
-
     let mut mapping = Mapping::new();
     mapping.insert(
         Value::String("a".to_string(), None),

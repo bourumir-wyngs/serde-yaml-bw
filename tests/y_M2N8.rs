@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 use std::hash::{Hash, Hasher};
 
 /// Canon: a tiny canonical value type used only in tests to assert YAML structure.

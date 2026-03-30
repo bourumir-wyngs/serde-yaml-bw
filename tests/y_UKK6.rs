@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_json::Value as J;
+use serde_yaml_gtc as serde_yaml;
 use std::collections::BTreeMap;
 
 #[test]

@@ -1,11 +1,10 @@
+use num_traits::float::FloatCore;
 /// Format as float string, make changes to be sure valid YAML float (zmij may render 4e6 and not 4.0e+6)
-
 use std::fmt::Write;
 use zmij::Float;
-use num_traits::float::FloatCore;
 
 /// Format as float string, make changes to be sure valid YAML float
-pub(crate) fn push_float_string<F: Float + FloatCore>(target: & mut String, f: F) {
+pub(crate) fn push_float_string<F: Float + FloatCore>(target: &mut String, f: F) {
     if f.is_nan() {
         target.push_str(".nan");
     } else if f.is_infinite() {
@@ -54,7 +53,10 @@ pub(crate) fn push_float_string<F: Float + FloatCore>(target: & mut String, f: F
 }
 
 /// Format as float string, make changes to be sure valid YAML float
-pub(crate) fn write_float_string<F: Float + FloatCore, W: Write>(target: &mut W, f: F) -> Result<(), std::fmt::Error> {
+pub(crate) fn write_float_string<F: Float + FloatCore, W: Write>(
+    target: &mut W,
+    f: F,
+) -> Result<(), std::fmt::Error> {
     if f.is_nan() {
         target.write_str(".nan")?;
     } else if f.is_infinite() {

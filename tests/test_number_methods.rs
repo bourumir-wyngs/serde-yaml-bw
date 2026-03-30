@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde_yaml::Number;
+use serde_yaml_gtc as serde_yaml;
 
 #[test]
 fn test_is_i64_and_as_i64() {

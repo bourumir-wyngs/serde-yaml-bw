@@ -1,6 +1,6 @@
-use serde_yaml_gtc as serde_yaml;
 use indoc::indoc;
 use serde::{Deserialize, Serialize};
+use serde_yaml_gtc as serde_yaml;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

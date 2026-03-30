@@ -1,5 +1,5 @@
+use serde_yaml::{self as yaml, Error, Value};
 use serde_yaml_gtc as serde_yaml;
-use serde_yaml::{self as yaml, Value, Error};
 
 #[test]
 fn prescan_reports_location_and_message() {
@@ -11,7 +11,10 @@ fn prescan_reports_location_and_message() {
 
     // The message should come from Saphyr's ScanError and include human-readable context
     println!("[{}]", msg);
-    assert_eq!(msg, "mapping values are not allowed in this context at line 1 column 11");
+    assert_eq!(
+        msg,
+        "mapping values are not allowed in this context at line 1 column 11"
+    );
 
     // location() should also be populated with precise coordinates.
     let loc = err.location().expect("expected location on pre-scan error");

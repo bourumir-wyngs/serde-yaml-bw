@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use serde_yaml_gtc as serde_yaml;
     use serde::{Deserialize, Serialize};
-    use serde_yaml::{from_str_value_preserve, Mapping, Sequence, Value};
+    use serde_yaml::{Mapping, Sequence, Value, from_str_value_preserve};
+    use serde_yaml_gtc as serde_yaml;
 
     /// A simple struct we can deserialize into, to verify that alias resolution
     /// produces independent (cloned) values with identical content.
@@ -186,8 +186,7 @@ second: *A
         mapping.insert(Value::String("subvector".to_string(), None), sub_vector);
         let value = Value::Mapping(mapping);
         let yaml = serde_yaml::to_string(&value).unwrap();
-        let expected =
-r#"a: &anchor_referencing_foo foo
+        let expected = r#"a: &anchor_referencing_foo foo
 b: *anchor_referencing_foo
 subvector:
 - as: &anchor_referencing_foos foos

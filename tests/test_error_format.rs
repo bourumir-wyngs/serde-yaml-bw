@@ -1,5 +1,5 @@
+use serde_yaml::{Value, from_str};
 use serde_yaml_gtc as serde_yaml;
-use serde_yaml::{from_str, Value};
 
 #[test]
 fn test_error_includes_location_in_formats() {
@@ -13,8 +13,14 @@ fn test_error_includes_location_in_formats() {
     let display = format!("{}", err);
     let debug = format!("{:?}", err);
     let pos_display = format!("line {} column {}", loc.line(), loc.column());
-    assert!(display.contains(&pos_display), "Display output missing location: {display}");
+    assert!(
+        display.contains(&pos_display),
+        "Display output missing location: {display}"
+    );
 
     let pos_debug = format!("line: {}, column: {}", loc.line(), loc.column());
-    assert!(debug.contains(&pos_debug), "Debug output missing location: {debug}");
+    assert!(
+        debug.contains(&pos_debug),
+        "Debug output missing location: {debug}"
+    );
 }

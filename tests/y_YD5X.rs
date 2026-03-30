@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // YD5X: Spec Example 2.5. Sequence of Sequences
 // YAML is a sequence of 3 flow sequences. We'll deserialize into a vector of

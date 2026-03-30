@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // Y2GN: Anchor with colon in the middle of the anchor name.
 // YAML snippet defines a simple mapping { key: "value" } with an anchor on the value.

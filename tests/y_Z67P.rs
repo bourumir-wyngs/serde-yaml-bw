@@ -1,5 +1,5 @@
-use serde_yaml_gtc as serde_yaml;
 use serde::Deserialize;
+use serde_yaml_gtc as serde_yaml;
 
 // Z67P: Block scalar nodes with explicit indent indicators and a local tag on folded
 // According to the suite JSON, both values should deserialize to "value\n".
