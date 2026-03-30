@@ -267,15 +267,6 @@ where
         }
     }
 
-    fn reset_scope(&mut self) {
-        self.depth = 0;
-        self.scope.aliases = 0;
-        self.scope.nodes = 0;
-        self.scope.max_depth = 0;
-        self.scope.total_scalar_bytes = 0;
-        self.scope.anchors.clear();
-    }
-
     fn breach(&mut self, breach: BudgetBreach) -> BudgetBreach {
         self.report.breached = Some(breach.clone());
         breach
@@ -305,7 +296,6 @@ where
         self.report.nodes = self.scope.nodes;
         self.report.max_depth = self.scope.max_depth;
         self.report.total_scalar_bytes = self.scope.total_scalar_bytes;
-        self.reset_scope();
         Ok(())
     }
 
@@ -593,15 +583,15 @@ e: *A
     }
 
     #[test]
-    fn non_document_limits_reset_per_document() {
-        let yaml = "---\na: 1\nb: 2\n---\nc: 3\nd: 4\n";
+    fn non_document_limits_apply_globally_across_documents() {
+        let yaml = "---\na: 1\nb: 2\n...\n---\nc: 3\nd: 4\n";
         let mut budget = Budget::default();
-        budget.max_nodes = 5;
+        budget.max_nodes = 8;
 
         let report = check_yaml_budget(yaml, &budget).unwrap();
-        assert!(report.breached.is_none());
+        assert!(matches!(report.breached, Some(BudgetBreach::Nodes { nodes: 9 })));
         assert_eq!(report.documents, 2);
-        assert_eq!(report.nodes, 5);
+        assert_eq!(report.nodes, 9);
     }
 
     #[test]
