@@ -1,0 +1,11 @@
+name: Dependency Review
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  dep-review:
+    uses: greenticai/.github/.github/workflows/dependency-review.yml@main
+    secrets: inherit
