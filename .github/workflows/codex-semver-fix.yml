@@ -1,0 +1,19 @@
+name: Codex Semver Fix
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to scan and patch (only for manual run)"
+        required: false
+        default: ""
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  semver-fix:
+    uses: greenticai/.github/.github/workflows/codex-semver-fix.yml@main
+    with:
+      branch: ${{ github.event.inputs.branch || '' }}
+    secrets: inherit
