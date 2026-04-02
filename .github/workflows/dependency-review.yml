@@ -5,6 +5,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dep-review:
     uses: greenticai/.github/.github/workflows/dependency-review.yml@main
