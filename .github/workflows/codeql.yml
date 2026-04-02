@@ -8,6 +8,11 @@ permissions:
   security-events: write
   contents: read
   actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   codeql:
     uses: greenticai/.github/.github/workflows/codeql.yml@main
