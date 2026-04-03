@@ -4,3 +4,17 @@ target
 /suggestions.md
 /fuzz/logs
 /tests/fuzz_crashes/
+
+# CI workflow artifacts (codex-security-fix, dependency-review, codex-semver-fix)
+all-dependabot-alerts.json
+all-code-scanning-alerts.json
+dependabot-alerts.json
+code-scanning-alerts.json
+pr-code-scanning-filtered.json
+pr-changed-files.txt
+security-alerts.json
+codex-prompt.txt
+SECURITY_FIX_REPORT.md
+DEPENDENCY_FIX_REPORT.md
+semver-output.txt
+SEMVER_FIX_REPORT.md
