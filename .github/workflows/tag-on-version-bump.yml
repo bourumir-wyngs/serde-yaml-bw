@@ -16,5 +16,4 @@ concurrency:
 jobs:
   tag:
     uses: greenticai/.github/.github/workflows/tag-on-version-bump.yml@main
-    secrets:
-      PUSH_TOKEN: ${{ secrets.GH_NIGHTLY_TOKEN }}
+    secrets: inherit
