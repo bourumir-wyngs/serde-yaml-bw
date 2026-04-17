@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml_gtc"
-version = "2.5.2"
+version = "2.5.3"
 dependencies = [
  "anyhow",
  "base64",

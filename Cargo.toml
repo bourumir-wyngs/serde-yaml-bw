@@ -1,10 +1,10 @@
 [package]
 name = "serde_yaml_gtc"
-version = "2.5.2"
+version = "2.5.3"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
-description = "Temp copy for serde_yaml_bw until version 2.5.2 is on crates. YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML)."
+description = "Temp copy for serde_yaml_bw until version 2.5.3 is on crates. YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML)."
 documentation = "https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/"
 edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
