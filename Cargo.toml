@@ -1,6 +1,6 @@
 [package]
 name = "serde_yaml_bw"
-version = "2.5.2"
+version = "2.5.4"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
@@ -13,7 +13,7 @@ repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 exclude = ["Cargo.lock"]
 
 [dependencies]
-indexmap = ">=2.0, <2.14"# All range tested
+indexmap = ">=2.0, <3"# All range tested
 itoa = "1.0"
 zmij = "1.0"
 serde = { version = "1.0", features = ["derive"] }
