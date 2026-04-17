@@ -1,19 +1,19 @@
 [package]
 name = "serde_yaml_gtc"
-version = "2.5.2"
+version = "2.5.3"
 # authors = ["David Tolnay <dtolnay@gmail.com>"] # Provided versions up to 0.9.34.
 authors = ["Bourumir Wyngs <bourumir.wyngs@gmail.com>"]
 categories = ["encoding", "parser-implementations"]
-description = "Temp copy for serde_yaml_bw until version 2.5.2 is on crates. YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML)."
+description = "Temp copy for serde_yaml_bw until version 2.5.3 is on crates. YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML)."
 documentation = "https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/"
 edition = "2024"
 keywords = ["yaml", "serde", "serialization"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
+repository = "https://github.com/greenticai/serde-yaml-gtc"
 exclude = ["Cargo.lock"]
 
 [dependencies]
-indexmap = ">=2.0, <2.14"# All range tested
+indexmap = ">=2.0, <3"# All range tested
 itoa = "1.0"
 zmij = "1.0"
 serde = { version = "1.0", features = ["derive"] }
