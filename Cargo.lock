@@ -98,6 +98,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "granit-parser"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e354bf0eb3279a16e8f92fc1ba6ddd4420953fc064140b010844d21874b58113"
+dependencies = [
+ "arraydeque",
+ "smallvec",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -252,16 +262,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e86697c916019a8588c99b5fac3cead74ec0b4b819707a682fd4d23fa0ce1ba1"
 
 [[package]]
-name = "saphyr-parser-bw"
-version = "0.0.612"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73e91b93c627b8ad4e5974e4d55520d48586bc550d7b57a5df65911c030034a3"
-dependencies = [
- "arraydeque",
- "smallvec",
-]
-
-[[package]]
 name = "serde"
 version = "1.0.218"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -328,17 +328,17 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml_bw"
-version = "2.5.5"
+version = "2.5.6"
 dependencies = [
  "anyhow",
  "base64",
  "chrono",
+ "granit-parser",
  "indexmap",
  "indoc",
  "itoa",
  "num-traits",
  "regex",
- "saphyr-parser-bw",
  "serde",
  "serde_bytes",
  "serde_json",
