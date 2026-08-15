@@ -435,7 +435,12 @@ where
 /// - This is **streaming** and does not allocate a DOM.
 /// - Depth counts nested `SequenceStart` and `MappingStart`.
 pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, ScanError> {
-    let mut parser = Parser::new_from_str(input);
+    let mut parser = Parser::new_from_str_with_options(
+        input,
+        saphyr_parser::options! {
+            emit_comments: false,
+        },
+    );
     let mut tracker = BudgetTracker::<usize>::new(budget);
 
     // Iterate the event stream; this avoids implementing EventReceiver.
@@ -453,7 +458,7 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
         let budget_event = match ev {
             Event::StreamStart => BudgetEvent::StreamStart,
             Event::StreamEnd => BudgetEvent::StreamEnd,
-            Event::DocumentStart(_explicit) => BudgetEvent::DocumentStart,
+            Event::DocumentStart(_explicit, _version) => BudgetEvent::DocumentStart,
             Event::DocumentEnd => BudgetEvent::DocumentEnd,
             Event::Alias(anchor_id) => BudgetEvent::Alias(anchor_id),
             Event::Scalar(value, _style, anchor_id, _tag_opt) => BudgetEvent::Scalar {
@@ -463,15 +468,15 @@ pub fn check_yaml_budget(input: &str, budget: &Budget) -> Result<BudgetReport, S
                     Cow::Owned(s) => s.len(),
                 },
             },
-            Event::SequenceStart(anchor_id, _tag_opt) => BudgetEvent::SequenceStart {
+            Event::SequenceStart(_style, anchor_id, _tag_opt) => BudgetEvent::SequenceStart {
                 anchor: (anchor_id != 0).then_some(anchor_id),
             },
             Event::SequenceEnd => BudgetEvent::SequenceEnd,
-            Event::MappingStart(anchor_id, _tag_opt) => BudgetEvent::MappingStart {
+            Event::MappingStart(_style, anchor_id, _tag_opt) => BudgetEvent::MappingStart {
                 anchor: (anchor_id != 0).then_some(anchor_id),
             },
             Event::MappingEnd => BudgetEvent::MappingEnd,
-            Event::Nothing => BudgetEvent::Nothing,
+            _ => BudgetEvent::Nothing,
         };
 
         if let Err(breach) = tracker.observe(budget_event) {
@@ -517,6 +522,15 @@ mod tests {
         assert!(r.breached.is_none());
         assert_eq!(r.documents, 1);
         assert_eq!(r.nodes > 0, true);
+    }
+
+    #[test]
+    fn comments_are_not_emitted_as_budget_events() {
+        let budget = Budget::default();
+        let without_comment = check_yaml_budget("a: 1\n", &budget).unwrap();
+        let with_comment = check_yaml_budget("# ignored\na: 1 # ignored\n", &budget).unwrap();
+
+        assert_eq!(with_comment.events, without_comment.events);
     }
 
     #[test]
