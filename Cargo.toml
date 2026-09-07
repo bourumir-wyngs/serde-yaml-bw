@@ -13,15 +13,15 @@ repository = "https://github.com/bourumir-wyngs/serde-yaml-bw"
 exclude = ["Cargo.lock"]
 
 [dependencies]
-indexmap = ">=2.0, <3.0"
+indexmap = "2.0" # Known working: <3.0
 itoa = "1.0"
 zmij = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 unsafe-libyaml-norway = "0.2"
-base64 = ">=0.21, <0.23"
-saphyr-parser = { package = "granit-parser", version = ">= 1.1, < 2"}
-regex = ">= 1.8, < 1.13"
-num-traits = ">= 0.2.0, < 0.2.20"
+base64 = "0.21" # Known working: <0.23
+saphyr-parser = { package = "granit-parser", version = "1.1"} # Known working: < 2
+regex = "1.8" # Known working: < 1.13
+num-traits = "0.2.0" # Known working: < 0.2.20
 
 [dev-dependencies]
 anyhow = "1.0" # All range tested
